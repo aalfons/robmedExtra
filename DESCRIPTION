@@ -1,0 +1,25 @@
+Package: robmedShiny
+Type: Package
+Title: Shiny Apps for (Robust) Mediation Analysis
+Version: 0.1.0
+Date: 2022-02-02
+Depends:
+    robmed (>= 0.10.0)
+Imports:
+    shiny (>= 1.1.0),
+    ggplot2 (>= 3.3.0),
+    stats
+Description: This companion package to 'robmed' contains a shiny app to compare various bootstrap procedures for mediation analysis on simulated data.  Future plans include to provide a graphical user interface for the robust bootstrap test ROBMED (Alfons, Ates & Groenen, 2021; <doi:10.1177/1094428121999096>) to make the method more accessible to less proficient R users.
+License: GPL (>= 3)
+URL: https://github.com/aalfons/robmedShiny
+BugReports: https://github.com/aalfons/robmedShiny/issues
+LazyData: yes
+Authors@R: 
+    person("Andreas", "Alfons", 
+           email = "alfons@ese.eur.nl", 
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-2513-3788"))
+Author: Andreas Alfons [aut, cre] (<https://orcid.org/0000-0002-2513-3788>)
+Maintainer: Andreas Alfons <alfons@ese.eur.nl>
+Encoding: UTF-8
+RoxygenNote: 7.1.2

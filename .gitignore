@@ -37,3 +37,11 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Compiled C++ code
+src/*.o
+src/*.so
+src/*.dll
+
+# MacOS system files
+*DS_Store
