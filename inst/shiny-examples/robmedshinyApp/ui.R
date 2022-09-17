@@ -59,7 +59,8 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
                ),
     tabPanel('View Data',
-             h1("Data")
+             h1("Data"),
+             dataTableOutput('data_table')
              )
 
     )
