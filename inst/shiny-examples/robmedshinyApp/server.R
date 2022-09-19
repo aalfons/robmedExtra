@@ -29,6 +29,8 @@ shinyServer(function(input, output) {
       # TODO: - add support for combination of mediator type ?
 
       formula <- reactive({
+        req(input$Explanatory, input$Modeltype, input$Response, input$Mediators)
+
         explanatory <- paste(input$Explanatory, collapse = '+')
         mediators <- paste('m(', paste(input$Mediators, collapse = ','),', .model = "',input$Modeltype,'")',sep = '')
 
@@ -55,8 +57,6 @@ shinyServer(function(input, output) {
 
       # Renders plot of expected vs empirical weights
       output$plot_weights <- renderPlot({
-      req(input$Explanatory,input$Response, input$Mediators)
-
       robust_boot_simple <- perform_bootstrap_test()
 
       summary_simple <- summary(robust_boot_simple)
@@ -65,10 +65,8 @@ shinyServer(function(input, output) {
 
     # Renders the summary text
     output$summary <- renderPrint({
-      req(input$Explanatory,input$Response, input$Mediators)
-
       robust_boot_simple <- perform_bootstrap_test()
-      summary(robust_boot_simple)$summary
+      summary(robust_boot_simple)
 
       })
 
@@ -95,11 +93,6 @@ shinyServer(function(input, output) {
     })
 
     output$data_table <- renderDataTable({data()})
-
-
-
-
-
 
 
 
