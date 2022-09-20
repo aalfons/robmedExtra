@@ -51,7 +51,9 @@ shinyServer(function(input, output) {
 
       set.seed(input$seed)
       f_test <- formula()
-      robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE, level = input$Confidence)
+      control_var = reg_control(efficiency = input$MM_eff, max_iterations = input$max_iter, seed = input$seed)
+      robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE, level = input$Confidence, R = input$boot_samples,
+                                         control = control_var)
       })
 
 
