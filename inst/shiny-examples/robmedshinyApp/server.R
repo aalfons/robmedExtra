@@ -45,21 +45,35 @@ shinyServer(function(input, output) {
 
 
       # Creates boot_test_mediation object
-      perform_bootstrap_test <- eventReactive(input$run,
+      robust_bootstrap_test <- eventReactive(input$runRobust,
                                               {
       df <- data()
-
-      set.seed(input$seed)
       f_test <- formula()
+
+      #TODO: control_var should be different if method is not robust. Then use cov_control instead
       control_var = reg_control(efficiency = input$MM_eff, max_iterations = input$max_iter, seed = input$seed)
+
       robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE, level = input$Confidence, R = input$boot_samples,
                                          control = control_var)
       })
 
+      ols_bootstrap_test <- eventReactive(input$runOLS,
+                                             {
+                                               df <- data()
+                                               f_test <- formula()
+
+                                               ols_bootstrap_test <- test_mediation(f_test, data = df, robust = FALSE, level = input$Confidence, R = input$boot_samples)
+                                             })
+
+      output$summaryOLS <- renderPrint({
+        summary(ols_bootstrap_test())
+      })
+
+
 
       # Renders plot of expected vs empirical weights
       output$plot_weights <- renderPlot({
-      robust_boot_simple <- perform_bootstrap_test()
+      robust_boot_simple <- robust_bootstrap_test()
 
       summary_simple <- summary(robust_boot_simple)
       summary_simple$plot
@@ -67,7 +81,7 @@ shinyServer(function(input, output) {
 
     # Renders the summary text
     output$summary <- renderPrint({
-      robust_boot_simple <- perform_bootstrap_test()
+      robust_boot_simple <- robust_bootstrap_test()
       summary(robust_boot_simple)
 
       })
@@ -95,12 +109,6 @@ shinyServer(function(input, output) {
     })
 
     output$data_table <- renderDataTable({data()})
-
-
-
-
-
-
 
 })
 

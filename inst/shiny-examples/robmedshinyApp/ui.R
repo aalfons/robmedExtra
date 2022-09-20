@@ -16,10 +16,10 @@ library(shinythemes)
 shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
     # Application title
-    titlePanel( h2("ROBMED", align = 'center')),
+    titlePanel( h1("ROBMED", align = 'center')),
 
     tabsetPanel(
-      tabPanel('View Data',
+      tabPanel('Data and Model',
                              sidebarLayout(
                                sidebarPanel(
                                 h1("Data"),
@@ -52,8 +52,8 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
     ),
       tabPanel("ROBMED",
                sidebarLayout(
-                 sidebarPanel(actionButton('run', "Run"),
-                              h2("Settings"),
+                 sidebarPanel(actionButton('runRobust', "Run"),
+                              h2("Robust Bootstrap Settings"),
                               numericInput("max_iter", "Maximum number of iterations",
                                            value = 10000),
 
@@ -76,7 +76,17 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                )
 
                ),
-    tabPanel("OLS Bootstrap"
+    tabPanel("OLS Bootstrap",
+             sidebarLayout(
+               sidebarPanel(
+                 h2("OLS Bootstrap Test"),
+                 actionButton('runOLS', 'Run'),
+                 p("TODO: Settings specific to OLS?")
+               ),
+               mainPanel(
+                 verbatimTextOutput('summaryOLS')
+               )
+             )
 
 
     )
