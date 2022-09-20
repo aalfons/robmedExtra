@@ -33,14 +33,22 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                               uiOutput('selectUI'),
                               uiOutput('selectResponse'),
                               uiOutput('selectExplanatory'),
-                              uiOutput('selectControls'),
                               uiOutput('selectMediator'),
+                              uiOutput('selectControls'),
+
 
                               selectInput("Modeltype", "Type of mediator",
                                           choices = c('parallel', 'serial')),
 
                               sliderInput("Confidence", "Confidence level test",
                                           min = 0, max = 1, value = 0.95),
+
+                              numericInput("max_iter", "Maximum number of iterations",
+                                           value = 10000),
+
+                              selectInput("MM_eff", "Efficiency of the MM estimator",
+                                           choices = c(80, 85, 90, 95)),
+                              numericInput('boot_samples', label = 'Number of bootstrap samples', value = 5000),
 
                               numericInput('seed', label = 'Random seed', value = 0)
                  ),
