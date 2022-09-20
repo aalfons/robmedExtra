@@ -25,6 +25,12 @@ shinyServer(function(input, output) {
 
       })
 
+      observeEvent(input$rngversion,{
+        if(input$rngversion != 'Current'){
+          RNGversion(input$rngversion)
+        }
+      })
+
       # For now supports only all serial or all parallel mediators
       # TODO: - add support for combination of mediator type ?
 
@@ -32,7 +38,7 @@ shinyServer(function(input, output) {
         req(input$Explanatory, input$Modeltype, input$Response, input$Mediators)
 
         explanatory <- paste(input$Explanatory, collapse = '+')
-        mediators <- paste('m(', paste(input$Mediators, collapse = ','),', .model = "',input$Modeltype,'")',sep = '')
+        mediators <- paste('m(', paste(input$Mediators, collapse = ','),', .model = "',input$Modeltype,'")', sep = '')
 
         controls <- ''
         if(length(input$Covariates) != 0){

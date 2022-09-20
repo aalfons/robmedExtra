@@ -16,7 +16,7 @@ library(shinythemes)
 shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
     # Application title
-    titlePanel( h1("ROBMED", align = 'center')),
+    titlePanel(h1("ROBMED", align = 'center')),
 
     tabsetPanel(
       tabPanel('Data and Model',
@@ -25,7 +25,8 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                                 h1("Data"),
                                 fileInput("file", "Choose CSV File",accept = c("text/csv",
                                                                             "text/comma-separated-values,text/plain",
-                                                                            ".csv")),
+                                                                           ".csv")),
+                                h1("Model"),
                                 uiOutput('selectUI'),
                                 uiOutput('selectResponse'),
                                 uiOutput('selectExplanatory'),
@@ -34,10 +35,12 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
                                 selectInput("Modeltype", "Type of mediator",
                                             choices = c('parallel', 'serial')),
-
+                                h1("Options"),
                                 sliderInput("Confidence", "Confidence level test",
                                             min = 0, max = 1, value = 0.95),
-                                numericInput('seed', label = 'Random seed', value = 0)
+                                numericInput('seed', label = 'Random seed', value = 0),
+                                selectInput("rngversion", "Random Number Generator Version",
+                                            choices = c("Current", '3.5.3'))
 
 
 
@@ -58,7 +61,7 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                                            value = 10000),
 
                               selectInput("MM_eff", "Efficiency of the MM estimator",
-                                           choices = c(80, 85, 90, 95)),
+                                           choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85),
                               numericInput('boot_samples', label = 'Number of bootstrap samples', value = 5000),
 
                  ),
@@ -87,10 +90,6 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                  verbatimTextOutput('summaryOLS')
                )
              )
-
-
-    )
-
-
+      )
     )
 ))
