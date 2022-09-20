@@ -19,30 +19,41 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
     titlePanel( h2("ROBMED", align = 'center')),
 
     tabsetPanel(
-      tabPanel("main",
+      tabPanel('View Data',
+                             sidebarLayout(
+                               sidebarPanel(
+                                h1("Data"),
+                                fileInput("file", "Choose CSV File",accept = c("text/csv",
+                                                                            "text/comma-separated-values,text/plain",
+                                                                            ".csv")),
+                                uiOutput('selectUI'),
+                                uiOutput('selectResponse'),
+                                uiOutput('selectExplanatory'),
+                                uiOutput('selectMediator'),
+                                uiOutput('selectControls'),
+
+                                selectInput("Modeltype", "Type of mediator",
+                                            choices = c('parallel', 'serial')),
+
+                                sliderInput("Confidence", "Confidence level test",
+                                            min = 0, max = 1, value = 0.95),
+                                numericInput('seed', label = 'Random seed', value = 0)
+
+
+
+                             ),
+
+                             mainPanel(
+                             dataTableOutput('data_table')
+                             )
+    )
+
+
+    ),
+      tabPanel("ROBMED",
                sidebarLayout(
                  sidebarPanel(actionButton('run', "Run"),
                               h2("Settings"),
-
-
-                              fileInput("file", "Choose CSV File",accept = c("text/csv",
-                                                                             "text/comma-separated-values,text/plain",
-                                                                             ".csv")
-                              ),
-
-                              uiOutput('selectUI'),
-                              uiOutput('selectResponse'),
-                              uiOutput('selectExplanatory'),
-                              uiOutput('selectMediator'),
-                              uiOutput('selectControls'),
-
-
-                              selectInput("Modeltype", "Type of mediator",
-                                          choices = c('parallel', 'serial')),
-
-                              sliderInput("Confidence", "Confidence level test",
-                                          min = 0, max = 1, value = 0.95),
-
                               numericInput("max_iter", "Maximum number of iterations",
                                            value = 10000),
 
@@ -50,7 +61,6 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                                            choices = c(80, 85, 90, 95)),
                               numericInput('boot_samples', label = 'Number of bootstrap samples', value = 5000),
 
-                              numericInput('seed', label = 'Random seed', value = 0)
                  ),
 
 
@@ -66,10 +76,11 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                )
 
                ),
-    tabPanel('View Data',
-             h1("Data"),
-             dataTableOutput('data_table')
-             )
+    tabPanel("OLS Bootstrap"
+
+
+    )
+
 
     )
 ))
