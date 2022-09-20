@@ -79,17 +79,17 @@ shinyServer(function(input, output) {
 
     output$selectMediator <- renderUI({
       df <- data()
-      selectInput(inputId='Mediators', label='Mediating variable', choices = colnames(data()), multiple = TRUE)
+      selectInput(inputId='Mediators', label='Mediating variable', choices = colnames(df), multiple = TRUE)
     })
 
     output$selectResponse <- renderUI({
       df <- data()
-      selectInput(inputId='Response', label='Response variable', choices = colnames(data()), multiple = TRUE)
+      selectInput(inputId='Response', label='Response variable', choices = colnames(df), multiple = TRUE)
     })
 
     output$selectControls <- renderUI({
       df <- data()
-      selectInput(inputId='Covariates', label='Control variables', choices = colnames(data()), multiple = TRUE)
+      selectInput(inputId='Covariates', label='Control variables', choices = colnames(df), multiple = TRUE)
     })
 
     output$data_table <- renderDataTable({data()})
@@ -101,3 +101,4 @@ shinyServer(function(input, output) {
 
 
 })
+
