@@ -11,26 +11,32 @@ library(shiny)
 library(robmed)
 library(vroom)
 
-mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
+
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
 
       # Reactive expression to get data; only supports csv for now
       get_data <- reactive({
-        if(input$datatype == 'csv'){
-        req(input$file)
+        if (input$datatype == 'csv'){
+          req(input$file)
           ext <- tools::file_ext(input$file$name)
-          switch(ext, csv = vroom::vroom(input$file$datapath, delim = ","),
+         final_df <- switch(ext, csv = vroom::vroom(input$file$datapath, delim = ","),
                  validate("Invalid file; Please upload a .csv file"))
         }
-
-        if(input$datatype == 'Existing DataFrame'){
+        if (input$datatype == 'Existing DataFrame'){
           req(input$dfname)
           dataframeName = input$dfname
-          as.data.frame(get(input$dfname))
+          final_df <- as.data.frame(get(input$dfname))
 
         }
+        if (input$datatype == 'RData') {
+          req(input$rdata_dfname)
+          final_df <- as.data.frame(get(input$rdata_dfname))
+        }
+
+        final_df
+
       })
 
       observeEvent(input$rngversion,{
@@ -64,7 +70,6 @@ shinyServer(function(input, output) {
       df <- get_data()
       f_test <- formula()
 
-      #TODO: control_var should be different if method is not robust. Then use cov_control instead
       control_var = reg_control(efficiency = input$MM_eff, max_iterations = input$max_iter, seed = input$seed)
 
       robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE, level = input$Confidence, R = input$boot_samples,
@@ -123,12 +128,29 @@ shinyServer(function(input, output) {
 
     output$dataframechoice <- renderUI({
       if (input$datatype == 'Existing DataFrame') {
+        mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
         selectInput('dfname', 'DataFrame from Global Env',
                     choices = mydataframes, multiple = FALSE)
       } else if (input$datatype == 'csv') {
         fileInput("file", "Choose CSV File",accept = c("text/csv",
                                                        "text/comma-separated-values,text/plain",
                                                        ".csv"))
+      } else if (input$datatype == 'RData') {
+        fileInput('rdatafile', 'Choose RData File',
+                  accept = c('.RData'))
+      }
+    })
+
+    output$rdatafile_dataframes <- renderUI({
+      if (input$datatype == 'RData') {
+        req(input$rdatafile)
+        load(input$rdatafile$datapath)
+
+        dataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
+
+        selectInput('rdata_dfname', 'DataFrame',
+                    choices = dataframes)
+
       }
     })
 

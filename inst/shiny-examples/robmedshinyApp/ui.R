@@ -10,10 +10,6 @@ library(shiny)
 library(robmed)
 library(shinythemes)
 
-
-mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
-
-
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
@@ -26,8 +22,10 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                                sidebarPanel(
                                 h1("Data"),
                                 selectInput('datatype', 'datatype',
-                                            choices = c('csv', 'Existing DataFrame')),
+                                            choices = c('csv', 'Existing DataFrame',
+                                                        'RData')),
                                 uiOutput('dataframechoice'),
+                                uiOutput('rdatafile_dataframes'),
                                 h1("Model"),
                                 uiOutput('selectUI'),
                                 uiOutput('selectResponse'),
