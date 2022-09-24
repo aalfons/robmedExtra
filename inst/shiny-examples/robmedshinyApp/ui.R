@@ -11,6 +11,8 @@ library(robmed)
 library(shinythemes)
 
 
+mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
+
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(theme = shinytheme("cosmo"),
@@ -23,9 +25,9 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                              sidebarLayout(
                                sidebarPanel(
                                 h1("Data"),
-                                fileInput("file", "Choose CSV File",accept = c("text/csv",
-                                                                            "text/comma-separated-values,text/plain",
-                                                                           ".csv")),
+                                selectInput('datatype', 'datatype',
+                                            choices = c('csv', 'Existing DataFrame')),
+                                uiOutput('dataframechoice'),
                                 h1("Model"),
                                 uiOutput('selectUI'),
                                 uiOutput('selectResponse'),
@@ -41,9 +43,6 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                                 numericInput('seed', label = 'Random seed', value = 0),
                                 selectInput("rngversion", "Random Number Generator Version",
                                             choices = c("Current", '3.5.3'))
-
-
-
                              ),
 
                              mainPanel(
@@ -87,6 +86,7 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                  p("TODO: Settings specific to OLS?")
                ),
                mainPanel(
+                 h3("Model and Test summary"),
                  verbatimTextOutput('summaryOLS')
                )
              )

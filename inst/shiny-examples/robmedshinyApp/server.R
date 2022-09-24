@@ -11,18 +11,26 @@ library(shiny)
 library(robmed)
 library(vroom)
 
+mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
+
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
 
       # Reactive expression to get data; only supports csv for now
-      data <- reactive({
+      get_data <- reactive({
+        if(input$datatype == 'csv'){
         req(input$file)
+          ext <- tools::file_ext(input$file$name)
+          switch(ext, csv = vroom::vroom(input$file$datapath, delim = ","),
+                 validate("Invalid file; Please upload a .csv file"))
+        }
 
-        ext <- tools::file_ext(input$file$name)
-        switch(ext, csv = vroom::vroom(input$file$datapath, delim = ","),
-               validate("Invalid file; Please upload a .csv file")
-        )
+        if(input$datatype == 'Existing DataFrame'){
+          req(input$dfname)
+          dataframeName = input$dfname
+          as.data.frame(get(input$dfname))
 
+        }
       })
 
       observeEvent(input$rngversion,{
@@ -53,7 +61,7 @@ shinyServer(function(input, output) {
       # Creates boot_test_mediation object
       robust_bootstrap_test <- eventReactive(input$runRobust,
                                               {
-      df <- data()
+      df <- get_data()
       f_test <- formula()
 
       #TODO: control_var should be different if method is not robust. Then use cov_control instead
@@ -65,7 +73,7 @@ shinyServer(function(input, output) {
 
       ols_bootstrap_test <- eventReactive(input$runOLS,
                                              {
-                                               df <- data()
+                                               df <- get_data()
                                                f_test <- formula()
 
                                                ols_bootstrap_test <- test_mediation(f_test, data = df, robust = FALSE, level = input$Confidence, R = input$boot_samples)
@@ -74,7 +82,6 @@ shinyServer(function(input, output) {
       output$summaryOLS <- renderPrint({
         summary(ols_bootstrap_test())
       })
-
 
 
       # Renders plot of expected vs empirical weights
@@ -95,26 +102,39 @@ shinyServer(function(input, output) {
 
     # Generates the UI that allows users to select variables of the uploaded data
     output$selectExplanatory <- renderUI({
-      df <- data()
+      df <- get_data()
       selectInput(inputId='Explanatory', label='Explanatory variables', choices = colnames(df), multiple = TRUE)
     })
 
     output$selectMediator <- renderUI({
-      df <- data()
+      df <- get_data()
       selectInput(inputId='Mediators', label='Mediating variable', choices = colnames(df), multiple = TRUE)
     })
 
     output$selectResponse <- renderUI({
-      df <- data()
+      df <- get_data()
       selectInput(inputId='Response', label='Response variable', choices = colnames(df), multiple = TRUE)
     })
 
     output$selectControls <- renderUI({
-      df <- data()
+      df <- get_data()
       selectInput(inputId='Covariates', label='Control variables', choices = colnames(df), multiple = TRUE)
     })
 
-    output$data_table <- renderDataTable({data()})
+    output$dataframechoice <- renderUI({
+      if (input$datatype == 'Existing DataFrame') {
+        selectInput('dfname', 'DataFrame from Global Env',
+                    choices = mydataframes, multiple = FALSE)
+      } else if (input$datatype == 'csv') {
+        fileInput("file", "Choose CSV File",accept = c("text/csv",
+                                                       "text/comma-separated-values,text/plain",
+                                                       ".csv"))
+      }
+    })
+
+
+
+    output$data_table <- renderDataTable({get_data()})
 
 })
 
