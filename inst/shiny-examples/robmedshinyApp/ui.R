@@ -14,7 +14,8 @@ library(shinythemes)
 shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
     # Application title
-    titlePanel(h1("ROBMED", align = 'center')),
+    titlePanel(h1("ROBMED", align = 'center'),
+               renderText('robmedversion')),
 
     tabsetPanel(
       tabPanel('Data and Model',
@@ -33,13 +34,13 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                                 uiOutput('selectMediator'),
                                 uiOutput('selectControls'),
 
-                                selectInput("Modeltype", "Type of mediator",
+                                selectInput("Modeltype", "Multiple mediator model:",
                                             choices = c('parallel', 'serial')),
                                 h1("Options"),
-                                sliderInput("Confidence", "Confidence level test",
+                                sliderInput("Confidence", "Confidence level:",
                                             min = 0, max = 1, value = 0.95),
-                                numericInput('seed', label = 'Random seed', value = 0),
-                                selectInput("rngversion", "Random Number Generator Version",
+                                numericInput('seed', label = 'Seed:', value = 0),
+                                selectInput("rngversion", "Random Number Generator Version:",
                                             choices = c("Current", '3.5.3'))
                              ),
 
@@ -54,12 +55,12 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                sidebarLayout(
                  sidebarPanel(actionButton('runRobust', "Run"),
                               h2("Robust Bootstrap Settings"),
-                              numericInput("max_iter", "Maximum number of iterations",
+                              numericInput("max_iter", "Maximum number of iterations:",
                                            value = 10000),
 
-                              selectInput("MM_eff", "Efficiency of the MM estimator",
+                              selectInput("MM_eff", "Efficiency at normal distribution:",
                                            choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85),
-                              numericInput('boot_samples', label = 'Number of bootstrap samples', value = 5000),
+                              numericInput('boot_samples', label = 'Number of bootstrap samples:', value = 5000),
 
                  ),
 
@@ -81,7 +82,6 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                sidebarPanel(
                  h2("OLS Bootstrap Test"),
                  actionButton('runOLS', 'Run'),
-                 p("TODO: Settings specific to OLS?")
                ),
                mainPanel(
                  h3("Model and Test summary"),

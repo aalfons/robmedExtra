@@ -108,35 +108,39 @@ shinyServer(function(input, output) {
     # Generates the UI that allows users to select variables of the uploaded data
     output$selectExplanatory <- renderUI({
       df <- get_data()
-      selectInput(inputId='Explanatory', label='Explanatory variables', choices = colnames(df), multiple = TRUE)
+      selectInput(inputId='Explanatory', label='Independent variable(s):', choices = colnames(df), multiple = TRUE)
     })
 
     output$selectMediator <- renderUI({
       df <- get_data()
-      selectInput(inputId='Mediators', label='Mediating variable', choices = colnames(df), multiple = TRUE)
+      selectInput(inputId='Mediators', label='Mediating variable(s):', choices = colnames(df), multiple = TRUE)
     })
 
     output$selectResponse <- renderUI({
       df <- get_data()
-      selectInput(inputId='Response', label='Response variable', choices = colnames(df), multiple = TRUE)
+      selectInput(inputId='Response', label='Dependent variable:', choices = colnames(df), multiple = TRUE)
     })
 
     output$selectControls <- renderUI({
       df <- get_data()
-      selectInput(inputId='Covariates', label='Control variables', choices = colnames(df), multiple = TRUE)
+      selectInput(inputId='Covariates', label='Control variables:', choices = colnames(df), multiple = TRUE)
     })
 
     output$dataframechoice <- renderUI({
       if (input$datatype == 'Existing DataFrame') {
-        mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
-        selectInput('dfname', 'DataFrame from Global Env',
-                    choices = mydataframes, multiple = FALSE)
+        if (is.null(unlist(eapply(.GlobalEnv,is.data.frame)))){
+          helpText("The Global Environment is empty")
+        } else {
+          mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
+          selectInput('dfname', 'DataFrame from Global Env',
+                      choices = mydataframes, multiple = FALSE)
+        }
       } else if (input$datatype == 'csv') {
-        fileInput("file", "Choose CSV File",accept = c("text/csv",
+        fileInput("file", "CSV File:",accept = c("text/csv",
                                                        "text/comma-separated-values,text/plain",
                                                        ".csv"))
       } else if (input$datatype == 'RData') {
-        fileInput('rdatafile', 'Choose RData File',
+        fileInput('rdatafile', 'RData File:',
                   accept = c('.RData'))
       }
     })
@@ -148,15 +152,14 @@ shinyServer(function(input, output) {
 
         dataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
 
-        selectInput('rdata_dfname', 'DataFrame',
+        selectInput('rdata_dfname', 'DataFrame:',
                     choices = dataframes)
-
       }
     })
 
-
-
     output$data_table <- renderDataTable({get_data()})
+
+    output$robmedversion <- renderText({packageVersion('robmed')[[1]]})
 
 })
 
