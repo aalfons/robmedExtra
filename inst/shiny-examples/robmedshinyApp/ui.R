@@ -64,6 +64,8 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                                            choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85),
                               numericInput('boot_samples', label = 'Number of bootstrap samples:', value = 5000),
 
+                              uiOutput('downloadbuttonplot')
+
                  ),
 
 

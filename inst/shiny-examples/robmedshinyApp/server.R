@@ -100,8 +100,20 @@ shinyServer(function(input, output, session) {
       robust_boot_simple <- robust_bootstrap_test()
 
       summary_simple <- summary(robust_boot_simple)
+      ggsave("plot.pdf", summary_simple$plot)
+
       summary_simple$plot
       })
+
+      output$downloadPlot <- downloadHandler(
+        filename = function() {
+          "plot.pdf"
+        },
+        content = function(file) {
+          file.copy("plot.pdf", file, overwrite=TRUE)
+        }
+      )
+
 
     # Renders the summary text
     output$summary <- renderPrint({
@@ -213,5 +225,10 @@ shinyServer(function(input, output, session) {
 
     output$robmedversion <- renderText({
       paste('ROBMED Package version: ', toString(packageVersion('robmed')))})
+
+    output$downloadbuttonplot <- renderUI({
+      req(input$runRobust)
+      downloadButton('downloadPlot')
+    })
 })
 
