@@ -15,7 +15,7 @@ library(DT)
 
 
 # Define server logic required to draw a histogram
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
 
       # Reactive expression to get data; only supports csv for now
       get_data <- reactive({
@@ -106,25 +106,78 @@ shinyServer(function(input, output) {
       })
 
 
+
+
+
+    observe({
+      isolate(selectedInput <- input$Explanatory)
+      updateSelectInput(session, inputId = 'Explanatory',
+                        choices = setdiff(colnames(get_data()),
+                                          c(input$Mediators,
+                                            input$Response,
+                                            input$Covariates)),
+                        selected = selectedInput)
+
+    })
+
+    observe({
+      isolate(selectedInput <- input$Mediators)
+
+      updateSelectInput(session, inputId = 'Mediators',
+                        choices = setdiff(colnames(get_data()),
+                                          c(input$Explanatory,
+                                            input$Response,
+                                            input$Covariates)),
+                        selected = selectedInput)
+    })
+
+    observe({
+      isolate(selectedInput <- input$Response)
+
+      updateSelectInput(session, inputId = 'Response',
+                        choices = setdiff(colnames(get_data()),
+                                          c(input$Explanatory,
+                                            input$Mediators,
+                                            input$Covariates)),
+                        selected = selectedInput)
+    })
+
+    observe({
+      isolate(selectedInput <- input$Covariates)
+
+      updateSelectInput(session, inputId = 'Covariates',
+                        choices = setdiff(colnames(get_data()),
+                                          c(input$Explanatory,
+                                            input$Response,
+                                            input$Mediators)),
+                        selected = selectedInput)
+    })
+
+
+
+
+
+
     # Generates the UI that allows users to select variables of the uploaded data
     output$selectExplanatory <- renderUI({
-      df <- get_data()
-      selectInput(inputId='Explanatory', label='Independent variable(s):', choices = colnames(df), multiple = TRUE)
+      choices <- colnames(get_data())
+      selectInput(inputId='Explanatory', label='Independent variable(s):', choices = choices, multiple = TRUE)
     })
 
     output$selectMediator <- renderUI({
-      df <- get_data()
-      selectInput(inputId='Mediators', label='Mediating variable(s):', choices = colnames(df), multiple = TRUE)
+      choices = colnames(get_data())
+      selectInput(inputId='Mediators', label='Mediating variable(s):', choices = choices, multiple = TRUE)
     })
 
     output$selectResponse <- renderUI({
-      df <- get_data()
-      selectInput(inputId='Response', label='Dependent variable:', choices = colnames(df), multiple = TRUE)
+      choices = colnames(get_data())
+      selectInput(inputId='Response', label='Dependent variable:', choices = choices, multiple = TRUE)
     })
 
     output$selectControls <- renderUI({
-      df <- get_data()
-      selectInput(inputId='Covariates', label='Control variables:', choices = colnames(df), multiple = TRUE)
+      isolate(self <- input$Covariates)
+      choices = colnames(get_data())
+      selectInput(inputId='Covariates', label='Control variables:', choices = choices, multiple = TRUE)
     })
 
     output$dataframechoice <- renderUI({
