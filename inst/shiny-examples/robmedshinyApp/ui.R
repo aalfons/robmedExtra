@@ -9,18 +9,20 @@
 library(shiny)
 library(robmed)
 library(shinythemes)
+library(DT)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
     # Application title
-    titlePanel(h1("ROBMED", align = 'center'),
-               renderText('robmedversion')),
+    titlePanel(h1("ROBMED", align = 'center')
+               ),
 
     tabsetPanel(
       tabPanel('Data and Model',
                              sidebarLayout(
                                sidebarPanel(
+                                textOutput('robmedversion'),
                                 h1("Data"),
                                 selectInput('datatype', 'datatype',
                                             choices = c('csv', 'Existing DataFrame',
@@ -45,7 +47,7 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                              ),
 
                              mainPanel(
-                             dataTableOutput('data_table')
+                             DT::dataTableOutput('data_table')
                              )
     )
 

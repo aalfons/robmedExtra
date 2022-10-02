@@ -10,6 +10,7 @@
 library(shiny)
 library(robmed)
 library(vroom)
+library(DT)
 
 
 
@@ -156,10 +157,9 @@ shinyServer(function(input, output) {
                     choices = dataframes)
       }
     })
+    output$data_table <-  DT::renderDataTable({get_data()})
 
-    output$data_table <- renderDataTable({get_data()})
-
-    output$robmedversion <- renderText({packageVersion('robmed')[[1]]})
-
+    output$robmedversion <- renderText({
+      paste('ROBMED Package version: ', toString(packageVersion('robmed')))})
 })
 
