@@ -40,6 +40,11 @@ shinyServer(function(input, output, session) {
 
       })
 
+      numeric_data <- reactive({
+        df <- get_data()
+        Filter(is.numeric, df)
+      })
+
       observeEvent(input$rngversion,{
         if(input$rngversion != 'Current'){
           RNGversion(input$rngversion)
@@ -106,9 +111,6 @@ shinyServer(function(input, output, session) {
       })
 
 
-
-
-
     observe({
       isolate(selectedInput <- input$Explanatory)
       updateSelectInput(session, inputId = 'Explanatory',
@@ -124,7 +126,7 @@ shinyServer(function(input, output, session) {
       isolate(selectedInput <- input$Mediators)
 
       updateSelectInput(session, inputId = 'Mediators',
-                        choices = setdiff(colnames(get_data()),
+                        choices = setdiff(colnames(numeric_data()),
                                           c(input$Explanatory,
                                             input$Response,
                                             input$Covariates)),
@@ -135,7 +137,7 @@ shinyServer(function(input, output, session) {
       isolate(selectedInput <- input$Response)
 
       updateSelectInput(session, inputId = 'Response',
-                        choices = setdiff(colnames(get_data()),
+                        choices = setdiff(colnames(numeric_data()),
                                           c(input$Explanatory,
                                             input$Mediators,
                                             input$Covariates)),
@@ -155,9 +157,6 @@ shinyServer(function(input, output, session) {
 
 
 
-
-
-
     # Generates the UI that allows users to select variables of the uploaded data
     output$selectExplanatory <- renderUI({
       choices <- colnames(get_data())
@@ -165,12 +164,12 @@ shinyServer(function(input, output, session) {
     })
 
     output$selectMediator <- renderUI({
-      choices = colnames(get_data())
+      choices = colnames(numeric_data())
       selectInput(inputId='Mediators', label='Mediating variable(s):', choices = choices, multiple = TRUE)
     })
 
     output$selectResponse <- renderUI({
-      choices = colnames(get_data())
+      choices = colnames(numeric_data())
       selectInput(inputId='Response', label='Dependent variable:', choices = choices, multiple = TRUE)
     })
 
