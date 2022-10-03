@@ -39,9 +39,6 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                                 selectInput("Modeltype", "Multiple mediator model:",
                                             choices = c('parallel', 'serial')),
                                 h1("Options"),
-                                sliderInput("Confidence", "Confidence level:",
-                                            min = 0, max = 1, value = 0.95),
-                                numericInput('seed', label = 'Seed:', value = 0),
                                 selectInput("rngversion", "Random Number Generator Version:",
                                             choices = c("Current", '3.5.3'))
                              ),
@@ -62,9 +59,14 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
 
                               selectInput("MM_eff", "Efficiency at normal distribution:",
                                            choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85),
-                              numericInput('boot_samples', label = 'Number of bootstrap samples:', value = 5000),
+                              numericInput('boot_samplesROBMED', label = 'Number of bootstrap samples:', value = 5000),
 
-                              uiOutput('downloadbuttonplot')
+                              uiOutput('downloadbuttonplot'),
+                              h1("Options"),
+                              sliderInput("ConfidenceROBMED", "Confidence level:",
+                                          min = 0, max = 1, value = 0.95),
+                              numericInput('seedROBMED', label = 'Seed:', value = 0),
+
 
                  ),
 
@@ -86,8 +88,15 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                sidebarPanel(
                  h2("OLS Bootstrap Test"),
                  actionButton('runOLS', 'Run'),
+                 h1("Options"),
+                 numericInput('boot_samplesROBMED', label = 'Number of bootstrap samples:', value = 5000),
+                 sliderInput("ConfidenceOLS", "Confidence level:",
+                             min = 0, max = 1, value = 0.95),
+                 numericInput('seedOLS', label = 'Seed:', value = 0),
+
                ),
                mainPanel(
+                 verbatimTextOutput('CI'),
                  h3("Model and Test summary"),
                  verbatimTextOutput('summaryOLS')
                )

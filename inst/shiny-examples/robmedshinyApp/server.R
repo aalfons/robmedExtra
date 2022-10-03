@@ -28,12 +28,12 @@ shinyServer(function(input, output, session) {
         if (input$datatype == 'Existing DataFrame'){
           req(input$dfname)
           dataframeName = input$dfname
-          final_df <- as.data.frame(get(input$dfname))
+          final_df <- as.data.frame(get(input$dfname, .GlobalEnv))
 
         }
         if (input$datatype == 'RData') {
           req(input$rdata_dfname)
-          final_df <- as.data.frame(get(input$rdata_dfname))
+          final_df <- as.data.frame(get(input$rdata_dfname,envir = new_env ))
         }
 
         final_df
@@ -52,7 +52,7 @@ shinyServer(function(input, output, session) {
       })
 
       # For now supports only all serial or all parallel mediators
-      # TODO: - add support for combination of mediator type ?
+      # TODO : - add support for combination of mediator type ?
 
       formula <- reactive({
         req(input$Explanatory, input$Modeltype, input$Response, input$Mediators)
@@ -76,18 +76,20 @@ shinyServer(function(input, output, session) {
       df <- get_data()
       f_test <- formula()
 
-      control_var = reg_control(efficiency = input$MM_eff, max_iterations = input$max_iter, seed = input$seed)
+      control_var <- reg_control(efficiency = input$MM_eff, max_iterations = input$max_iter, seed = input$seedROBMED)
 
-      robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE, level = input$Confidence, R = input$boot_samples,
+      robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE, level = input$ConfidenceROBMED, R = input$boot_samplesROBMED,
                                          control = control_var)
       })
 
       ols_bootstrap_test <- eventReactive(input$runOLS,
                                              {
+                                               set.seed(input$seedOLS)
                                                df <- get_data()
                                                f_test <- formula()
 
-                                               ols_bootstrap_test <- test_mediation(f_test, data = df, robust = FALSE, level = input$Confidence, R = input$boot_samples)
+                                               ols_bootstrap <- test_mediation(f_test, data = df, robust = FALSE,
+                                                                                level = input$ConfidenceOLS, R = input$boot_samplesOLS)
                                              })
 
       output$summaryOLS <- renderPrint({
@@ -213,9 +215,10 @@ shinyServer(function(input, output, session) {
     output$rdatafile_dataframes <- renderUI({
       if (input$datatype == 'RData') {
         req(input$rdatafile)
-        load(input$rdatafile$datapath)
+        new_env <<- new.env()
+        load(input$rdatafile$datapath, new_env)
 
-        dataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
+        dataframes <- names(which(unlist(eapply(new_env,is.data.frame))))
 
         selectInput('rdata_dfname', 'DataFrame:',
                     choices = dataframes)
@@ -230,5 +233,25 @@ shinyServer(function(input, output, session) {
       req(input$runRobust)
       downloadButton('downloadPlot')
     })
+
+    observeEvent(input$ConfidenceOLS, {
+      updateSliderInput(session, 'ConfidenceROBMED', value = input$ConfidenceOLS)
+    })
+
+    observeEvent(input$ConfidenceROBMED, {
+      updateSliderInput(session, 'ConfidenceOLS', value = input$ConfidenceROBMED)
+    })
+
+    observe({
+      updateNumericInput(session, 'seedOLS', value = input$seedROBMED)
+    }
+    )
+
+    observe({
+      updateNumericInput(session, 'seedROBMED', value = input$seedOLS)
+
+    })
+
+
 })
 
