@@ -169,8 +169,6 @@ shinyServer(function(input, output, session) {
                         selected = selectedInput)
     })
 
-
-
     # Generates the UI that allows users to select variables of the uploaded data
     output$selectExplanatory <- renderUI({
       choices <- colnames(get_data())
@@ -231,7 +229,12 @@ shinyServer(function(input, output, session) {
 
     output$downloadbuttonplot <- renderUI({
       req(input$runRobust)
-      downloadButton('downloadPlot')
+      downloadButton('downloadPlot', 'Download Plot')
+    })
+
+    output$generateRscript <- renderUI({
+      req(input$runRobust)
+      actionButton('generatescript', 'Generate R script')
     })
 
     observeEvent(input$ConfidenceOLS, {
@@ -244,12 +247,35 @@ shinyServer(function(input, output, session) {
 
     observe({
       updateNumericInput(session, 'seedOLS', value = input$seedROBMED)
-    }
-    )
+      })
 
     observe({
       updateNumericInput(session, 'seedROBMED', value = input$seedOLS)
+    })
 
+    observeEvent(input$generatescript, {
+      #Code for generating R script goes here
+      file.create('script.R')
+
+      #Write importing data
+
+      #Write test_mediation(formula, data)
+      txt <- paste('control_var <- reg_control(efficiency = ', input$MM_eff, ', max_iterations = ', input$max_iter, ', seed = ', input$seedROBMED,')')
+
+      txt_test <- paste('bootstrap_test <- test_mediation(', format( formula()), ', data = data, robust = TRUE, level = ', input$ConfidenceROBMED, ', control = control_var)')
+      txt_summary <- 'summary(bootstrap_test)'
+
+      write(txt, "script.R", append = T)
+      write(txt_test, "script.R", append = T)
+      write(txt_summary, "script.R", append = T)
+
+      #Give summary of output
+    })
+
+    output$textWithNewlines <- renderText({
+      req(input$generatescript)
+      rawText <- readLines('script.R')
+      return(rawText)
     })
 
 

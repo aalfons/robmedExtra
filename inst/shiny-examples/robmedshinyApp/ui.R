@@ -62,6 +62,8 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                               numericInput('boot_samplesROBMED', label = 'Number of bootstrap samples:', value = 5000),
 
                               uiOutput('downloadbuttonplot'),
+                              br(),
+                              uiOutput('generateRscript'),
                               h1("Options"),
                               sliderInput("ConfidenceROBMED", "Confidence level:",
                                           min = 0, max = 1, value = 0.95),
@@ -78,7 +80,7 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                            hr(),
                            h3('Model and Test summary'),
                            verbatimTextOutput('summary'),
-                           verbatimTextOutput('formula')
+                           textOutput('textWithNewlines')
                  )
                )
 
