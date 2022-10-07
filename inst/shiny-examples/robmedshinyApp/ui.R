@@ -12,7 +12,7 @@ library(shinythemes)
 library(DT)
 
 # Define UI for application that draws a histogram
-shinyUI(fluidPage(theme = shinytheme("cosmo"),
+shinyUI(fluidPage(theme = shinytheme("sandstone"),
 
     # Application title
     titlePanel(h1("ROBMED", align = 'center')
@@ -47,7 +47,6 @@ shinyUI(fluidPage(theme = shinytheme("cosmo"),
                              DT::dataTableOutput('data_table')
                              )
     )
-
 
     ),
       tabPanel("ROBMED",

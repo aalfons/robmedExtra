@@ -17,6 +17,7 @@ library(DT)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
 
+
       # Reactive expression to get data; only supports csv for now
       get_data <- reactive({
         if (input$datatype == 'csv'){
@@ -98,22 +99,26 @@ shinyServer(function(input, output, session) {
 
 
       # Renders plot of expected vs empirical weights
-      output$plot_weights <- renderPlot({
-      robust_boot_simple <- robust_bootstrap_test()
 
-      summary_simple <- summary(robust_boot_simple)
-      ggsave("plot.pdf", summary_simple$plot)
-
-      summary_simple$plot
+      create_plot <- reactive({
+          robust_boot_simple <- robust_bootstrap_test()
+          summary_simple <- summary(robust_boot_simple)
+          summary_simple$plot
       })
+
+      output$plot_weights <- renderPlot({create_plot()})
 
       output$downloadPlot <- downloadHandler(
         filename = function() {
-          "plot.pdf"
+          paste(Sys.Date() ,'plot.png', sep = '')
         },
         content = function(file) {
-          file.copy("plot.pdf", file, overwrite=TRUE)
-        }
+          png(file)
+          print(create_plot())
+          dev.off()
+        },
+        contentType = "image/png"
+
       )
 
 
