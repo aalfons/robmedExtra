@@ -227,6 +227,7 @@ shinyServer(function(input, output, session) {
                     choices = dataframes)
       }
     })
+
     output$data_table <-  DT::renderDataTable({get_data()})
 
     output$robmedversion <- renderText({
@@ -237,9 +238,9 @@ shinyServer(function(input, output, session) {
       downloadButton('downloadPlot', 'Download Plot')
     })
 
-    output$generateRscript <- renderUI({
+    output$downloadbuttonscript <- renderUI({
       req(input$runRobust)
-      actionButton('generatescript', 'Generate R script')
+      downloadButton('downloadScript', 'Generate R script')
     })
 
     observeEvent(input$ConfidenceOLS, {
@@ -258,46 +259,40 @@ shinyServer(function(input, output, session) {
       updateNumericInput(session, 'seedROBMED', value = input$seedOLS)
     })
 
-    observeEvent(input$generatescript, {
-      #Code for generating R script goes here
-      file.create('script.R')
 
-      #Save the used dataset in an RData file and load this later
-      data <- get_data()
-      filename <- paste(getwd(),'/', 'useddata.Rdata', sep = '')
-      save(data, file = filename)
+    output$downloadScript <- downloadHandler(
 
-      # Load the RData file in the R Script
-      if (input$datatype == 'RData') {
-        env = new_env
-      } else {
-        env = .GlobalEnv
+      filename = function() {
+        paste(Sys.Date(), '-Script.R', sep = '')
+      },
+      content = function(file) {
+        file.create(file)
+
+        filename <- paste(getwd(),'/', 'useddata.Rdata', sep = '')
+        df = get_data()
+        save(df, file = filename)
+
+        # Load the RData file in the R Script
+        if (input$datatype == 'RData') {env = new_env} else {env = .GlobalEnv}
+        write(paste("load('",filename, "')", sep = ''), file, append = T)
+
+        # Get the dataframe in the RData file
+        df_name <- names(which(unlist(eapply(env,is.data.frame))))
+
+        #Write test_mediation(formula, data)
+        txt_controlvars <- paste('control_var <- reg_control(efficiency = ', input$MM_eff, ', max_iterations = ', input$max_iter, ', seed = ', input$seedROBMED,')')
+        txt_test <- paste('bootstrap_test <- test_mediation(', format(formula()), ', data = ', df_name,', ', 'robust = TRUE,', 'level = ', input$ConfidenceROBMED, ', control = control_var)')
+
+        write(txt_controlvars, file, append = T)
+        write(txt_test, file, append = T)
+
+        #Give summary of output
+        write('summary(bootstrap_test)', file, append = T)
+
+        dev.off()
+
       }
-
-      write(paste("load('",filename, "')", sep = ''), 'script.R', append = T)
-
-      # Get the dataframe in the RData file
-      df_name <- names(which(unlist(eapply(env,is.data.frame))))
-
-
-      #Write test_mediation(formula, data)
-      txt_controlvars <- paste('control_var <- reg_control(efficiency = ', input$MM_eff, ', max_iterations = ', input$max_iter, ', seed = ', input$seedROBMED,')')
-      txt_test <- paste('bootstrap_test <- test_mediation(', format( formula()), ', data = ' ,df_name,', ', 'robust = TRUE,', 'level = ', input$ConfidenceROBMED, ', control = control_var)')
-
-      write(txt_controlvars, "script.R", append = T)
-      write(txt_test, "script.R", append = T)
-
-      #Give summary of output
-      write('summary(bootstrap_test)', "script.R", append = T)
-
-    })
-
-    output$textWithNewlines <- renderText({
-      req(input$generatescript)
-      rawText <- readLines('script.R')
-      return(rawText)
-    })
-
+    )
 
 })
 

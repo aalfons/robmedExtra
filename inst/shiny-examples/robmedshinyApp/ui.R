@@ -62,7 +62,7 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
 
                               uiOutput('downloadbuttonplot'),
                               br(),
-                              uiOutput('generateRscript'),
+                              uiOutput('downloadbuttonscript'),
                               h1("Options"),
                               sliderInput("ConfidenceROBMED", "Confidence level:",
                                           min = 0, max = 1, value = 0.95),
