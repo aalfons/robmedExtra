@@ -18,7 +18,6 @@ library(officer)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
 
-
       # Reactive expression to get data; only supports csv for now
       get_data <- reactive({
         if (input$datatype == 'csv'){
@@ -54,9 +53,6 @@ shinyServer(function(input, output, session) {
           RNGversion(input$rngversion)
         }
       })
-
-      # For now supports only all serial or all parallel mediators
-      # TODO : - add support for combination of mediator type ?
 
       formula <- reactive({
         req(input$Explanatory, input$Modeltype, input$Response, input$Mediators)
@@ -292,7 +288,6 @@ shinyServer(function(input, output, session) {
 
         #Give summary of output
         write('summary(bootstrap_test)', file, append = T)
-
         dev.off()
 
       }
@@ -304,12 +299,13 @@ shinyServer(function(input, output, session) {
 
     output$downloadTable <- downloadHandler(
       filename = function() {
-        paste(Sys.Date(), 'tableoutput.docx', sep = '')
+        paste(Sys.Date(), 'ROBMEDoutput.docx', sep = '')
       },
       content = function(file) {
         print(summarytable(), file)
       }
     )
+
 
 # This function takes the summary output of ROBMED and turns it into a nicely formatted table
   summarytable <- reactive({
@@ -336,7 +332,6 @@ shinyServer(function(input, output, session) {
 
     df_dir <- as.data.frame(matrix(NA, nrow = directrows, ncol = 5))
     colnames(df_dir) <- c("Direct Effects", 'Estimate', 'Std. Error', 'z statistic', 'p-value')
-
 
     row <- 1
     for (med in sm$m) {
@@ -469,6 +464,8 @@ shinyServer(function(input, output, session) {
     ft_indirect <- width(ft_indirect, j = c(2,4), width = 1, unit = 'in')
     ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4, align = 'center', part = 'body')
     ft_indirect <- align(ft_indirect, j = 2:4, align = 'center', part = 'header')
+
+    ft_indirect <- add_footer_lines(ft_indirect, paste("The sample size is: ", nrow(get_data()), '. The number of bootstrap samples is: ', input$boot_samplesROBMED,'.', sep = ''))
 
     doc <- read_docx()
     doc <- body_add_flextable(doc, ft_direct)

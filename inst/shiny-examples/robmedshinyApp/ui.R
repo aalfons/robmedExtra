@@ -78,7 +78,6 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
 
                  ),
 
-
                  # Show a plot of the generated distribution
                  mainPanel(hr(),
                            h3('Diagnostic plot'),
