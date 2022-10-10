@@ -11,6 +11,7 @@ library(shiny)
 library(robmed)
 library(vroom)
 library(DT)
+library(officer)
 
 
 
@@ -47,7 +48,9 @@ shinyServer(function(input, output, session) {
       })
 
       observeEvent(input$rngversion,{
-        if(input$rngversion != 'Current'){
+        if(input$rngversion == 'Current'){
+          RNGversion(getRversion())
+        } else{
           RNGversion(input$rngversion)
         }
       })
@@ -187,7 +190,7 @@ shinyServer(function(input, output, session) {
 
     output$selectResponse <- renderUI({
       choices = colnames(numeric_data())
-      selectInput(inputId='Response', label='Dependent variable:', choices = choices, multiple = TRUE)
+      selectInput(inputId='Response', label='Dependent variable:', choices = choices, multiple = FALSE)
     })
 
     output$selectControls <- renderUI({
@@ -260,6 +263,7 @@ shinyServer(function(input, output, session) {
     })
 
 
+
     output$downloadScript <- downloadHandler(
 
       filename = function() {
@@ -294,5 +298,180 @@ shinyServer(function(input, output, session) {
       }
     )
 
-})
+    output$downloadbuttontable <- renderUI({
+      downloadButton('downloadTable', 'Download Table')
+    })
 
+    output$downloadTable <- downloadHandler(
+      filename = function() {
+        paste(Sys.Date(), 'tableoutput.docx', sep = '')
+      },
+      content = function(file) {
+        print(summarytable(), file)
+      }
+    )
+
+# This function takes the summary output of ROBMED and turns it into a nicely formatted table
+  summarytable <- reactive({
+    test_model <- robust_bootstrap_test()
+    rounding <- 4
+
+    sm <- summary(test_model)$summary
+    if (test_model$fit$model == "serial") {
+      if (length(sm$m) == 1) {
+        directrows <- 2 * (length(sm$x)) + 1
+        indirectrows <- length(sm$x)
+
+      } else if (length(sm$m) == 2) {
+        #Generate table for 2 serial mediators
+        directrows <- 3 * (1 + length(sm$x))
+        indirectrows <- 3 * length(sm$x)
+
+      }
+    } else {
+      rows = 2 * (length(sm$x) * length(sm$m)) + 2 * length(sm$x) + length(sm$m)
+      indirectrows = length(sm$x) * length(sm$m)
+      directrows = rows - indirectrows
+    }
+
+    df_dir <- as.data.frame(matrix(NA, nrow = directrows, ncol = 5))
+    colnames(df_dir) <- c("Direct Effects", 'Estimate', 'Std. Error', 'z statistic', 'p-value')
+
+
+    row <- 1
+    for (med in sm$m) {
+      if (length(sm$m) > 1){
+        coefs_a <- sm$fit_mx[med][[1]]$coefficients
+      } else {
+        coefs_a <- sm$fit_mx$coefficients
+      }
+
+      coefs_b <- sm$fit_ymx$coefficients
+
+      #Add a paths
+      for (reg in sm$x) {
+        df_dir[row, 1] <- paste(reg, med, sep = "->")
+        df_dir[row, 2:5] <- coefs_a[reg, 2:5]
+        row <- row + 1
+      }
+
+      #Add b paths
+      df_dir[row, 1] <- paste('(X),',med ,'->' , sm$y)
+      df_dir[row, 2:5] <- coefs_b[med, 2:5]
+      row <- row + 1
+    }
+
+    # Add direct effect of regressor on response (c path and c' path)
+    for (reg in sm$x){
+      df_dir[row, 1] <- paste(reg,'->', sm$y, '(direct)')
+      df_dir[row, 2:5] <- sm$direct[reg, 2:5]
+      row <- row + 1
+
+      df_dir[row, 1] <- paste(reg, '->', sm$y, '(total)')
+      df_dir[row, 2:5] <- sm$total[reg, 2:5]
+      row <- row + 1
+    }
+
+    #Add indirect effects (a (d) b paths)
+    df_ind <- data.frame(matrix(0, nrow = indirectrows, ncol = 4))
+    colnames(df_ind) <- c("Indirect Effects", 'Estimate', 'Confidence Interval', 'p-value')
+    if (test_model$fit$model == "serial" ){
+      row <- 1
+      for (reg in sm$x) {
+        # Through only first or second mediator
+        for (med in sm$m) {
+          effectname <- paste(reg, '->', med, sep ='')
+          df_ind[row,1] <- paste(effectname, '(Indirect)')
+
+          if (length(sm$m) > 1) {
+            df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+            lower <- round(test_model$ci[effectname, 1], rounding)
+            upper <- round(test_model$ci[effectname, 2], rounding)
+          } else {
+            df_ind[row,2] <- test_model$indirect[reg][[1]]
+            lower <- round(test_model$ci[1], rounding)
+            upper <- round(test_model$ci[2], rounding)
+          }
+
+          df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
+
+          row <- row + 1
+
+
+        }
+
+        # Through both mediators TODO: fix error
+        effectname <- paste(reg, '->', sm$m[1], '->', sm$m[2], sep = '')
+
+        df_ind[row,1] <- paste(effectname, '(Indirect)', sep = '')
+        df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+
+        lower <- round(test_model$ci[effectname, 1], rounding)
+        upper <- round(test_model$ci[effectname, 2], rounding)
+
+        df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
+        row <- row + 1
+      }
+    } else {
+      # Parallel model
+      row <- 1
+      for (reg in sm$x) {
+        for (med in sm$m) {
+          effectname <- paste(reg, '->', med, sep ='')
+          df_ind[row,1] <- paste(effectname, '(Indirect)')
+
+
+          if (length(sm$m) > 1) {
+            if (length(sm$x) > 1) {
+              lower <- round(test_model$ci[effectname, 1], rounding)
+              upper <- round(test_model$ci[effectname, 2], rounding)
+            } else {
+              lower <- round(test_model$ci[med, 1], rounding)
+              upper <- round(test_model$ci[med, 2], rounding)
+            }
+            df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+          } else {
+            if (length(sm$x) > 1) {
+              lower <- round(test_model$ci[reg, 1], rounding)
+              upper <- round(test_model$ci[reg, 2], rounding)
+              df_ind[row,2] <- test_model$indirect[reg][[1]]
+            } else {
+              df_ind[row,2] <- test_model$indirect
+              lower <- round(test_model$ci[1], rounding)
+              upper <- round(test_model$ci[2], rounding)
+            }
+          }
+
+          df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
+          row <- row + 1
+        }
+      }
+    }
+
+    # Create the table from the dataframes
+    df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, rounding) else y))
+    df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, rounding) else y))
+
+    set_flextable_defaults(
+      font.size = 10,
+      padding = 2,
+      background.color = 'white')
+
+    ft_direct <- flextable(df_rounded)
+    ft_direct <- width(ft_direct, j = 1, width = 2.5, unit = 'in')
+    ft_direct <- width(ft_direct, j = 2:5, width = 1, unit = 'in')
+    ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = 'center', part = 'body')
+    ft_direct <- align(ft_direct, j = 2:5, align = 'center', part = 'header')
+
+    ft_indirect <- flextable(df_ind_rounded)
+    ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = 'in')
+    ft_indirect <- width(ft_indirect, j = 3, width = 2, unit = 'in')
+    ft_indirect <- width(ft_indirect, j = c(2,4), width = 1, unit = 'in')
+    ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4, align = 'center', part = 'body')
+    ft_indirect <- align(ft_indirect, j = 2:4, align = 'center', part = 'header')
+
+    doc <- read_docx()
+    doc <- body_add_flextable(doc, ft_direct)
+    doc <- body_add_flextable(doc, ft_indirect)
+  })
+})

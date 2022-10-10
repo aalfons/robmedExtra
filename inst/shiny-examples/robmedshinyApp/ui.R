@@ -40,7 +40,13 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                                             choices = c('parallel', 'serial')),
                                 h1("Options"),
                                 selectInput("rngversion", "Random Number Generator Version:",
-                                            choices = c("Current", '3.5.3'))
+                                            choices = c("Current", '4.2.0', '4.1.3',
+                                                        '4.1.2', '4.1.1', '4.1.0',
+                                                        '4.0.5', '4.0.4', '4.0.3',
+                                                        '4.0.2', '4.0.1', '4.0.0',
+                                                        '3.6.3', '3.6.2', '3.6.1', '3.6.0',
+                                                        '3.5.3', '3.5.2', '3.5.1', '3.5.0')
+                                            )
                              ),
 
                              mainPanel(
@@ -67,6 +73,7 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                               sliderInput("ConfidenceROBMED", "Confidence level:",
                                           min = 0, max = 1, value = 0.95),
                               numericInput('seedROBMED', label = 'Seed:', value = 0),
+                              uiOutput('downloadbuttontable')
 
 
                  ),
