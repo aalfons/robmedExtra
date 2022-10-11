@@ -38,7 +38,6 @@ shinyServer(function(input, output, session) {
         }
 
         final_df
-
       })
 
       numeric_data <- reactive({
@@ -75,9 +74,7 @@ shinyServer(function(input, output, session) {
                                               {
       df <- get_data()
       f_test <- formula()
-
       control_var <- reg_control(efficiency = input$MM_eff, max_iterations = input$max_iter, seed = input$seedROBMED)
-
       robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE, level = input$ConfidenceROBMED, R = input$boot_samplesROBMED,
                                          control = control_var)
       })
@@ -87,7 +84,7 @@ shinyServer(function(input, output, session) {
                                                set.seed(input$seedOLS)
                                                df <- get_data()
                                                f_test <- formula()
-
+                                               print("Formula fine")
                                                ols_bootstrap <- test_mediation(f_test, data = df, robust = FALSE,
                                                                                 level = input$ConfidenceOLS, R = input$boot_samplesOLS)
                                              })
@@ -121,12 +118,19 @@ shinyServer(function(input, output, session) {
       )
 
 
-    # Renders the summary text
+    # Renders the summary text for ROBMED
     output$summary <- renderPrint({
       robust_boot_simple <- robust_bootstrap_test()
       summary(robust_boot_simple)
-
       })
+
+    # Renders the summary text for OLS bootstrap
+
+    output$summaryOLS <- renderPrint({
+      robust_boot_simple <- ols_bootstrap_test()
+      summary(robust_boot_simple)$summary
+    })
+
 
 
     observe({
@@ -293,26 +297,39 @@ shinyServer(function(input, output, session) {
       }
     )
 
-    output$downloadbuttontable <- renderUI({
-      downloadButton('downloadTable', 'Download Table')
+    output$downloadbuttontableRobust <- renderUI({
+      downloadButton('downloadTableRobust', 'Download Table')
     })
 
-    output$downloadTable <- downloadHandler(
+    output$downloadTableRobust <- downloadHandler(
       filename = function() {
         paste(Sys.Date(), 'ROBMEDoutput.docx', sep = '')
       },
       content = function(file) {
-        print(summarytable(), file)
+        tabledoc <- summarizetable(robust_bootstrap_test())
+        print(tabledoc, file)
       }
     )
 
+    output$downloadbuttontableOLS <- renderUI({
+      downloadButton('downloadTableOLS', 'Download Table')
+    })
+
+    output$downloadTableOLS <- downloadHandler(
+      filename = function() {
+        paste(Sys.Date(), 'OLSoutput.docx', sep = '')
+      },
+      content = function(file) {
+        tabledoc <- summarizetable(ols_bootstrap_test())
+        print(tabledoc, file)
+      }
+    )
 
 # This function takes the summary output of ROBMED and turns it into a nicely formatted table
-  summarytable <- reactive({
-    test_model <- robust_bootstrap_test()
-    rounding <- 4
+  summarizetable <- function(test_model, rounding = 4) {
 
     sm <- summary(test_model)$summary
+
     if (test_model$fit$model == "serial") {
       if (length(sm$m) == 1) {
         directrows <- 2 * (length(sm$x)) + 1
@@ -340,7 +357,6 @@ shinyServer(function(input, output, session) {
       } else {
         coefs_a <- sm$fit_mx$coefficients
       }
-
       coefs_b <- sm$fit_ymx$coefficients
 
       #Add a paths
@@ -356,7 +372,7 @@ shinyServer(function(input, output, session) {
       row <- row + 1
     }
 
-    # Add direct effect of regressor on response (c path and c' path)
+    # Add direct effect of regressor on response and total effect (c path and c' path)
     for (reg in sm$x){
       df_dir[row, 1] <- paste(reg,'->', sm$y, '(direct)')
       df_dir[row, 2:5] <- sm$direct[reg, 2:5]
@@ -408,6 +424,7 @@ shinyServer(function(input, output, session) {
         row <- row + 1
       }
     } else {
+
       # Parallel model
       row <- 1
       for (reg in sm$x) {
@@ -465,10 +482,10 @@ shinyServer(function(input, output, session) {
     ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4, align = 'center', part = 'body')
     ft_indirect <- align(ft_indirect, j = 2:4, align = 'center', part = 'header')
 
-    ft_indirect <- add_footer_lines(ft_indirect, paste("The sample size is: ", nrow(get_data()), '. The number of bootstrap samples is: ', input$boot_samplesROBMED,'.', sep = ''))
-
     doc <- read_docx()
     doc <- body_add_flextable(doc, ft_direct)
     doc <- body_add_flextable(doc, ft_indirect)
-  })
+    return(doc)
+  }
+
 })

@@ -73,7 +73,7 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                               sliderInput("ConfidenceROBMED", "Confidence level:",
                                           min = 0, max = 1, value = 0.95),
                               numericInput('seedROBMED', label = 'Seed:', value = 0),
-                              uiOutput('downloadbuttontable')
+                              uiOutput('downloadbuttontableRobust')
 
 
                  ),
@@ -84,8 +84,7 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                            plotOutput("plot_weights"),
                            hr(),
                            h3('Model and Test summary'),
-                           verbatimTextOutput('summary'),
-                           textOutput('textWithNewlines')
+                           verbatimTextOutput('summary')
                  )
                )
 
@@ -96,10 +95,11 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                  h2("OLS Bootstrap Test"),
                  actionButton('runOLS', 'Run'),
                  h1("Options"),
-                 numericInput('boot_samplesROBMED', label = 'Number of bootstrap samples:', value = 5000),
+                 numericInput('boot_samplesOLS', label = 'Number of bootstrap samples:', value = 5000),
                  sliderInput("ConfidenceOLS", "Confidence level:",
                              min = 0, max = 1, value = 0.95),
                  numericInput('seedOLS', label = 'Seed:', value = 0),
+                 uiOutput('downloadbuttontableOLS')
 
                ),
                mainPanel(
