@@ -7,8 +7,13 @@ Depends:
     robmed (>= 0.10.0)
 Imports:
     shiny (>= 1.1.0),
+    shinythemes,
+    DT,
     ggplot2 (>= 3.3.0),
-    stats
+    graphics,
+    officer,
+    stats,
+    vroom
 Description: This companion package to 'robmed' contains a shiny app to compare various bootstrap procedures for mediation analysis on simulated data.  Future plans include to provide a graphical user interface for the robust bootstrap test ROBMED (Alfons, Ates & Groenen, 2021; <doi:10.1177/1094428121999096>) to make the method more accessible to less proficient R users.
 License: GPL (>= 3)
 URL: https://github.com/aalfons/robmedShiny
