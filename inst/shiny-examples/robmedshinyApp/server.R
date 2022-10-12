@@ -12,7 +12,7 @@ library(robmed)
 library(vroom)
 library(DT)
 library(officer)
-
+library(flextable)
 
 
 # Define server logic required to draw a histogram
@@ -364,6 +364,7 @@ shinyServer(function(input, output, session) {
         row <- row + 1
       }
     }
+    a_paths <- row
 
     coefs_b <- sm$fit_ymx$coefficients
     for (med in sm$m) {
@@ -372,6 +373,7 @@ shinyServer(function(input, output, session) {
       df_dir[row, 2:5] <- coefs_b[med, 2:5]
       row <- row + 1
     }
+    b_paths <- row
 
     # Add c path (Direct effect)
     for (reg in sm$x){
@@ -379,6 +381,7 @@ shinyServer(function(input, output, session) {
       df_dir[row, 2:5] <- sm$direct[reg, 2:5]
       row <- row + 1
     }
+    c_paths <- row
 
     # Add c' path (Total effect)
     for (reg in sm$x) {
@@ -387,6 +390,7 @@ shinyServer(function(input, output, session) {
       row <- row + 1
     }
 
+    pvals <- p_value(test_model, parm = 'indirect')
     #Add indirect effects (a (d) b paths)
     df_ind <- data.frame(matrix(0, nrow = indirectrows, ncol = 4))
     colnames(df_ind) <- c("Indirect Effects", 'Estimate', 'Confidence Interval', 'p-value')
@@ -411,11 +415,9 @@ shinyServer(function(input, output, session) {
           df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
 
           row <- row + 1
-
-
         }
 
-        # Through both mediators TODO: fix error
+        # Through both mediators
         effectname <- paste(reg, '->', sm$m[1], '->', sm$m[2], sep = '')
 
         df_ind[row,1] <- paste(effectname, '(Indirect)', sep = '')
@@ -458,6 +460,7 @@ shinyServer(function(input, output, session) {
           }
 
           df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
+          df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = '_')][[1]]
           row <- row + 1
         }
       }
@@ -478,6 +481,15 @@ shinyServer(function(input, output, session) {
     ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = 'center', part = 'body')
     ft_direct <- align(ft_direct, j = 2:5, align = 'center', part = 'header')
 
+    ft_direct <- padding(ft_direct, i = a_paths, padding.bottom =  5, part = 'body')
+    ft_direct <- padding(ft_direct, i = b_paths, padding.bottom =  5, part = 'body')
+    ft_direct <- padding(ft_direct, i = c_paths, padding.bottom =  5, part = 'body')
+    ft_direct <- padding(ft_direct, i = directrows, padding.bottom =  10, part = 'body')
+
+    ft_direct <- hline(ft_direct, i = a_paths - 1, border = fp_border("gray"), part = 'body')
+    ft_direct <- hline(ft_direct, i = b_paths - 1, border = fp_border("gray"), part = 'body')
+    ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"), part = 'body')
+
     ft_indirect <- flextable(df_ind_rounded)
     ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = 'in')
     ft_indirect <- width(ft_indirect, j = 3, width = 2, unit = 'in')
@@ -485,6 +497,9 @@ shinyServer(function(input, output, session) {
     ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4, align = 'center', part = 'body')
     ft_indirect <- align(ft_indirect, j = 2:4, align = 'center', part = 'header')
 
+    ft_indirect <- add_footer_lines(ft_indirect, paste('Sample size = ', nrow(test_model$fit$data),
+                                                       '. Number of bootstrap samples = ', test_model$R , '.\n',
+                                                       '†p < .1. *p < .05. **p < .01. ***p < .001.'))
     doc <- read_docx()
     doc <- body_add_flextable(doc, ft_direct)
     doc <- body_add_flextable(doc, ft_indirect)
