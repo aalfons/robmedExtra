@@ -117,7 +117,6 @@ shinyServer(function(input, output, session) {
 
       )
 
-
     # Renders the summary text for ROBMED
     output$summary <- renderPrint({
       robust_boot_simple <- robust_bootstrap_test()
@@ -357,7 +356,6 @@ shinyServer(function(input, output, session) {
       } else {
         coefs_a <- sm$fit_mx$coefficients
       }
-      coefs_b <- sm$fit_ymx$coefficients
 
       #Add a paths
       for (reg in sm$x) {
@@ -365,19 +363,25 @@ shinyServer(function(input, output, session) {
         df_dir[row, 2:5] <- coefs_a[reg, 2:5]
         row <- row + 1
       }
+    }
 
+    coefs_b <- sm$fit_ymx$coefficients
+    for (med in sm$m) {
       #Add b paths
       df_dir[row, 1] <- paste('(X),',med ,'->' , sm$y)
       df_dir[row, 2:5] <- coefs_b[med, 2:5]
       row <- row + 1
     }
 
-    # Add direct effect of regressor on response and total effect (c path and c' path)
+    # Add c path (Direct effect)
     for (reg in sm$x){
       df_dir[row, 1] <- paste(reg,'->', sm$y, '(direct)')
       df_dir[row, 2:5] <- sm$direct[reg, 2:5]
       row <- row + 1
+    }
 
+    # Add c' path (Total effect)
+    for (reg in sm$x) {
       df_dir[row, 1] <- paste(reg, '->', sm$y, '(total)')
       df_dir[row, 2:5] <- sm$total[reg, 2:5]
       row <- row + 1
@@ -424,7 +428,6 @@ shinyServer(function(input, output, session) {
         row <- row + 1
       }
     } else {
-
       # Parallel model
       row <- 1
       for (reg in sm$x) {
