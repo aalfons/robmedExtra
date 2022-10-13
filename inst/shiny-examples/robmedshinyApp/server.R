@@ -130,8 +130,6 @@ shinyServer(function(input, output, session) {
       summary(robust_boot_simple)$summary
     })
 
-
-
     observe({
       isolate(selectedInput <- input$Explanatory)
       updateSelectInput(session, inputId = 'Explanatory',
@@ -198,6 +196,7 @@ shinyServer(function(input, output, session) {
       selectInput(inputId='Covariates', label='Control variables:', choices = choices, multiple = TRUE)
     })
 
+    # Creates input UI for type of data
     output$dataframechoice <- renderUI({
       if (input$datatype == 'Existing DataFrame') {
         if (is.null(unlist(eapply(.GlobalEnv,is.data.frame)))){
@@ -217,6 +216,7 @@ shinyServer(function(input, output, session) {
       }
     })
 
+    # Creates input UI for the dataframe in an RData file
     output$rdatafile_dataframes <- renderUI({
       if (input$datatype == 'RData') {
         req(input$rdatafile)
@@ -325,7 +325,7 @@ shinyServer(function(input, output, session) {
     )
 
 # This function takes the summary output of ROBMED and turns it into a nicely formatted table
-  summarizetable <- function(test_model, rounding = 4) {
+summarizetable <- function(test_model, rounding = 4) {
 
     sm <- summary(test_model)$summary
 
@@ -397,7 +397,7 @@ shinyServer(function(input, output, session) {
     if (test_model$fit$model == "serial" ){
       row <- 1
       for (reg in sm$x) {
-        # Through only first or second mediator
+        # Through only first or only second mediator
         for (med in sm$m) {
           effectname <- paste(reg, '->', med, sep ='')
           df_ind[row,1] <- paste(effectname, '(Indirect)')
@@ -417,7 +417,7 @@ shinyServer(function(input, output, session) {
           row <- row + 1
         }
 
-        # Through both mediators
+        # Path through both mediators
         effectname <- paste(reg, '->', sm$m[1], '->', sm$m[2], sep = '')
 
         df_ind[row,1] <- paste(effectname, '(Indirect)', sep = '')
@@ -481,6 +481,7 @@ shinyServer(function(input, output, session) {
     ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = 'center', part = 'body')
     ft_direct <- align(ft_direct, j = 2:5, align = 'center', part = 'header')
 
+    # Add spacing and a line between different kinds of paths
     ft_direct <- padding(ft_direct, i = a_paths, padding.bottom =  5, part = 'body')
     ft_direct <- padding(ft_direct, i = b_paths, padding.bottom =  5, part = 'body')
     ft_direct <- padding(ft_direct, i = c_paths, padding.bottom =  5, part = 'body')
