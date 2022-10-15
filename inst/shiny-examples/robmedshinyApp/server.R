@@ -18,6 +18,83 @@ library(flextable)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
 
+      vals <- reactiveValues()
+      vals$script <- c()
+      vals$usedDF <- c()
+
+      counter <<- 1
+
+      # Updates the script to include the current analysis that is being run
+      observeEvent(input$runRobust, {
+        df = get_data()
+
+        # Load the RData file in the R Script
+        if (input$datatype != 'csv') {
+          if (input$datatype == 'RData'){
+            env = new_env
+            df_name <- input$rdata_dfname
+          } else{
+            env = .GlobalEnv
+            df_name <- input$dfname
+          }
+
+        } else {
+          # Data is from csv file
+          df_name <- input$file$name
+        }
+
+        if (!df_name %in% vals$usedDF) {
+          filename <- paste(getwd(),'/',  df_name, '.Rdata', sep = '')
+          save(df, file = filename)
+          vals$script <- c(vals$script, paste("load('",filename, "')", sep = ''))
+          vals$usedDF <- c(vals$usedDF, df_name)
+        }
+
+
+        #Write test_mediation(formula, data)
+        txt_controlvars <- paste('control_var <- reg_control(efficiency = ', input$MM_eff, ', max_iterations = ', input$max_iter, ', seed = ', input$seedROBMED,')')
+        txt_formulamodel <- paste('formula_model_', counter, ' <- ', paste(deparse(formula(), width.cutoff = 500), collapse=""), sep = '')
+        txt_test <- paste('bootstrap_test_',counter,' <- test_mediation(formula_model',counter, ', data = ', df_name,', ', 'robust = TRUE,', 'level = ', input$ConfidenceROBMED, ', control = control_var)', sep = '')
+
+        vals$script <- c(vals$script, txt_controlvars, txt_formulamodel, txt_test, '\n')
+        counter <<- counter + 1
+      })
+
+      observeEvent(input$runOLS, {
+        df = get_data()
+
+        # Load the RData file in the R Script
+        if (input$datatype != 'csv') {
+          if (input$datatype == 'RData'){
+            env = new_env
+            df_name <- input$rdata_dfname
+          } else{
+            env = .GlobalEnv
+            df_name <- input$dfname
+          }
+
+        } else {
+          # Data is from csv file
+          df_name <- input$file$name
+        }
+
+        if (!df_name %in% vals$usedDF) {
+          filename <- paste(getwd(),'/',  df_name, '.Rdata', sep = '')
+          save(df, file = filename)
+          vals$script <- c(vals$script, paste("load('",filename, "')", sep = ''))
+          vals$usedDF <- c(vals$usedDF, df_name)
+        }
+
+        #Write test_mediation(formula, data)
+        txt_seed <- paste('set.seed(', input$seedOLS, ')', sep = '')
+        txt_formulamodel <- paste('formula_model_', counter, ' <- ', paste(deparse(formula(), width.cutoff = 500), collapse=""), sep = '')
+        txt_test <- paste('bootstrap_test_',counter, '<- test_mediation(formula_model', counter, ', data = ', df_name,', ', 'robust = FALSE,', 'level = ', input$ConfidenceROBMED, ')', sep = '')
+
+        vals$script <- c(vals$script, txt_seed, txt_formulamodel, txt_test, '\n')
+        counter <<- counter + 1
+      })
+
+
       # Reactive expression to get data; only supports csv for now
       get_data <- reactive({
         if (input$datatype == 'csv'){
@@ -114,7 +191,6 @@ shinyServer(function(input, output, session) {
           dev.off()
         },
         contentType = "image/png"
-
       )
 
     # Renders the summary text for ROBMED
@@ -261,8 +337,6 @@ shinyServer(function(input, output, session) {
       updateNumericInput(session, 'seedROBMED', value = input$seedOLS)
     })
 
-
-
     output$downloadScript <- downloadHandler(
 
       filename = function() {
@@ -270,29 +344,8 @@ shinyServer(function(input, output, session) {
       },
       content = function(file) {
         file.create(file)
-
-        filename <- paste(getwd(),'/', 'useddata.Rdata', sep = '')
-        df = get_data()
-        save(df, file = filename)
-
-        # Load the RData file in the R Script
-        if (input$datatype == 'RData') {env = new_env} else {env = .GlobalEnv}
-        write(paste("load('",filename, "')", sep = ''), file, append = T)
-
-        # Get the dataframe in the RData file
-        df_name <- names(which(unlist(eapply(env,is.data.frame))))
-
-        #Write test_mediation(formula, data)
-        txt_controlvars <- paste('control_var <- reg_control(efficiency = ', input$MM_eff, ', max_iterations = ', input$max_iter, ', seed = ', input$seedROBMED,')')
-        txt_test <- paste('bootstrap_test <- test_mediation(', format(formula()), ', data = ', df_name,', ', 'robust = TRUE,', 'level = ', input$ConfidenceROBMED, ', control = control_var)')
-
-        write(txt_controlvars, file, append = T)
-        write(txt_test, file, append = T)
-
-        #Give summary of output
-        write('summary(bootstrap_test)', file, append = T)
+        writeLines(vals$script, file)
         dev.off()
-
       }
     )
 
