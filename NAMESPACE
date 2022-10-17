@@ -3,6 +3,7 @@
 export(run_shiny_app)
 export(start_GUI)
 import(DT)
+import(flextable)
 import(officer)
 import(shinythemes)
 import(vroom)

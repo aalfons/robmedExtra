@@ -78,6 +78,7 @@
 #' @importFrom shiny runApp
 #' @import shinythemes
 #' @import DT
+#' @import flextable
 #' @importFrom ggplot2 geom_vline scale_color_manual scale_fill_manual theme
 #' @importFrom graphics legend
 #' @import officer
