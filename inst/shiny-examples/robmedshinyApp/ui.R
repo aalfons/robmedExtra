@@ -19,7 +19,7 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                ),
 
     tabsetPanel(
-      tabPanel('Data and Model',
+      tabPanel('Data',
                              sidebarLayout(
                                sidebarPanel(
                                 textOutput('robmedversion'),
@@ -29,22 +29,31 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                                                         'RData')),
                                 uiOutput('dataframechoice'),
                                 uiOutput('rdatafile_dataframes'),
-                                h1("Model"),
-                                uiOutput('selectUI'),
-                                uiOutput('selectResponse'),
-                                uiOutput('selectExplanatory'),
-                                uiOutput('selectMediator'),
-                                uiOutput('selectControls'),
-                                selectInput("Modeltype", "Multiple mediator model:",
-                                            choices = c('parallel', 'serial')),
                              ),
 
                              mainPanel(
                              DT::dataTableOutput('data_table')
-                             )
-    )
-
+                               )
+        )
     ),
+    tabPanel("Model",
+             sidebarLayout(
+               sidebarPanel(
+                 h1("Model"),
+                 uiOutput('selectUI'),
+                 uiOutput('selectResponse'),
+                 uiOutput('selectExplanatory'),
+                 uiOutput('selectMediator'),
+                 uiOutput('selectControls'),
+                 selectInput("Modeltype", "Multiple mediator model:",
+                             choices = c('parallel', 'serial')),
+
+               ),
+               mainPanel(
+
+               )
+             )
+            ),
       tabPanel("ROBMED",
                sidebarLayout(
                  sidebarPanel(h2("Robust Bootstrap Test"),
