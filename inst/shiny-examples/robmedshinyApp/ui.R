@@ -35,18 +35,8 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                                 uiOutput('selectExplanatory'),
                                 uiOutput('selectMediator'),
                                 uiOutput('selectControls'),
-
                                 selectInput("Modeltype", "Multiple mediator model:",
                                             choices = c('parallel', 'serial')),
-                                h1("Options"),
-                                selectInput("rngversion", "Random Number Generator Version:",
-                                            choices = c("Current", '4.2.0', '4.1.3',
-                                                        '4.1.2', '4.1.1', '4.1.0',
-                                                        '4.0.5', '4.0.4', '4.0.3',
-                                                        '4.0.2', '4.0.1', '4.0.0',
-                                                        '3.6.3', '3.6.2', '3.6.1', '3.6.0',
-                                                        '3.5.3', '3.5.2', '3.5.1', '3.5.0')
-                                            )
                              ),
 
                              mainPanel(
@@ -57,24 +47,28 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
     ),
       tabPanel("ROBMED",
                sidebarLayout(
-                 sidebarPanel(actionButton('runRobust', "Run"),
-                              h2("Robust Bootstrap Settings"),
-                              numericInput("max_iter", "Maximum number of iterations:",
+                 sidebarPanel(h2("Robust Bootstrap Test"),
+                              actionButton("runRobust", "Run"),
+                              h2("Options"),
+                              sliderInput("ConfidenceROBMED", "Confidence level",
+                                          min = 0, max = 1, value = 0.95),
+                              numericInput("boot_samplesROBMED", label = "Number of bootstrap samples", value = 5000),
+                              h2("Random Number Generator"),
+                              numericInput("seedROBMED", label = "Seed", value = 0),
+                              textInput(inputId = "rng_version_robust", label = "Version",
+                                        value = as.character(getRversion())),
+
+
+                              h2("MM-estimator"),
+                              selectInput("MM_eff", "Efficiency at normal distribution",
+                                          choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85),
+                              numericInput("max_iter", "Maximum number of iterations",
                                            value = 10000),
 
-                              selectInput("MM_eff", "Efficiency at normal distribution:",
-                                           choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85),
-                              numericInput('boot_samplesROBMED', label = 'Number of bootstrap samples:', value = 5000),
-
-                              uiOutput('downloadbuttonplot'),
+                              uiOutput("downloadbuttonplot"),
                               br(),
-                              uiOutput('downloadbuttonscript'),
-                              h1("Options"),
-                              sliderInput("ConfidenceROBMED", "Confidence level:",
-                                          min = 0, max = 1, value = 0.95),
-                              numericInput('seedROBMED', label = 'Seed:', value = 0),
-                              uiOutput('downloadbuttontableRobust')
-
+                              uiOutput("downloadbuttonscript"),
+                              uiOutput("downloadbuttontableRobust"),
 
                  ),
 
@@ -94,12 +88,16 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                sidebarPanel(
                  h2("OLS Bootstrap Test"),
                  actionButton('runOLS', 'Run'),
-                 h1("Options"),
-                 numericInput('boot_samplesOLS', label = 'Number of bootstrap samples:', value = 5000),
-                 sliderInput("ConfidenceOLS", "Confidence level:",
+                 h2("Options"),
+                 numericInput('boot_samplesOLS', label = 'Number of bootstrap samples', value = 5000),
+                 sliderInput("ConfidenceOLS", "Confidence level",
                              min = 0, max = 1, value = 0.95),
-                 numericInput('seedOLS', label = 'Seed:', value = 0),
-                 uiOutput('downloadbuttontableOLS')
+                 h2("Random Number Generator"),
+                 numericInput('seedOLS', label = 'Seed', value = 0),
+                 uiOutput('downloadbuttontableOLS'),
+                 textInput(inputId = 'rng_version_ols', label = 'Version',
+                           value = as.character(getRversion()))
+
 
                ),
                mainPanel(

@@ -26,15 +26,15 @@ shinyServer(function(input, output, session) {
 
       # Updates the script to include the current analysis that is being run
       observeEvent(input$runRobust, {
-        df = get_data()
+        df <- get_data()
 
         # Load the RData file in the R Script
         if (input$datatype != 'csv') {
           if (input$datatype == 'RData'){
-            env = new_env
+            env <- new_env
             df_name <- input$rdata_dfname
           } else{
-            env = .GlobalEnv
+            env <- .GlobalEnv
             df_name <- input$dfname
           }
 
@@ -44,12 +44,11 @@ shinyServer(function(input, output, session) {
         }
 
         if (!df_name %in% vals$usedDF) {
-          filename <- paste(getwd(),'/',  df_name, '.Rdata', sep = '')
+          filename <- as.character(paste(getwd(),'/',  df_name, '.Rdata', sep = ''))
           save(df, file = filename)
           vals$script <- c(vals$script, paste("load('",filename, "')", sep = ''))
           vals$usedDF <- c(vals$usedDF, df_name)
         }
-
 
         #Write test_mediation(formula, data)
         txt_controlvars <- paste('control_var <- reg_control(efficiency = ', input$MM_eff, ', max_iterations = ', input$max_iter, ', seed = ', input$seedROBMED,')')
@@ -61,7 +60,7 @@ shinyServer(function(input, output, session) {
       })
 
       observeEvent(input$runOLS, {
-        df = get_data()
+        df <- get_data()
 
         # Load the RData file in the R Script
         if (input$datatype != 'csv') {
@@ -105,7 +104,7 @@ shinyServer(function(input, output, session) {
         }
         if (input$datatype == 'Existing DataFrame'){
           req(input$dfname)
-          dataframeName = input$dfname
+          dataframeName <- input$dfname
           final_df <- as.data.frame(get(input$dfname, .GlobalEnv))
 
         }
@@ -113,7 +112,6 @@ shinyServer(function(input, output, session) {
           req(input$rdata_dfname)
           final_df <- as.data.frame(get(input$rdata_dfname,envir = new_env ))
         }
-
         final_df
       })
 
@@ -122,13 +120,18 @@ shinyServer(function(input, output, session) {
         Filter(is.numeric, df)
       })
 
-      observeEvent(input$rngversion,{
-        if(input$rngversion == 'Current'){
-          RNGversion(getRversion())
-        } else{
-          RNGversion(input$rngversion)
-        }
+      observe({
+        updateTextInput(session, inputId = 'rng_version_ols', value = input$rng_version_robust)
+        RNGversion(input$rng_version_robust)
       })
+
+      observe({
+        updateTextInput(session, inputId = 'rng_version_robust', value = input$rng_version_ols)
+        RNGversion(input$rng_version_ols)
+      })
+
+
+
 
       formula <- reactive({
         req(input$Explanatory, input$Modeltype, input$Response, input$Mediators)
@@ -161,7 +164,6 @@ shinyServer(function(input, output, session) {
                                                set.seed(input$seedOLS)
                                                df <- get_data()
                                                f_test <- formula()
-                                               print("Formula fine")
                                                ols_bootstrap <- test_mediation(f_test, data = df, robust = FALSE,
                                                                                 level = input$ConfidenceOLS, R = input$boot_samplesOLS)
                                              })
@@ -257,23 +259,25 @@ shinyServer(function(input, output, session) {
     })
 
     output$selectMediator <- renderUI({
-      choices = colnames(numeric_data())
+      choices <- colnames(numeric_data())
       selectInput(inputId='Mediators', label='Mediating variable(s):', choices = choices, multiple = TRUE)
     })
 
     output$selectResponse <- renderUI({
-      choices = colnames(numeric_data())
+      choices <- colnames(numeric_data())
       selectInput(inputId='Response', label='Dependent variable:', choices = choices, multiple = FALSE)
     })
 
     output$selectControls <- renderUI({
       isolate(self <- input$Covariates)
-      choices = colnames(get_data())
+      choices <- colnames(get_data())
       selectInput(inputId='Covariates', label='Control variables:', choices = choices, multiple = TRUE)
     })
 
     # Creates input UI for type of data
     output$dataframechoice <- renderUI({
+      cat(file=stderr(), "dataframechoice", "\n")
+
       if (input$datatype == 'Existing DataFrame') {
         if (is.null(unlist(eapply(.GlobalEnv,is.data.frame)))){
           helpText("The Global Environment is empty")
@@ -358,7 +362,7 @@ shinyServer(function(input, output, session) {
         paste(Sys.Date(), 'ROBMEDoutput.docx', sep = '')
       },
       content = function(file) {
-        tabledoc <- summarizetable(robust_bootstrap_test())
+        tabledoc <- export_table_MSWord(robust_bootstrap_test())
         print(tabledoc, file)
       }
     )
@@ -372,13 +376,14 @@ shinyServer(function(input, output, session) {
         paste(Sys.Date(), 'OLSoutput.docx', sep = '')
       },
       content = function(file) {
-        tabledoc <- summarizetable(ols_bootstrap_test())
+        tabledoc <- export_table_MSWord(ols_bootstrap_test())
         print(tabledoc, file)
       }
     )
 
-# This function takes the summary output of ROBMED and turns it into a nicely formatted table
-summarizetable <- function(test_model, rounding = 4) {
+# This function takes the summary output of ROBMED
+# and turns it into a nicely formatted table
+export_table_MSWord <- function(test_model, rounding = 4) {
 
     sm <- summary(test_model)$summary
 
