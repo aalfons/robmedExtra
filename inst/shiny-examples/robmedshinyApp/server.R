@@ -18,6 +18,8 @@ library(flextable)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
 
+      session$onSessionEnded(function() { stopApp() })
+
       vals <- reactiveValues()
       vals$script <- c()
       vals$usedDF <- c()

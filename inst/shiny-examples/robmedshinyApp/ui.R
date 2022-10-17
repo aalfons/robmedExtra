@@ -12,7 +12,9 @@ library(shinythemes)
 library(DT)
 
 # Define UI for application that draws a histogram
-shinyUI(fluidPage(theme = shinytheme("sandstone"),
+shinyUI(fluidPage(
+    theme = shinytheme("sandstone"),
+    title = "ROBMED",
 
     # Application title
     titlePanel(h1("ROBMED", align = 'center')
