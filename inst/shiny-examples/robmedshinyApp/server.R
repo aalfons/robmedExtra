@@ -214,7 +214,7 @@ shinyServer(function(input, output, session) {
 
       output$downloadPlot <- downloadHandler(
         filename = function() {
-          paste(Sys.Date() ,"plot.png", sep = '')
+          paste(Sys.Date() ,"diagnosticplot.png", sep = '')
         },
         content = function(file) {
           png(file)
@@ -377,12 +377,11 @@ shinyServer(function(input, output, session) {
     output$downloadScript <- downloadHandler(
 
       filename = function() {
-        paste(Sys.Date(), "-Script.R", sep = '')
+        paste(Sys.Date(), "script.R", sep = '')
       },
       content = function(file) {
         file.create(file)
         writeLines(vals$script, file)
-        dev.off()
       }
     )
 
@@ -392,7 +391,7 @@ shinyServer(function(input, output, session) {
 
     output$downloadTableRobust <- downloadHandler(
       filename = function() {
-        paste(Sys.Date(), "ROBMEDoutput.docx", sep = '')
+        paste(Sys.Date(), "tableROBMED.docx", sep = "")
       },
       content = function(file) {
         tabledoc <- export_table_MSWord(robust_bootstrap_test())
@@ -406,7 +405,7 @@ shinyServer(function(input, output, session) {
 
     output$downloadTableOLS <- downloadHandler(
       filename = function() {
-        paste(Sys.Date(), "OLSoutput.docx", sep = "")
+        paste(Sys.Date(), "tableOLS.docx", sep = "")
       },
       content = function(file) {
         tabledoc <- export_table_MSWord(ols_bootstrap_test())
