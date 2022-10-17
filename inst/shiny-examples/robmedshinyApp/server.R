@@ -354,7 +354,7 @@ shinyServer(function(input, output, session) {
     )
 
     output$downloadbuttontableRobust <- renderUI({
-      downloadButton('downloadTableRobust', 'Download Table')
+      downloadButton('downloadTableRobust', 'Download Table Robust')
     })
 
     output$downloadTableRobust <- downloadHandler(
@@ -368,7 +368,7 @@ shinyServer(function(input, output, session) {
     )
 
     output$downloadbuttontableOLS <- renderUI({
-      downloadButton('downloadTableOLS', 'Download Table')
+      downloadButton('downloadTableOLS', 'Download Table OLS')
     })
 
     output$downloadTableOLS <- downloadHandler(

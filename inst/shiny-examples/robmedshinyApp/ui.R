@@ -65,10 +65,6 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                               numericInput("max_iter", "Maximum number of iterations",
                                            value = 10000),
 
-                              uiOutput("downloadbuttonplot"),
-                              br(),
-                              uiOutput("downloadbuttonscript"),
-                              uiOutput("downloadbuttontableRobust"),
 
                  ),
 
@@ -94,7 +90,6 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                              min = 0, max = 1, value = 0.95),
                  h2("Random Number Generator"),
                  numericInput('seedOLS', label = 'Seed', value = 0),
-                 uiOutput('downloadbuttontableOLS'),
                  textInput(inputId = 'rng_version_ols', label = 'Version',
                            value = as.character(getRversion()))
 
@@ -106,6 +101,27 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                  verbatimTextOutput('summaryOLS')
                )
              )
-      )
+      ),
+    tabPanel("Export",
+             sidebarLayout(
+               sidebarPanel(
+                 h2("Download Table"),
+                 uiOutput("downloadbuttontableRobust"),
+                 uiOutput('downloadbuttontableOLS'),
+
+
+                 h2("Download Diagnostic Plot"),
+                 uiOutput("downloadbuttonplot"),
+
+                 h2("Download R Script"),
+                 uiOutput("downloadbuttonscript"),
+
+
+               ),
+               mainPanel(
+
+               )
+             )
+            )
     )
 ))
