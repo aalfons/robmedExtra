@@ -21,11 +21,21 @@ URL: https://github.com/aalfons/robmedShiny
 BugReports: https://github.com/aalfons/robmedShiny/issues
 LazyData: yes
 Authors@R: 
-    person("Andreas", "Alfons", 
-           email = "alfons@ese.eur.nl", 
-           role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-2513-3788"))
-Author: Andreas Alfons [aut, cre] (<https://orcid.org/0000-0002-2513-3788>)
+    c(person("Andreas", "Alfons", 
+             email = "alfons@ese.eur.nl", 
+             role = c("aut", "cre"),
+             comment = c(ORCID = "0000-0002-2513-3788")),
+      person("Vincent", "Drenth", 
+             role = "aut"),
+      person("Aurore", "Archimbaud", 
+             email = "archimbaud@ese.eur.nl", 
+             role = "aut",
+             comment = c(ORCID = "0000-0002-6511-9091"))
+      )
+Author: 
+    Andreas Alfons [aut, cre] (<https://orcid.org/0000-0002-2513-3788>), 
+    Vincent Drenth [aut], 
+    Aurore Archimbaud [aut] (<https://orcid.org/0000-0002-6511-9091>), 
 Maintainer: Andreas Alfons <alfons@ese.eur.nl>
 Encoding: UTF-8
 RoxygenNote: 7.2.1

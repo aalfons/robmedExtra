@@ -80,6 +80,11 @@ Mediation Analysis.  \emph{Multivariate Behavioral Research}, \bold{45}(1),
 \code{\link{test_mediation}}
 }
 \author{
-Andreas Alfons
+The graphical user interface for package \pkg{robmed} was written by
+Vincent Drenth, Andreas Alfons, and Aurore Archimbaud.
+
+The app for exploring the behavior of various bootstrap procedures for
+mediation analysis on simulated data, as well as the functions
+to start the \pkg{shiny} apps, were written by Andreas Alfons.
 }
 \keyword{documentation}
