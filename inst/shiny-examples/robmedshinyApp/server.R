@@ -415,6 +415,15 @@ shinyServer(function(input, output, session) {
 
 # This function takes the summary output of ROBMED
 # and turns it into a nicely formatted table
+#' Title
+#'
+#' @param test_model
+#' @param rounding
+#'
+#' @return
+#' @export
+#'
+#' @examples
 export_table_MSWord <- function(test_model, rounding = 4) {
 
     sm <- summary(test_model)$summary

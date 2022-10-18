@@ -25,7 +25,6 @@ shinyUI(fluidPage(
                              sidebarLayout(
                                sidebarPanel(
                                 textOutput('robmedversion'),
-                                h1("Data"),
                                 selectInput('datatype', 'datatype',
                                             choices = c('csv',
                                                         'Existing DataFrame',
@@ -42,7 +41,6 @@ shinyUI(fluidPage(
     tabPanel("Model",
              sidebarLayout(
                sidebarPanel(
-                 h1("Model"),
                  uiOutput('selectUI'),
                  uiOutput('selectResponse'),
                  uiOutput('selectExplanatory'),
@@ -59,8 +57,7 @@ shinyUI(fluidPage(
             ),
       tabPanel("ROBMED",
                sidebarLayout(
-                 sidebarPanel(h2("Robust Bootstrap Test"),
-                              actionButton("runRobust", "Run"),
+                 sidebarPanel(actionButton("runRobust", "Run"),
                               h2("Options"),
                               sliderInput("ConfidenceROBMED", "Confidence level",
                                           min = 0, max = 1, value = 0.95),
@@ -101,14 +98,13 @@ shinyUI(fluidPage(
     tabPanel("OLS Bootstrap",
              sidebarLayout(
                sidebarPanel(
-                 h2("OLS Bootstrap Test"),
                  actionButton('runOLS', 'Run'),
                  h2("Options"),
+                 sliderInput("ConfidenceOLS", "Confidence level",
+                             min = 0, max = 1, value = 0.95),
                  numericInput('boot_samplesOLS',
                               label = 'Number of bootstrap samples',
                               value = 5000),
-                 sliderInput("ConfidenceOLS", "Confidence level",
-                             min = 0, max = 1, value = 0.95),
                  h2("Random Number Generator"),
                  numericInput('seedOLS', label = 'Seed', value = 0),
                  textInput(inputId = 'rng_version_ols', label = 'Version',
@@ -129,11 +125,8 @@ shinyUI(fluidPage(
                  h2("Download Table"),
                  uiOutput("downloadbuttontableRobust"),
                  uiOutput('downloadbuttontableOLS'),
-
-
                  h2("Download Diagnostic Plot"),
                  uiOutput("downloadbuttonplot"),
-
                  h2("Download R Script"),
                  uiOutput("downloadbuttonscript"),
 
