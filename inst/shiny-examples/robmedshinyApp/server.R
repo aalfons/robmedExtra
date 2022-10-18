@@ -103,7 +103,12 @@ shinyServer(function(input, output, session) {
         }
 
         #Write test_mediation(formula, data)
-        txt_seed <- paste("set.seed(", input$seedOLS, ")", sep = '')
+        if (!is.na(input$seedOLS)) {
+          txt_seed <- paste("set.seed(", input$seedOLS, ")", sep = '')
+        } else {
+          txt_seed <- ""
+        }
+
         txt_formulamodel <- paste("formula_model_", counter, "<- ",
                                   paste(deparse(formula(), width.cutoff = 500),
                                         collapse=""), sep = '')
@@ -208,18 +213,15 @@ shinyServer(function(input, output, session) {
       })
 
       ols_bootstrap_test <- eventReactive(input$runOLS,
-                                         {
-                                           set.seed(input$seedOLS)
-                                           df <- get_data()
-                                           f_test <- formula()
-                                           ols_bootstrap <- test_mediation(f_test, data = df, robust = FALSE,
-                                                                            level = input$ConfidenceOLS, R = input$boot_samplesOLS)
-                                         })
-
-      output$summaryOLS <- renderPrint({
-        summary(ols_bootstrap_test())
-      })
-
+       {
+         if (!is.na(input$seedOLS)) {set.seed(input$seedOLS)}
+         df <- get_data()
+         f_test <- formula()
+         ols_bootstrap <- test_mediation(f_test, data = df, robust = FALSE,
+                                         level = input$ConfidenceOLS,
+                                         R = input$boot_samplesOLS)
+         ols_bootstrap
+       })
 
       # Renders plot of expected vs empirical weights
 
@@ -253,7 +255,7 @@ shinyServer(function(input, output, session) {
 
     output$summaryOLS <- renderPrint({
       robust_boot_simple <- ols_bootstrap_test()
-      summary(robust_boot_simple)$summary
+      summary(robust_boot_simple)
     })
 
     observe({
