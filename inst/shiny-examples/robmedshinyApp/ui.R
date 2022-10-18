@@ -66,7 +66,7 @@ shinyUI(fluidPage(
                                            value = 5000),
                               h2("Random Number Generator"),
                               numericInput("seedROBMED", label = "Seed",
-                                           value = 0),
+                                           value = NULL),
                               textInput(inputId = "rng_version_robust",
                                         label = "Version",
                                         value = as.character(getRversion())),
@@ -106,7 +106,7 @@ shinyUI(fluidPage(
                               label = 'Number of bootstrap samples',
                               value = 5000),
                  h2("Random Number Generator"),
-                 numericInput('seedOLS', label = 'Seed', value = 0),
+                 numericInput('seedOLS', label = 'Seed', value = NULL),
                  textInput(inputId = 'rng_version_ols', label = 'Version',
                            value = as.character(getRversion()))
 

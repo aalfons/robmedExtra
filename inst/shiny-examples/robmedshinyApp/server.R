@@ -55,8 +55,8 @@ shinyServer(function(input, output, session) {
         #Write test_mediation(formula, data)
         txt_controlvars <- paste("control_var <- reg_control(efficiency = ",
                                  input$MM_eff, ", max_iterations = ",
-                                 input$max_iter, ", seed = ",
-                                 input$seedROBMED,")")
+                                 input$max_iter,")")
+        txt_seed <- paste("set.seed(", input$seedROBMED, ")", sep = "")
 
         txt_formulamodel <- paste("formula_model_", counter, " <- ",
                                   paste(deparse(formula(), width.cutoff = 500),
@@ -68,7 +68,7 @@ shinyServer(function(input, output, session) {
                           "level = ", input$ConfidenceROBMED,
                           ", control = control_var)", sep = "")
 
-        vals$script <- c(vals$script, txt_controlvars,
+        vals$script <- c(vals$script, txt_controlvars, txt_seed,
                          txt_formulamodel, txt_test, "\n")
         counter <<- counter + 1
       })
@@ -180,8 +180,9 @@ shinyServer(function(input, output, session) {
       df <- get_data()
       f_test <- formula()
       control_var <- reg_control(efficiency = input$MM_eff,
-                                 max_iterations = input$max_iter,
-                                 seed = input$seedROBMED)
+                                 max_iterations = input$max_iter)
+
+      set.seed(input$seedROBMED)
       robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE,
                                          level = input$ConfidenceROBMED,
                                          R = input$boot_samplesROBMED,
