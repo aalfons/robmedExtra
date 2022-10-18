@@ -56,7 +56,11 @@ shinyServer(function(input, output, session) {
         txt_controlvars <- paste("control_var <- reg_control(efficiency = ",
                                  input$MM_eff, ", max_iterations = ",
                                  input$max_iter,")")
-        txt_seed <- paste("set.seed(", input$seedROBMED, ")", sep = "")
+        if (!is.na(input$seedROBMED)) {
+          txt_seed <- paste("set.seed(", input$seedROBMED, ")", sep = "")
+        } else {
+          txt_seed <- ""
+        }
 
         txt_formulamodel <- paste("formula_model_", counter, " <- ",
                                   paste(deparse(formula(), width.cutoff = 500),
