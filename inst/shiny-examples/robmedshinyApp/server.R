@@ -67,7 +67,7 @@ shinyServer(function(input, output, session) {
                                         collapse=""), sep = "")
 
         txt_test <- paste("bootstrap_test_",counter,
-                          " <- test_mediation(formula_model",counter,
+                          " <- test_mediationrormula_model",counter,
                           ", data = ", df_name,", ", "robust = TRUE,",
                           "level = ", input$ConfidenceROBMED,
                           ", control = control_var)", sep = "")
@@ -439,6 +439,17 @@ shinyServer(function(input, output, session) {
                   choices = c("", 'parallel', 'serial'), selected = NULL)
       }
     })
+
+    output$ui_runbutton_robmed <- renderUI({
+      req(input$Mediators, input$Response, input$Explanatory)
+      actionButton("runRobust", "Run")
+    })
+
+    output$ui_runbutton_ols <- renderUI({
+      req(input$Mediators, input$Response, input$Explanatory)
+      actionButton('runOLS', 'Run')
+    })
+
 
 # This function takes the summary output of ROBMED
 # and turns it into a nicely formatted table

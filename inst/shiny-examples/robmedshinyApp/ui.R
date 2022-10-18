@@ -55,7 +55,7 @@ shinyUI(fluidPage(
             ),
       tabPanel("ROBMED",
                sidebarLayout(
-                 sidebarPanel(actionButton("runRobust", "Run"),
+                 sidebarPanel(uiOutput('ui_runbutton_robmed'),
                               h2("Options"),
                               sliderInput("ConfidenceROBMED", "Confidence level",
                                           min = 0, max = 1, value = 0.95),
@@ -96,7 +96,7 @@ shinyUI(fluidPage(
     tabPanel("OLS Bootstrap",
              sidebarLayout(
                sidebarPanel(
-                 actionButton('runOLS', 'Run'),
+                 uiOutput("ui_runbutton_ols"),
                  h2("Options"),
                  sliderInput("ConfidenceOLS", "Confidence level",
                              min = 0, max = 1, value = 0.95),
