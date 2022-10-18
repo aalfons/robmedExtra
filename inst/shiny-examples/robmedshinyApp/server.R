@@ -115,23 +115,29 @@ shinyServer(function(input, output, session) {
 
       # Reactive expression to get data; only supports csv for now
       get_data <- reactive({
-        if (input$datatype == "csv"){
-          req(input$file)
-          ext <- tools::file_ext(input$file$name)
-         final_df <- switch(ext, csv = vroom::vroom(input$file$datapath,
-                                                    delim = ","),
-                 validate("Invalid file; Please upload a .csv file"))
-        }
-        if (input$datatype == "Existing DataFrame"){
-          req(input$dfname)
-          dataframeName <- input$dfname
-          final_df <- as.data.frame(get(input$dfname, .GlobalEnv))
 
-        }
-        if (input$datatype == "RData") {
-          req(input$rdata_dfname)
-          final_df <- as.data.frame(get(input$rdata_dfname,envir = new_env ))
-        }
+        if (input$datatype == "csv"){
+          if (is.null(input$file)) {
+            final_df <- data.frame()
+          } else {
+            ext <- tools::file_ext(input$file$name)
+            final_df <- switch(ext, csv = vroom::vroom(input$file$datapath,
+                                                       delim = ","),
+                               validate("Invalid file; Please upload a .csv file"))
+            }
+          } else if (input$datatype == "Existing DataFrame"){
+            if (is.null(input$dfname)) {
+              final_df <- data.frame()
+            } else {
+              final_df <- as.data.frame(get(input$dfname, .GlobalEnv))
+            }
+          } else if (input$datatype == "RData") {
+            if (is.null(input$rdata_dfname)) {
+              final_df <- data.frame()
+            } else {
+              final_df <- as.data.frame(get(input$rdata_dfname, envir = new_env ))
+            }
+          }
         final_df
       })
 
@@ -156,11 +162,19 @@ shinyServer(function(input, output, session) {
 
 
       formula <- reactive({
-        req(input$Explanatory, input$Modeltype, input$Response, input$Mediators)
+        req(input$Explanatory, input$Response, input$Mediators)
 
         explanatory <- paste(input$Explanatory, collapse = "+")
+
+        # Choose parallel as default when no mediator type is chosen
+        if (is.null(input$Modeltype)) {
+          model_type <- 'parallel'
+        } else {
+          model_type <- input$Modeltype
+        }
+
         mediators <- paste("m(", paste(input$Mediators, collapse = ","),
-                           ', .model = "',input$Modeltype,'")', sep = '')
+                           ', .model = "',model_type,'")', sep = '')
 
         controls <- ''
         if(length(input$Covariates) != 0){
@@ -182,7 +196,7 @@ shinyServer(function(input, output, session) {
       control_var <- reg_control(efficiency = input$MM_eff,
                                  max_iterations = input$max_iter)
 
-      set.seed(input$seedROBMED)
+      if (!is.na(input$seedROBMED)) {set.seed(input$seedROBMED)}
       robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE,
                                          level = input$ConfidenceROBMED,
                                          R = input$boot_samplesROBMED,
@@ -262,7 +276,6 @@ shinyServer(function(input, output, session) {
 
     observe({
       isolate(selectedInput <- input$Response)
-
       updateSelectInput(session, inputId = "Response",
                         choices = setdiff(colnames(numeric_data()),
                                           c(input$Explanatory,
@@ -291,20 +304,20 @@ shinyServer(function(input, output, session) {
 
     output$selectMediator <- renderUI({
       choices <- colnames(numeric_data())
-      selectInput(inputId="Mediators", label="Mediating variable(s)",
+      selectInput(inputId="Mediators", label="Mediator(s) (Numeric)",
                   choices = choices, multiple = TRUE)
     })
 
     output$selectResponse <- renderUI({
       choices <- colnames(numeric_data())
-      selectInput(inputId="Response", label= "Dependent variable",
-                  choices = choices, multiple = FALSE)
+      selectInput(inputId="Response", label= "Dependent variable (Numeric)",
+                  choices = c("",choices), multiple = FALSE, selected = NULL)
     })
 
     output$selectControls <- renderUI({
       isolate(self <- input$Covariates)
       choices <- colnames(get_data())
-      selectInput(inputId="Covariates", label = "Control variables",
+      selectInput(inputId="Covariates", label = "Covariate(s) (Optional)",
                   choices = choices, multiple = TRUE)
     })
 
@@ -413,6 +426,13 @@ shinyServer(function(input, output, session) {
         print(tabledoc, file)
       }
     )
+
+    output$ui_model_type <- renderUI({
+      if (length(input$Mediators) > 1) {
+      selectInput("Modeltype", "Multiple mediator model:",
+                  choices = c("", 'parallel', 'serial'), selected = NULL)
+      }
+    })
 
 # This function takes the summary output of ROBMED
 # and turns it into a nicely formatted table

@@ -46,9 +46,7 @@ shinyUI(fluidPage(
                  uiOutput('selectExplanatory'),
                  uiOutput('selectMediator'),
                  uiOutput('selectControls'),
-                 selectInput("Modeltype", "Multiple mediator model:",
-                             choices = c('parallel', 'serial')),
-
+                 uiOutput('ui_model_type')
                ),
                mainPanel(
 
