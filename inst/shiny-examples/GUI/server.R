@@ -453,6 +453,7 @@ shinyServer(function(input, output, session) {
 
 # This function takes the summary output of ROBMED
 # and turns it into a nicely formatted table
+
 #' Title
 #'
 #' @param test_model
@@ -462,7 +463,19 @@ shinyServer(function(input, output, session) {
 #' @export
 #'
 #' @examples
-export_table_MSWord <- function(test_model, rounding = 4) {
+export_table_MSWord <- function(test_model, ...) {
+  UseMethod("export_table_MSWord")
+}
+
+#' @export
+export_table_MSWord.list <- function(test_model,
+                                     orientation = c("landscape", "portrait"),
+                                     ...) {
+  # TODO
+}
+
+#' @export
+export_table_MSWord.test_mediation <- function(test_model, rounding = 4, ...) {
 
     sm <- summary(test_model)$summary
 
