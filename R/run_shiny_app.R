@@ -82,23 +82,23 @@
 #'
 #' @importFrom robmed test_mediation
 #' @importFrom shiny runApp
-#' @import shinythemes
-#' @import DT
-#' @import flextable
+#' @importFrom shinythemes shinytheme
+#' @importFrom DT dataTableOutput renderDataTable
+#' @importFrom flextable add_footer_lines align body_add_flextable flextable hline padding set_flextable_defaults width
 #' @importFrom ggplot2 geom_vline scale_color_manual scale_fill_manual theme
 #' @importFrom graphics legend
-#' @import officer
+#' @importFrom officer read_docx
 #' @importFrom stats rnorm
-#' @import vroom
+#' @importFrom vroom vroom
 #' @export
 
 run_shiny_app <- function(which = c("GUI", "simulation")) {
   # initializations
   which <- match.arg(which)
   # find application folder
-  folder <- system.file("shiny-examples", which, package = "robmedShiny")
+  folder <- system.file("shiny-examples", which, package = "robmedExtra")
   if (folder == "") {
-    stop("Could not find shiny app.  Try re-installing package 'robmedShiny'.")
+    stop("Could not find shiny app.  Try re-installing package 'robmedExtra'.")
   }
   # run shiny app
   shiny::runApp(folder, display.mode = "normal")
