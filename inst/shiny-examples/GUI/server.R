@@ -130,9 +130,12 @@ shinyServer(function(input, output, session) {
             final_df <- data.frame()
           } else {
             ext <- tools::file_ext(input$file$name)
-            final_df <- switch(ext, csv = vroom::vroom(input$file$datapath,
-                                                       delim = ","),
-                               validate("Invalid file; Please upload a .csv file"))
+            final_df <- switch(ext, csv = read.csv(input$file$datapath,
+                                                   check.names = TRUE),
+                               tsv = read.delim(input$file$datapath, sep = "\t"),
+                               shiny::validate(sprintf("Invalid file:
+                                        Please upload a .csv file.\n
+                                        You uploaded a %s file", ext)))
             }
           } else if (input$datatype == "Existing DataFrame"){
             if (is.null(input$dfname)) {
@@ -147,6 +150,8 @@ shinyServer(function(input, output, session) {
               final_df <- as.data.frame(get(input$rdata_dfname, envir = new_env ))
             }
           }
+
+        colnames(final_df) <- make.names(colnames(final_df), unique = TRUE)
         final_df
       })
 
@@ -166,8 +171,6 @@ shinyServer(function(input, output, session) {
                         value = input$rng_version_ols)
         RNGversion(input$rng_version_ols)
       })
-
-
 
 
       formula <- reactive({
@@ -252,7 +255,6 @@ shinyServer(function(input, output, session) {
       })
 
     # Renders the summary text for OLS bootstrap
-
     output$summaryOLS <- renderPrint({
       robust_boot_simple <- ols_bootstrap_test()
       summary(robust_boot_simple)
@@ -343,6 +345,7 @@ shinyServer(function(input, output, session) {
                   accept = c("text/csv",
                              "text/comma-separated-values,text/plain",
                                                        ".csv"))
+
       } else if (input$datatype == "RData") {
         fileInput("rdatafile", "RData File",
                   accept = c(".RData"))
@@ -467,194 +470,265 @@ export_table_MSWord <- function(test_model, ...) {
   UseMethod("export_table_MSWord")
 }
 
+
 #' @export
 export_table_MSWord.list <- function(test_model,
                                      orientation = c("landscape", "portrait"),
                                      ...) {
-  # TODO
+  if (length(test_model) == 1) {
+    return(export_table_MSWord(test_model[[1]]))
+  }
+
+  model_robust = Filter(function(x) x$fit$robust != FALSE, test_model)[[1]]
+  model_ols = Filter(function(x) (x$fit$robust == FALSE), test_model)[[1]]
+
+  tables_robust <- create_tables(model_robust)
+  tables_ols <- create_tables(model_ols)
+
+  doc <- officer::read_docx()
+
+  if (orientation == 'landscape') {
+    direct_data_robust <- tables_robust$direct$body$dataset
+    direct_data_ols <- tables_ols$direct$body$dataset
+
+    indirect_data_robust <- tables_robust$indirect$body$dataset
+    indirect_data_ols <- tables_ols$indirect$body$dataset
+
+    colnames(direct_data_ols) <- unlist(lapply(colnames(direct_data_ols),
+                                               FUN = function(x) paste0(x, "\r")))
+    colnames(indirect_data_ols) <- unlist(lapply(colnames(indirect_data_ols),
+                                                 FUN = function(x) paste0(x, "\r")))
+
+    direct_data_ols <- direct_data_ols[,2:ncol(direct_data_ols)]
+    direct_data <- data.frame(direct_data_robust, direct_data_ols,
+                              check.names = FALSE)
+
+    indirect_data_ols <- indirect_data_ols[,2:ncol(indirect_data_ols)]
+    indirect_data <- data.frame(indirect_data_robust, indirect_data_ols,
+                                check.names = FALSE)
+
+    ft_direct <- flextable(direct_data)
+    ft_direct <- flextable::width(ft_direct, j = 1, width = 2, unit = "in")
+    ft_direct <- add_header_row(ft_direct,
+                                values = c(" ", "ROBMED", "OLS Bootstrap"),
+                                top = TRUE, colwidths = c(1, 4, 4))
+    ft_direct <- align(ft_direct, align = "center", part = "all")
+
+    ft_indirect <- flextable::flextable(indirect_data)
+    ft_indirect <- flextable::width(ft_indirect, j = 1, width = 2,
+                                    unit = "in")
+    ft_indirect <- flextable::width(ft_indirect, j = 3, width = 1.5,
+                                    unit = "in")
+    ft_indirect <- flextable::width(ft_indirect, j = 6, width = 1.5,
+                                    unit = "in")
+    ft_indirect <- align(ft_indirect, align = "center", part = "all")
+
+    doc <- officer::body_end_section_landscape(doc)
+    doc <- flextable::body_add_flextable(doc, ft_direct)
+    doc <- flextable::body_add_flextable(doc, ft_indirect)
+    doc <- officer::body_end_section_landscape(doc)
+  } else if (orientation == 'portrait') {
+    doc <- officer::body_add_fpar(doc, value = fpar(ftext("ROBMED")))
+    doc <- flextable::body_add_flextable(doc, tables_robust$direct)
+    doc <- flextable::body_add_flextable(doc, tables_robust$indirect)
+    doc <- officer::body_add_fpar(doc, value = fpar(ftext("OLS Bootstrap")) )
+    doc <- flextable::body_add_flextable(doc, tables_ols$direct)
+    doc <- flextable::body_add_flextable(doc, tables_ols$indirect)
+  }
+  return(doc)
 }
 
-#' @export
+#'@export
 export_table_MSWord.test_mediation <- function(test_model, rounding = 4, ...) {
+  tables <- create_tables(test_model = test_model, rounding = rounding)
+  ft_direct <- tables$direct
+  ft_indirect <- tables$indirect
 
-    sm <- summary(test_model)$summary
+  doc <- read_docx()
+  doc <- body_add_flextable(doc, ft_direct)
+  doc <- body_add_flextable(doc, ft_indirect)
+  return(doc)
+}
 
-    if (test_model$fit$model == "serial") {
-      if (length(sm$m) == 1) {
-        directrows <- 2 * (length(sm$x)) + 1
-        indirectrows <- length(sm$x)
+create_tables <- function(test_model, rounding = 4) {
 
-      } else if (length(sm$m) == 2) {
-        #Generate table for 2 serial mediators
-        directrows <- 3 * (1 + length(sm$x))
-        indirectrows <- 3 * length(sm$x)
+  sm <- summary(test_model)$summary
 
-      }
+  if (test_model$fit$model == "serial") {
+    if (length(sm$m) == 1) {
+      directrows <- 2 * (length(sm$x)) + 1
+      indirectrows <- length(sm$x)
+
+    } else if (length(sm$m) == 2) {
+      #Generate table for 2 serial mediators
+      directrows <- 3 * (1 + length(sm$x))
+      indirectrows <- 3 * length(sm$x)
+    }
+  } else {
+    rows = 2 * (length(sm$x) * length(sm$m)) + 2 * length(sm$x) + length(sm$m)
+    indirectrows = length(sm$x) * length(sm$m)
+    directrows = rows - indirectrows
+  }
+
+  df_dir <- as.data.frame(matrix(NA, nrow = directrows, ncol = 5))
+  colnames(df_dir) <- c("Direct Effects", 'Estimate', 'Std. Error', 'z statistic', 'p-value')
+
+  row <- 1
+  for (med in sm$m) {
+    if (length(sm$m) > 1){
+      coefs_a <- sm$fit_mx[med][[1]]$coefficients
     } else {
-      rows = 2 * (length(sm$x) * length(sm$m)) + 2 * length(sm$x) + length(sm$m)
-      indirectrows = length(sm$x) * length(sm$m)
-      directrows = rows - indirectrows
+      coefs_a <- sm$fit_mx$coefficients
     }
 
-    df_dir <- as.data.frame(matrix(NA, nrow = directrows, ncol = 5))
-    colnames(df_dir) <- c("Direct Effects", 'Estimate', 'Std. Error', 'z statistic', 'p-value')
+    #Add a paths
+    for (reg in sm$x) {
+      df_dir[row, 1] <- paste(reg, med, sep = "->")
+      df_dir[row, 2:5] <- coefs_a[reg, 2:5]
+      row <- row + 1
+    }
+  }
+  a_paths <- row
 
+  coefs_b <- sm$fit_ymx$coefficients
+  for (med in sm$m) {
+    #Add b paths
+    df_dir[row, 1] <- paste('(X),',med ,'->' , sm$y)
+    df_dir[row, 2:5] <- coefs_b[med, 2:5]
+    row <- row + 1
+  }
+  b_paths <- row
+
+  # Add c path (Direct effect)
+  for (reg in sm$x){
+    df_dir[row, 1] <- paste(reg,'->', sm$y, '(direct)')
+    df_dir[row, 2:5] <- sm$direct[reg, 2:5]
+    row <- row + 1
+  }
+  c_paths <- row
+
+  # Add c' path (Total effect)
+  for (reg in sm$x) {
+    df_dir[row, 1] <- paste(reg, '->', sm$y, '(total)')
+    df_dir[row, 2:5] <- sm$total[reg, 2:5]
+    row <- row + 1
+  }
+
+  pvals <- p_value(test_model, parm = 'indirect')
+  #Add indirect effects (a (d) b paths)
+  df_ind <- data.frame(matrix(0, nrow = indirectrows, ncol = 4))
+  colnames(df_ind) <- c("Indirect Effects", 'Estimate', 'Confidence Interval', 'p-value')
+  if (test_model$fit$model == "serial" ){
     row <- 1
-    for (med in sm$m) {
-      if (length(sm$m) > 1){
-        coefs_a <- sm$fit_mx[med][[1]]$coefficients
-      } else {
-        coefs_a <- sm$fit_mx$coefficients
-      }
+    for (reg in sm$x) {
+      # Through only first or only second mediator
+      for (med in sm$m) {
+        effectname <- paste(reg, '->', med, sep ='')
+        df_ind[row,1] <- paste(effectname, '(Indirect)')
 
-      #Add a paths
-      for (reg in sm$x) {
-        df_dir[row, 1] <- paste(reg, med, sep = "->")
-        df_dir[row, 2:5] <- coefs_a[reg, 2:5]
+        if (length(sm$m) > 1) {
+          df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+          lower <- round(test_model$ci[effectname, 1], rounding)
+          upper <- round(test_model$ci[effectname, 2], rounding)
+        } else {
+          df_ind[row,2] <- test_model$indirect[reg][[1]]
+          lower <- round(test_model$ci[1], rounding)
+          upper <- round(test_model$ci[2], rounding)
+        }
+
+        df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
+
         row <- row + 1
       }
-    }
-    a_paths <- row
 
-    coefs_b <- sm$fit_ymx$coefficients
-    for (med in sm$m) {
-      #Add b paths
-      df_dir[row, 1] <- paste('(X),',med ,'->' , sm$y)
-      df_dir[row, 2:5] <- coefs_b[med, 2:5]
+      # Path through both mediators
+      effectname <- paste(reg, '->', sm$m[1], '->', sm$m[2], sep = '')
+
+      df_ind[row,1] <- paste(effectname, '(Indirect)', sep = '')
+      df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+
+      lower <- round(test_model$ci[effectname, 1], rounding)
+      upper <- round(test_model$ci[effectname, 2], rounding)
+
+      df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
       row <- row + 1
     }
-    b_paths <- row
-
-    # Add c path (Direct effect)
-    for (reg in sm$x){
-      df_dir[row, 1] <- paste(reg,'->', sm$y, '(direct)')
-      df_dir[row, 2:5] <- sm$direct[reg, 2:5]
-      row <- row + 1
-    }
-    c_paths <- row
-
-    # Add c' path (Total effect)
+  } else {
+    # Parallel model
+    row <- 1
     for (reg in sm$x) {
-      df_dir[row, 1] <- paste(reg, '->', sm$y, '(total)')
-      df_dir[row, 2:5] <- sm$total[reg, 2:5]
-      row <- row + 1
-    }
+      for (med in sm$m) {
+        effectname <- paste(reg, '->', med, sep ='')
+        df_ind[row,1] <- paste(effectname, '(Indirect)')
 
-    pvals <- p_value(test_model, parm = 'indirect')
-    #Add indirect effects (a (d) b paths)
-    df_ind <- data.frame(matrix(0, nrow = indirectrows, ncol = 4))
-    colnames(df_ind) <- c("Indirect Effects", 'Estimate', 'Confidence Interval', 'p-value')
-    if (test_model$fit$model == "serial" ){
-      row <- 1
-      for (reg in sm$x) {
-        # Through only first or only second mediator
-        for (med in sm$m) {
-          effectname <- paste(reg, '->', med, sep ='')
-          df_ind[row,1] <- paste(effectname, '(Indirect)')
 
-          if (length(sm$m) > 1) {
-            df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+        if (length(sm$m) > 1) {
+          if (length(sm$x) > 1) {
             lower <- round(test_model$ci[effectname, 1], rounding)
             upper <- round(test_model$ci[effectname, 2], rounding)
           } else {
+            lower <- round(test_model$ci[med, 1], rounding)
+            upper <- round(test_model$ci[med, 2], rounding)
+          }
+          df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+        } else {
+          if (length(sm$x) > 1) {
+            lower <- round(test_model$ci[reg, 1], rounding)
+            upper <- round(test_model$ci[reg, 2], rounding)
             df_ind[row,2] <- test_model$indirect[reg][[1]]
+          } else {
+            df_ind[row,2] <- test_model$indirect
             lower <- round(test_model$ci[1], rounding)
             upper <- round(test_model$ci[2], rounding)
           }
-
-          df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
-
-          row <- row + 1
         }
-
-        # Path through both mediators
-        effectname <- paste(reg, '->', sm$m[1], '->', sm$m[2], sep = '')
-
-        df_ind[row,1] <- paste(effectname, '(Indirect)', sep = '')
-        df_ind[row, 2] <- test_model$indirect[effectname][[1]]
-
-        lower <- round(test_model$ci[effectname, 1], rounding)
-        upper <- round(test_model$ci[effectname, 2], rounding)
 
         df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
+        df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = '_')][[1]]
         row <- row + 1
       }
-    } else {
-      # Parallel model
-      row <- 1
-      for (reg in sm$x) {
-        for (med in sm$m) {
-          effectname <- paste(reg, '->', med, sep ='')
-          df_ind[row,1] <- paste(effectname, '(Indirect)')
-
-
-          if (length(sm$m) > 1) {
-            if (length(sm$x) > 1) {
-              lower <- round(test_model$ci[effectname, 1], rounding)
-              upper <- round(test_model$ci[effectname, 2], rounding)
-            } else {
-              lower <- round(test_model$ci[med, 1], rounding)
-              upper <- round(test_model$ci[med, 2], rounding)
-            }
-            df_ind[row, 2] <- test_model$indirect[effectname][[1]]
-          } else {
-            if (length(sm$x) > 1) {
-              lower <- round(test_model$ci[reg, 1], rounding)
-              upper <- round(test_model$ci[reg, 2], rounding)
-              df_ind[row,2] <- test_model$indirect[reg][[1]]
-            } else {
-              df_ind[row,2] <- test_model$indirect
-              lower <- round(test_model$ci[1], rounding)
-              upper <- round(test_model$ci[2], rounding)
-            }
-          }
-
-          df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
-          df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = '_')][[1]]
-          row <- row + 1
-        }
-      }
     }
-
-    # Create the table from the dataframes
-    df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, rounding) else y))
-    df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, rounding) else y))
-
-    set_flextable_defaults(
-      font.size = 10,
-      padding = 2,
-      background.color = 'white')
-
-    ft_direct <- flextable(df_rounded)
-    ft_direct <- width(ft_direct, j = 1, width = 2.5, unit = "in")
-    ft_direct <- width(ft_direct, j = 2:5, width = 1, unit = "in")
-    ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = "center", part = "body")
-    ft_direct <- align(ft_direct, j = 2:5, align = "center", part = "header")
-
-    # Add spacing and a line between different kinds of paths
-    ft_direct <- padding(ft_direct, i = a_paths, padding.bottom =  5, part = "body")
-    ft_direct <- padding(ft_direct, i = b_paths, padding.bottom =  5, part = "body")
-    ft_direct <- padding(ft_direct, i = c_paths, padding.bottom =  5, part = "body")
-    ft_direct <- padding(ft_direct, i = directrows, padding.bottom =  10, part = "body")
-
-    ft_direct <- hline(ft_direct, i = a_paths - 1, border = fp_border("gray"), part = "body")
-    ft_direct <- hline(ft_direct, i = b_paths - 1, border = fp_border("gray"), part = "body")
-    ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"), part = "body")
-
-    ft_indirect <- flextable(df_ind_rounded)
-    ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = "in")
-    ft_indirect <- width(ft_indirect, j = 3, width = 2, unit = "in")
-    ft_indirect <- width(ft_indirect, j = c(2,4), width = 1, unit = "in")
-    ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4, align = "center", part = "body")
-    ft_indirect <- align(ft_indirect, j = 2:4, align = "center", part = "header")
-
-    ft_indirect <- add_footer_lines(ft_indirect, paste('Sample size = ', nrow(test_model$fit$data),
-                                                       '. Number of bootstrap samples = ', test_model$R , '.\n',
-                                                       '†p < .1. *p < .05. **p < .01. ***p < .001.'))
-    doc <- read_docx()
-    doc <- body_add_flextable(doc, ft_direct)
-    doc <- body_add_flextable(doc, ft_indirect)
-    return(doc)
   }
 
-})
+  # Create the table from the dataframes
+  df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, rounding) else y))
+  df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, rounding) else y))
+
+  set_flextable_defaults(
+    font.size = 10,
+    padding = 2,
+    background.color = 'white')
+
+  ft_direct <- flextable(df_rounded)
+  ft_direct <- width(ft_direct, j = 1, width = 2.5, unit = "in")
+  ft_direct <- width(ft_direct, j = 2:5, width = 1, unit = "in")
+  ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = "center", part = "body")
+  ft_direct <- align(ft_direct, j = 2:5, align = "center", part = "header")
+
+  # Add spacing and a line between different kinds of paths
+  ft_direct <- padding(ft_direct, i = a_paths, padding.bottom =  5, part = "body")
+  ft_direct <- padding(ft_direct, i = b_paths, padding.bottom =  5, part = "body")
+  ft_direct <- padding(ft_direct, i = c_paths, padding.bottom =  5, part = "body")
+  ft_direct <- padding(ft_direct, i = directrows, padding.bottom =  10, part = "body")
+
+  ft_direct <- hline(ft_direct, i = a_paths - 1, border = fp_border("gray"), part = "body")
+  ft_direct <- hline(ft_direct, i = b_paths - 1, border = fp_border("gray"), part = "body")
+  ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"), part = "body")
+
+  ft_indirect <- flextable(df_ind_rounded)
+  ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = "in")
+  ft_indirect <- width(ft_indirect, j = 3, width = 2, unit = "in")
+  ft_indirect <- width(ft_indirect, j = c(2,4), width = 1, unit = "in")
+  ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4, align = "center", part = "body")
+  ft_indirect <- align(ft_indirect, j = 2:4, align = "center", part = "header")
+  ft_indirect
+
+  ft_indirect <- add_footer_lines(ft_indirect, paste('Sample size = ', nrow(test_model$fit$data),
+                                                     '. Number of bootstrap samples = ', test_model$R , '.\n',
+                                                     '†p < .1. *p < .05. **p < .01. ***p < .001.'))
+  result = list()
+  result$direct <- ft_direct
+  result$indirect <- ft_indirect
+
+  return(result)
+}
