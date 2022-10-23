@@ -179,8 +179,8 @@ shinyServer(function(input, output, session) {
         explanatory <- paste(input$Explanatory, collapse = "+")
 
         # Choose parallel as default when no mediator type is chosen
-        if (is.null(input$Modeltype)) {
-          model_type <- 'parallel'
+        if (length(input$Mediators) == 1 || input$Modeltype == "" ) {
+          model_type <- "parallel"
         } else {
           model_type <- input$Modeltype
         }
@@ -193,9 +193,11 @@ shinyServer(function(input, output, session) {
           controls <- paste("+","covariates(",
                             paste(input$Covariates, collapse = ","), ")")
         }
+        formula_string <- paste(input$Response, "~", mediators,
+                                      "+", explanatory, controls)
 
-        form_out <- as.formula(paste(input$Response, "~", mediators,
-                                     "+", explanatory, controls))
+
+        form_out <- as.formula(formula_string)
 
       })
 
@@ -587,7 +589,7 @@ export_table_MSWord.list <- function(test_model,
     doc <- officer::body_add_fpar(doc, value = fpar(ftext("ROBMED")))
     doc <- flextable::body_add_flextable(doc, tables_robust$direct)
     doc <- flextable::body_add_flextable(doc, tables_robust$indirect)
-    doc <- officer::body_add_fpar(doc, value = fpar(ftext("OLS Bootstrap")) )
+    doc <- officer::body_add_fpar(doc, value = fpar(ftext("OLS Bootstrap")))
     doc <- flextable::body_add_flextable(doc, tables_ols$direct)
     doc <- flextable::body_add_flextable(doc, tables_ols$indirect)
   }
@@ -621,6 +623,7 @@ create_tables <- function(test_model, rounding = 4) {
       indirectrows <- 3 * length(sm$x)
     }
   } else {
+    #Model is parallel
     rows = 2 * (length(sm$x) * length(sm$m)) + 2 * length(sm$x) + length(sm$m)
     indirectrows = length(sm$x) * length(sm$m)
     directrows = rows - indirectrows
@@ -671,6 +674,7 @@ create_tables <- function(test_model, rounding = 4) {
   }
 
   pvals <- p_value(test_model, parm = 'indirect')
+
   #Add indirect effects (a (d) b paths)
   df_ind <- data.frame(matrix(0, nrow = indirectrows, ncol = 4))
   colnames(df_ind) <- c("Indirect Effects", 'Estimate', 'Confidence Interval', 'p-value')
@@ -717,30 +721,39 @@ create_tables <- function(test_model, rounding = 4) {
         effectname <- paste(reg, '->', med, sep ='')
         df_ind[row,1] <- paste(effectname, '(Indirect)')
 
-
         if (length(sm$m) > 1) {
           if (length(sm$x) > 1) {
             lower <- round(test_model$ci[effectname, 1], rounding)
             upper <- round(test_model$ci[effectname, 2], rounding)
+            df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+            df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = '_')][[1]]
+
           } else {
+            # Only 1 explanatory variable, multiple mediators
             lower <- round(test_model$ci[med, 1], rounding)
             upper <- round(test_model$ci[med, 2], rounding)
+            df_ind[row, 2] <- test_model$indirect[med][[1]]
+            df_ind[row, 4] <- pvals[paste("Indirect", med, sep = '_')][[1]]
+
           }
-          df_ind[row, 2] <- test_model$indirect[effectname][[1]]
         } else {
+          # Only 1 mediator
           if (length(sm$x) > 1) {
             lower <- round(test_model$ci[reg, 1], rounding)
             upper <- round(test_model$ci[reg, 2], rounding)
             df_ind[row,2] <- test_model$indirect[reg][[1]]
+            df_ind[row, 4] <- pvals[paste("Indirect", reg, sep = '_')][[1]]
+
           } else {
+            # only 1 indirect effect
             df_ind[row,2] <- test_model$indirect
             lower <- round(test_model$ci[1], rounding)
             upper <- round(test_model$ci[2], rounding)
+            df_ind[row, 4] <- pvals["Indirect"][[1]]
+
           }
         }
-
         df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
-        df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = '_')][[1]]
         row <- row + 1
       }
     }
