@@ -238,12 +238,30 @@ shinyServer(function(input, output, session) {
 
       output$downloadPlot <- downloadHandler(
         filename = function() {
-          paste(Sys.Date() ,"diagnosticplot.png", sep = '')
+          if (input$plot_format == "png") {
+            ext <- "png"
+          } else if (input$plot_format == "pdf") {
+            ext <- "pdf"
+          }
+          paste(Sys.Date() ,"diagnosticplot.", ext, sep = '')
         },
         content = function(file) {
-          png(file)
+          if (input$plot_format == "png") {
+
+            png(file, width = input$width_plot, height = input$height_plot,
+                units = input$plot_units, res = input$plot_resolution)
+          } else if (input$plot_format == "pdf") {
+            if (input$plot_units == "cm") {
+              # Convert to inch for pdf
+              pdf(file, width = input$width_plot/2.54,
+                  height = input$height_plot/2.54)
+            } else if (input$plot_units == 'in') {
+              pdf(file, width = input$width_plot, height = input$height_plot)
+            }
+          }
           print(create_plot())
           dev.off()
+
         },
         contentType = "image/png"
       )
@@ -451,6 +469,44 @@ shinyServer(function(input, output, session) {
     output$ui_runbutton_ols <- renderUI({
       req(input$Mediators, input$Response, input$Explanatory)
       actionButton('runOLS', 'Run')
+    })
+
+
+    observeEvent(input$plot_format, {
+      if (input$plot_format == "pdf") {
+        updateRadioButtons(inputId = "plot_units",
+                     label = "Units of height/width",
+                     choices = c("in", "cm"),
+                     selected = "in")
+      } else if (input$plot_format == "png") {
+        updateRadioButtons(inputId = "plot_units",
+                           label = "Units of height/width",
+                           choices = c("in", "cm", 'px'),
+                           selected = "in")
+      }
+    })
+    observeEvent(input$plot_units, {
+      if (input$plot_units == "in") {
+        min_val = 1
+        max_val = 40
+        standard = 7
+      } else if (input$plot_units == "cm") {
+        min_val = 2.54
+        max_val = 101.6
+        standard = 17.78
+      } else if (input$plot_units == 'px') {
+        min_val = 480
+        max_val = 1200
+        standard = 600
+      }
+
+      updateSliderInput(session, inputId = "width_plot",
+                        label = "Width plot",
+                        min = min_val, max = max_val, value = standard)
+      updateSliderInput(session, inputId = "height_plot",
+                        label = "Height plot",
+                        min = min_val, max = max_val, value = standard)
+
     })
 
 
@@ -732,4 +788,4 @@ create_tables <- function(test_model, rounding = 4) {
 
   return(result)
 }
-}
+})

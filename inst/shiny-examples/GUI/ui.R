@@ -124,11 +124,23 @@ shinyUI(fluidPage(
                  uiOutput("downloadbuttontableRobust"),
                  uiOutput('downloadbuttontableOLS'),
                  h2("Download Diagnostic Plot"),
+                 radioButtons(inputId = "plot_format",
+                              label = 'File format plot',
+                              choices = c("pdf", "png"), selected = "pdf"),
+                 radioButtons(inputId = "plot_units",
+                              label = "Units of height/width",
+                              choices = c("in", "cm"),
+                              selected = "in"),
+                 numericInput(inputId = "plot_resolution",
+                              label = "Resolution of the plot",
+                              value = 300),
+                 sliderInput(inputId = "width_plot", label = "Width plot",
+                             min = 1, max = 40, value = 7),
+                 sliderInput(inputId = "height_plot", label = "Height plot",
+                             min = 1, max = 40, value = 7),
                  uiOutput("downloadbuttonplot"),
                  h2("Download R Script"),
                  uiOutput("downloadbuttonscript"),
-
-
                ),
                mainPanel(
 
