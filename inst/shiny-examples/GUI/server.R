@@ -515,21 +515,49 @@ shinyServer(function(input, output, session) {
 # This function takes the summary output of ROBMED
 # and turns it into a nicely formatted table
 
-#' Title
+#' Export result table to Word
 #'
-#' @param test_model
-#' @param rounding
+#' Export the table containing results of mediation analysis to a Microsoft Word
+#' document.
 #'
-#' @return
-#' @export
+#' @param test_model an object inheriting from class
+#' \code{"\link{test_mediation}"} or a list of objects of that class.
+#' of object
+#'
+#' @param rounding a positive integer, which determines the number of decimals
+#' that should be displayed in the table. The default is to display 4 decimals.
+#'
+#' @param \dots For the generic function, additional arguments that need to be
+#' passed to the methods.
+#'
+#'
+#' @return An object of class \code{"\link{rdocx}"}, containing a table of the
+#' results.
+#'
+#' @author Vincent Drenth
+#'
+#'
 #'
 #' @examples
+#' data("BSG2014")
+#'
+#' boot_simple <- test_mediation(TeamCommitment ~
+#'                                 m(TaskConflict) +
+#'                                   ValueDiversity,
+#'                               data = BSG2014)
+#'
+#' table <- export_table_MSWord(boot_simple)
+#' print(table, target = "filename.docx")
+#'
+#' @export
+
 export_table_MSWord <- function(test_model, ...) {
   UseMethod("export_table_MSWord")
 }
 
 
 #' @export
+#'
 export_table_MSWord.list <- function(test_model,
                                      orientation = c("landscape", "portrait"),
                                      ...) {
@@ -545,7 +573,7 @@ export_table_MSWord.list <- function(test_model,
 
   doc <- officer::read_docx()
 
-  if (orientation == 'landscape') {
+  if (orientation == "landscape") {
     direct_data_robust <- tables_robust$direct$body$dataset
     direct_data_ols <- tables_ols$direct$body$dataset
 
