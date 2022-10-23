@@ -23,27 +23,22 @@ shinyServer(function(input, output, session) {
       vals <- reactiveValues()
       vals$script <- c()
       vals$usedDF <- c()
+      vals$counter <- 1
 
-      counter <<- 1
 
       # Updates the script to include the current analysis that is being run
       observeEvent(input$runRobust, {
         df <- get_data()
 
         # Load the RData file in the R Script
-        if (input$datatype != "csv") {
-          if (input$datatype == "RData"){
-            env <- new_env
-            df_name <- input$rdata_dfname
-          } else{
-            env <- .GlobalEnv
-            df_name <- input$dfname
-          }
-
-        } else {
-          # Data is from csv file
-          df_name <- input$file$name
+        if (input$datatype == "RData"){
+          env <- new_env
+          df_name <- input$rdata_dfname
+        } else{
+          env <- .GlobalEnv
+          df_name <- input$dfname
         }
+
 
         if (!df_name %in% vals$usedDF) {
           filename <- as.character(paste(getwd(),"/",  df_name, ".Rdata", sep = ""))
@@ -62,38 +57,33 @@ shinyServer(function(input, output, session) {
           txt_seed <- ""
         }
 
-        txt_formulamodel <- paste("formula_model_", counter, " <- ",
+        txt_formulamodel <- paste("formula_model_", vals$counter, " <- ",
                                   paste(deparse(formula(), width.cutoff = 500),
                                         collapse=""), sep = "")
 
-        txt_test <- paste("bootstrap_test_",counter,
-                          " <- test_mediationrormula_model",counter,
+        txt_test <- paste("bootstrap_test_",vals$counter,
+                          " <- test_mediationrormula_model",vals$counter,
                           ", data = ", df_name,", ", "robust = TRUE,",
                           "level = ", input$ConfidenceROBMED,
                           ", control = control_var)", sep = "")
 
         vals$script <- c(vals$script, txt_controlvars, txt_seed,
                          txt_formulamodel, txt_test, "\n")
-        counter <<- counter + 1
+        vals$counter <<- vals$counter + 1
       })
 
       observeEvent(input$runOLS, {
         df <- get_data()
 
         # Load the RData file in the R Script
-        if (input$datatype != "csv") {
-          if (input$datatype == "RData"){
-            env = new_env
-            df_name <- input$rdata_dfname
-          } else{
-            env = .GlobalEnv
-            df_name <- input$dfname
-          }
-
-        } else {
-          # Data is from csv file
-          df_name <- input$file$name
+        if (input$datatype == "RData"){
+          env = new_env
+          df_name <- input$rdata_dfname
+        } else{
+          env = .GlobalEnv
+          df_name <- input$dfname
         }
+
 
         if (!df_name %in% vals$usedDF) {
           filename <- paste(getwd(),"/",  df_name, ".Rdata", sep = '')
@@ -109,35 +99,22 @@ shinyServer(function(input, output, session) {
           txt_seed <- ""
         }
 
-        txt_formulamodel <- paste("formula_model_", counter, "<- ",
+        txt_formulamodel <- paste("formula_model_", vals$counter, "<- ",
                                   paste(deparse(formula(), width.cutoff = 500),
                                         collapse=""), sep = '')
-        txt_test <- paste("bootstrap_test_",counter,
-                          "<- test_mediation(formula_model", counter,
+        txt_test <- paste("bootstrap_test_",vals$counter,
+                          "<- test_mediation(formula_model", vals$counter,
                           ", data = ", df_name,", ", "robust = FALSE,",
                           "level = ", input$ConfidenceROBMED, ")", sep = '')
 
         vals$script <- c(vals$script, txt_seed, txt_formulamodel, txt_test, "\n")
-        counter <<- counter + 1
+        vals$counter <<- vals$counter + 1
       })
 
 
-      # Reactive expression to get data; only supports csv for now
+      # Reactive expression to get data in dataframe
       get_data <- reactive({
-
-        if (input$datatype == "csv"){
-          if (is.null(input$file)) {
-            final_df <- data.frame()
-          } else {
-            ext <- tools::file_ext(input$file$name)
-            final_df <- switch(ext, csv = read.csv(input$file$datapath,
-                                                   check.names = TRUE),
-                               tsv = read.delim(input$file$datapath, sep = "\t"),
-                               shiny::validate(sprintf("Invalid file:
-                                        Please upload a .csv file.\n
-                                        You uploaded a %s file", ext)))
-            }
-          } else if (input$datatype == "Existing DataFrame"){
+        if (input$datatype == "Existing data frame"){
             if (is.null(input$dfname)) {
               final_df <- data.frame()
             } else {
@@ -352,21 +329,20 @@ shinyServer(function(input, output, session) {
     # Creates input UI for type of data
     output$dataframechoice <- renderUI({
 
-      if (input$datatype == "Existing DataFrame") {
-        if (is.null(unlist(eapply(.GlobalEnv,is.data.frame)))){
-          helpText("The Global Environment is empty")
+      if (input$datatype == "Existing data frame") {
+        cat(file = stderr(), "Reached here!\n")
+
+        if (!any(as.logical(lapply(.GlobalEnv, is.data.frame)))){
+          helpText("There are no data frames in your Global Environment.")
         } else {
+          cat(file = stderr(), "Reached here TWO!\n")
+
           mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
           selectInput("dfname", "DataFrame from Global Env",
                       choices = mydataframes, multiple = FALSE)
         }
-      } else if (input$datatype == "csv") {
-        fileInput("file", "CSV File:",
-                  accept = c("text/csv",
-                             "text/comma-separated-values,text/plain",
-                                                       ".csv"))
-
-      } else if (input$datatype == "RData") {
+      }
+      else if (input$datatype == "RData") {
         fileInput("rdatafile", "RData File",
                   accept = c(".RData"))
       }

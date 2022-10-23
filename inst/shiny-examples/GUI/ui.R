@@ -24,11 +24,12 @@ shinyUI(fluidPage(
       tabPanel('Data',
                              sidebarLayout(
                                sidebarPanel(
-                                textOutput('robmedversion'),
-                                selectInput('datatype', 'datatype',
-                                            choices = c('csv',
-                                                        'Existing DataFrame',
-                                                        'RData')),
+                                textOutput("robmedversion"),
+                                selectInput("datatype", "datatype",
+                                            choices = c(
+                                                        "Existing data frame",
+                                                        "RData"),
+                                            selected = "RData"),
                                 uiOutput('dataframechoice'),
                                 uiOutput('rdatafile_dataframes'),
                              ),
