@@ -309,20 +309,27 @@ shinyServer(function(input, output, session) {
 
     output$selectMediator <- renderUI({
       choices <- colnames(numeric_data())
-      selectInput(inputId="Mediators", label="Mediator(s) (Numeric)",
+      selectInput(inputId="Mediators",
+                  label= p("Mediator(s)",
+                           span("(Numeric)", style = "color: 	#A0A0A0")),
                   choices = choices, multiple = TRUE)
     })
 
     output$selectResponse <- renderUI({
       choices <- colnames(numeric_data())
-      selectInput(inputId="Response", label= "Dependent variable (Numeric)",
+      selectInput(inputId="Response",
+                  label = p("Dependent variable",
+                            span("(Numeric)", style = "color: 	#A0A0A0")),
                   choices = c("",choices), multiple = FALSE, selected = NULL)
     })
 
     output$selectControls <- renderUI({
+
       isolate(self <- input$Covariates)
       choices <- colnames(get_data())
-      selectInput(inputId="Covariates", label = "Covariate(s) (Optional)",
+      selectInput(inputId="Covariates",
+                  label = p("Covariate(s)",
+                            span("(Optional)", style = "color: 	#A0A0A0")),
                   choices = choices, multiple = TRUE)
     })
 
@@ -450,19 +457,6 @@ shinyServer(function(input, output, session) {
     })
 
 
-    observeEvent(input$plot_format, {
-      if (input$plot_format == "pdf") {
-        updateRadioButtons(inputId = "plot_units",
-                     label = "Units of height/width",
-                     choices = c("in", "cm"),
-                     selected = "in")
-      } else if (input$plot_format == "png") {
-        updateRadioButtons(inputId = "plot_units",
-                           label = "Units of height/width",
-                           choices = c("in", "cm", 'px'),
-                           selected = "in")
-      }
-    })
     observeEvent(input$plot_units, {
       if (input$plot_units == "in") {
         min_val = 1
@@ -472,10 +466,6 @@ shinyServer(function(input, output, session) {
         min_val = 2.54
         max_val = 101.6
         standard = 17.78
-      } else if (input$plot_units == 'px') {
-        min_val = 480
-        max_val = 1200
-        standard = 600
       }
 
       updateSliderInput(session, inputId = "width_plot",
