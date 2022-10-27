@@ -122,6 +122,11 @@ shinyUI(fluidPage(
              sidebarLayout(
                sidebarPanel(
                  h2("Download Table"),
+                 radioButtons(inputId = "table_orientation",
+                              label = "Orientation of tables",
+                              choices = c("portrait", "landscape")),
+                 downloadButton(outputId = "download_tables",
+                                label = "Download tables"),
                  uiOutput("downloadbuttontableRobust"),
                  uiOutput('downloadbuttontableOLS'),
                  h2("Download Diagnostic Plot"),

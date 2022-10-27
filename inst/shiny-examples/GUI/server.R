@@ -303,7 +303,7 @@ shinyServer(function(input, output, session) {
     # Generates the UI that allows users to select variables of the uploaded data
     output$selectExplanatory <- renderUI({
       choices <- colnames(get_data())
-      selectInput(inputId="Explanatory", label="Independent variable(s)",
+      selectInput(inputId="Explanatory", label = "Independent variable(s)",
                   choices = choices, multiple = TRUE)
     })
 
@@ -337,13 +337,9 @@ shinyServer(function(input, output, session) {
     output$dataframechoice <- renderUI({
 
       if (input$datatype == "Existing data frame") {
-        cat(file = stderr(), "Reached here!\n")
-
         if (!any(as.logical(lapply(.GlobalEnv, is.data.frame)))){
           helpText("There are no data frames in your Global Environment.")
         } else {
-          cat(file = stderr(), "Reached here TWO!\n")
-
           mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
           selectInput("dfname", "DataFrame from Global Env",
                       choices = mydataframes, multiple = FALSE)
@@ -459,13 +455,13 @@ shinyServer(function(input, output, session) {
 
     observeEvent(input$plot_units, {
       if (input$plot_units == "in") {
-        min_val = 1
-        max_val = 40
-        standard = 7
+        min_val <- 1
+        max_val <- 40
+        standard <- 7
       } else if (input$plot_units == "cm") {
-        min_val = 2.54
-        max_val = 101.6
-        standard = 17.78
+        min_val <- 2.54
+        max_val <- 101.6
+        standard <- 17.78
       }
 
       updateSliderInput(session, inputId = "width_plot",
@@ -477,6 +473,19 @@ shinyServer(function(input, output, session) {
 
     })
 
+    output$download_tables <- downloadHandler(
+      filename = function() {
+        paste0(Sys.Date(), "combined_tables",input$table_orientation,".docx")
+      },
+      content = function(file) {
+        document <- export_table_MSWord(list(ols_bootstrap_test(),
+                                            robust_bootstrap_test()),
+                                        orientation = input$table_orientation)
+        print(document, file)
+
+      }
+
+    )
 
 # This function takes the summary output of ROBMED
 # and turns it into a nicely formatted table
@@ -490,15 +499,19 @@ shinyServer(function(input, output, session) {
 #' \code{"\link{test_mediation}"} or a list of objects of that class.
 #' of object
 #'
-#' @param rounding a positive integer, which determines the number of decimals
+#' @param digits a positive integer, which determines the number of decimals
 #' that should be displayed in the table. The default is to display 4 decimals.
 #'
-#' @param \dots For the generic function, additional arguments that need to be
-#' passed to the methods.
+#' @param orientation the  orientation in which the table is displayed in the
+#' document. When set to portrait, the tables are displayed
+#' underneath each other. When set to landscape, the tables are displayed side
+#' by side.
+#'
 #'
 #'
 #' @return An object of class \code{"\link{rdocx}"}, containing a table of the
-#' results.
+#' results of the provided objects.
+#'
 #'
 #' @author Vincent Drenth
 #'
@@ -579,20 +592,26 @@ export_table_MSWord.list <- function(test_model,
     doc <- flextable::body_add_flextable(doc, ft_direct)
     doc <- flextable::body_add_flextable(doc, ft_indirect)
     doc <- officer::body_end_section_landscape(doc)
-  } else if (orientation == 'portrait') {
-    doc <- officer::body_add_fpar(doc, value = fpar(ftext("ROBMED")))
-    doc <- flextable::body_add_flextable(doc, tables_robust$direct)
-    doc <- flextable::body_add_flextable(doc, tables_robust$indirect)
-    doc <- officer::body_add_fpar(doc, value = fpar(ftext("OLS Bootstrap")))
-    doc <- flextable::body_add_flextable(doc, tables_ols$direct)
-    doc <- flextable::body_add_flextable(doc, tables_ols$indirect)
+  } else if (orientation == "portrait") {
+      count_page <- 0
+      for (test_object in test_model) {
+        tables <- create_tables(test_object)
+        doc <- officer::body_add_fpar(doc, value = fpar(ftext('MODEL_NAME')))
+        doc <- flextable::body_add_flextable(doc, tables$direct)
+        doc <- flextable::body_add_flextable(doc, tables$indirect)
+        count_page <- count_page + 1
+        if (count_page %% 2 == 0) {
+        doc <- officer::body_add_break(doc, "after")
+        }
+
+      }
   }
   return(doc)
 }
 
 #'@export
-export_table_MSWord.test_mediation <- function(test_model, rounding = 4, ...) {
-  tables <- create_tables(test_model = test_model, rounding = rounding)
+export_table_MSWord.test_mediation <- function(test_model, digits = 4, ...) {
+  tables <- create_tables(test_model = test_model, digits = digits)
   ft_direct <- tables$direct
   ft_indirect <- tables$indirect
 
@@ -602,7 +621,7 @@ export_table_MSWord.test_mediation <- function(test_model, rounding = 4, ...) {
   return(doc)
 }
 
-create_tables <- function(test_model, rounding = 4) {
+create_tables <- function(test_model, digits = 4) {
 
   sm <- summary(test_model)$summary
 
@@ -682,12 +701,12 @@ create_tables <- function(test_model, rounding = 4) {
 
         if (length(sm$m) > 1) {
           df_ind[row, 2] <- test_model$indirect[effectname][[1]]
-          lower <- round(test_model$ci[effectname, 1], rounding)
-          upper <- round(test_model$ci[effectname, 2], rounding)
+          lower <- round(test_model$ci[effectname, 1], digits)
+          upper <- round(test_model$ci[effectname, 2], digits)
         } else {
           df_ind[row,2] <- test_model$indirect[reg][[1]]
-          lower <- round(test_model$ci[1], rounding)
-          upper <- round(test_model$ci[2], rounding)
+          lower <- round(test_model$ci[1], digits)
+          upper <- round(test_model$ci[2], digits)
         }
 
         df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
@@ -701,8 +720,8 @@ create_tables <- function(test_model, rounding = 4) {
       df_ind[row,1] <- paste(effectname, '(Indirect)', sep = '')
       df_ind[row, 2] <- test_model$indirect[effectname][[1]]
 
-      lower <- round(test_model$ci[effectname, 1], rounding)
-      upper <- round(test_model$ci[effectname, 2], rounding)
+      lower <- round(test_model$ci[effectname, 1], digits)
+      upper <- round(test_model$ci[effectname, 2], digits)
 
       df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
       row <- row + 1
@@ -717,15 +736,15 @@ create_tables <- function(test_model, rounding = 4) {
 
         if (length(sm$m) > 1) {
           if (length(sm$x) > 1) {
-            lower <- round(test_model$ci[effectname, 1], rounding)
-            upper <- round(test_model$ci[effectname, 2], rounding)
+            lower <- round(test_model$ci[effectname, 1], digits)
+            upper <- round(test_model$ci[effectname, 2], digits)
             df_ind[row, 2] <- test_model$indirect[effectname][[1]]
             df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = '_')][[1]]
 
           } else {
             # Only 1 explanatory variable, multiple mediators
-            lower <- round(test_model$ci[med, 1], rounding)
-            upper <- round(test_model$ci[med, 2], rounding)
+            lower <- round(test_model$ci[med, 1], digits)
+            upper <- round(test_model$ci[med, 2], digits)
             df_ind[row, 2] <- test_model$indirect[med][[1]]
             df_ind[row, 4] <- pvals[paste("Indirect", med, sep = '_')][[1]]
 
@@ -733,16 +752,16 @@ create_tables <- function(test_model, rounding = 4) {
         } else {
           # Only 1 mediator
           if (length(sm$x) > 1) {
-            lower <- round(test_model$ci[reg, 1], rounding)
-            upper <- round(test_model$ci[reg, 2], rounding)
+            lower <- round(test_model$ci[reg, 1], digits)
+            upper <- round(test_model$ci[reg, 2], digits)
             df_ind[row,2] <- test_model$indirect[reg][[1]]
             df_ind[row, 4] <- pvals[paste("Indirect", reg, sep = '_')][[1]]
 
           } else {
             # only 1 indirect effect
             df_ind[row,2] <- test_model$indirect
-            lower <- round(test_model$ci[1], rounding)
-            upper <- round(test_model$ci[2], rounding)
+            lower <- round(test_model$ci[1], digits)
+            upper <- round(test_model$ci[2], digits)
             df_ind[row, 4] <- pvals["Indirect"][[1]]
 
           }
@@ -754,8 +773,8 @@ create_tables <- function(test_model, rounding = 4) {
   }
 
   # Create the table from the dataframes
-  df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, rounding) else y))
-  df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, rounding) else y))
+  df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, digits) else y))
+  df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, digits) else y))
 
   set_flextable_defaults(
     font.size = 10,
