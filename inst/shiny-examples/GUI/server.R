@@ -19,9 +19,8 @@ library(flextable)
 shinyServer(function(input, output, session) {
 
       session$onSessionEnded(function() { stopApp() })
-
       vals <- reactiveValues()
-      vals$script <- c()
+      vals$script <- c("library('robmed')")
       vals$usedDF <- c()
       vals$counter <- 1
 
@@ -62,7 +61,7 @@ shinyServer(function(input, output, session) {
                                         collapse=""), sep = "")
 
         txt_test <- paste("bootstrap_test_",vals$counter,
-                          " <- test_mediationrormula_model",vals$counter,
+                          " <- test_mediation(formula_model_",vals$counter,
                           ", data = ", df_name,", ", "robust = TRUE,",
                           "level = ", input$ConfidenceROBMED,
                           ", control = control_var)", sep = "")
@@ -103,7 +102,7 @@ shinyServer(function(input, output, session) {
                                   paste(deparse(formula(), width.cutoff = 500),
                                         collapse=""), sep = '')
         txt_test <- paste("bootstrap_test_",vals$counter,
-                          "<- test_mediation(formula_model", vals$counter,
+                          "<- test_mediation(formula_model_", vals$counter,
                           ", data = ", df_name,", ", "robust = FALSE,",
                           "level = ", input$ConfidenceROBMED, ")", sep = '')
 
@@ -192,6 +191,7 @@ shinyServer(function(input, output, session) {
                                          level = input$ConfidenceROBMED,
                                          R = input$boot_samplesROBMED,
                                          control = control_var)
+
       })
 
       ols_bootstrap_test <- eventReactive(input$runOLS,
@@ -482,10 +482,17 @@ shinyServer(function(input, output, session) {
                                             robust_bootstrap_test()),
                                         orientation = input$table_orientation)
         print(document, file)
+      }
+    )
 
+    output$ui_resolution <- renderUI({
+      if (input$plot_format == "png") {
+        numericInput(inputId = "plot_resolution",
+                     label = "Resolution of the plot",
+                     value = 300)
       }
 
-    )
+    })
 
 # This function takes the summary output of ROBMED
 # and turns it into a nicely formatted table
@@ -553,57 +560,70 @@ export_table_MSWord.list <- function(test_model,
   doc <- officer::read_docx()
 
   if (orientation == "landscape") {
-    direct_data_robust <- tables_robust$direct$body$dataset
-    direct_data_ols <- tables_ols$direct$body$dataset
-
-    indirect_data_robust <- tables_robust$indirect$body$dataset
-    indirect_data_ols <- tables_ols$indirect$body$dataset
-
-    colnames(direct_data_ols) <- unlist(lapply(colnames(direct_data_ols),
-                                               FUN = function(x) paste0(x, "\r")))
-    colnames(indirect_data_ols) <- unlist(lapply(colnames(indirect_data_ols),
-                                                 FUN = function(x) paste0(x, "\r")))
-
-    direct_data_ols <- direct_data_ols[,2:ncol(direct_data_ols)]
-    direct_data <- data.frame(direct_data_robust, direct_data_ols,
-                              check.names = FALSE)
-
-    indirect_data_ols <- indirect_data_ols[,2:ncol(indirect_data_ols)]
-    indirect_data <- data.frame(indirect_data_robust, indirect_data_ols,
-                                check.names = FALSE)
-
-    ft_direct <- flextable(direct_data)
-    ft_direct <- flextable::width(ft_direct, j = 1, width = 2, unit = "in")
-    ft_direct <- add_header_row(ft_direct,
-                                values = c(" ", "ROBMED", "OLS Bootstrap"),
-                                top = TRUE, colwidths = c(1, 4, 4))
-    ft_direct <- align(ft_direct, align = "center", part = "all")
-
-    ft_indirect <- flextable::flextable(indirect_data)
-    ft_indirect <- flextable::width(ft_indirect, j = 1, width = 2,
-                                    unit = "in")
-    ft_indirect <- flextable::width(ft_indirect, j = 3, width = 1.5,
-                                    unit = "in")
-    ft_indirect <- flextable::width(ft_indirect, j = 6, width = 1.5,
-                                    unit = "in")
-    ft_indirect <- align(ft_indirect, align = "center", part = "all")
-
     doc <- officer::body_end_section_landscape(doc)
-    doc <- flextable::body_add_flextable(doc, ft_direct)
-    doc <- flextable::body_add_flextable(doc, ft_indirect)
+    for (index in seq(1, ceiling((length(test_model) + 1)/2), 2)) {
+      tables_left <- create_tables(test_model[[index]])
+      direct_data_left <- tables_left$direct$body$dataset
+      indirect_data_left <- tables_left$indirect$body$dataset
+
+      tables_right <- create_tables(test_model[[index + 1]])
+      direct_data_right <- tables_right$direct$body$dataset
+      indirect_data_right <- tables_right$indirect$body$dataset
+
+      colnames(direct_data_right) <- unlist(lapply(colnames(direct_data_right),
+                                                 FUN = function(x) paste0(x, "\r")))
+      colnames(indirect_data_right) <- unlist(lapply(colnames(indirect_data_right),
+                                                   FUN = function(x) paste0(x, "\r")))
+
+      direct_data_right <- direct_data_right[,2:ncol(direct_data_right)]
+      indirect_data_right <- indirect_data_right[,2:ncol(indirect_data_right)]
+
+      direct_data <- data.frame(direct_data_left, direct_data_right)
+      indirect_data <- data.frame(indirect_data_left, indirect_data_right)
+
+      ft_direct <- flextable::flextable(direct_data)
+      ft_direct <- flextable::width(ft_direct, j = 1, width = 2, unit = "in")
+      ft_direct <- flextable::add_header_row(ft_direct,
+                                  values = c(" ", "METHOD", "METHOD"),
+                                  top = TRUE, colwidths = c(1, 4, 4))
+      ft_direct <- align(ft_direct, align = "center", part = "all")
+
+      ft_indirect <- flextable::flextable(indirect_data)
+      ft_indirect <- flextable::width(ft_indirect, j = 1, width = 2,
+                                      unit = "in")
+      ft_indirect <- flextable::width(ft_indirect, j = 3, width = 1.5,
+                                      unit = "in")
+      ft_indirect <- flextable::width(ft_indirect, j = 6, width = 1.5,
+                                      unit = "in")
+      ft_indirect <- flextable::align(ft_indirect, align = "center",
+                                      part = "all")
+
+      doc <- flextable::body_add_flextable(doc, ft_direct)
+      doc <- flextable::body_add_flextable(doc, ft_indirect)
+      doc <- officer::body_add_break(doc, "after")
+    }
+
+    if (length(test_model) %% 2 == 1) {
+      tables <- create_tables(test_model[[length(test_model)]])
+      #direct_table <- flextable::add_header_row(tables$direct,
+      #                                          values = c("METHOD"),
+      #                                          top = TRUE,
+      #                                          colwidths = c(5))
+      doc <- flextable::body_add_flextable(doc, tables$direct)
+      doc <- flextable::body_add_flextable(doc, tables$indirect)
+    }
+
     doc <- officer::body_end_section_landscape(doc)
   } else if (orientation == "portrait") {
       count_page <- 0
       for (test_object in test_model) {
         tables <- create_tables(test_object)
-        doc <- officer::body_add_fpar(doc, value = fpar(ftext('MODEL_NAME')))
         doc <- flextable::body_add_flextable(doc, tables$direct)
         doc <- flextable::body_add_flextable(doc, tables$indirect)
         count_page <- count_page + 1
         if (count_page %% 2 == 0) {
         doc <- officer::body_add_break(doc, "after")
         }
-
       }
   }
   return(doc)
@@ -784,8 +804,9 @@ create_tables <- function(test_model, digits = 4) {
   ft_direct <- flextable(df_rounded)
   ft_direct <- width(ft_direct, j = 1, width = 2.5, unit = "in")
   ft_direct <- width(ft_direct, j = 2:5, width = 1, unit = "in")
+  ft_direct <- add_header_row(ft_direct, top = TRUE, values = c("METHOD"), colwidths = c(5))
   ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = "center", part = "body")
-  ft_direct <- align(ft_direct, j = 2:5, align = "center", part = "header")
+  ft_direct <- align(ft_direct, align = "center", part = "header")
 
   # Add spacing and a line between different kinds of paths
   ft_direct <- padding(ft_direct, i = a_paths, padding.bottom =  5, part = "body")
@@ -796,6 +817,7 @@ create_tables <- function(test_model, digits = 4) {
   ft_direct <- hline(ft_direct, i = a_paths - 1, border = fp_border("gray"), part = "body")
   ft_direct <- hline(ft_direct, i = b_paths - 1, border = fp_border("gray"), part = "body")
   ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"), part = "body")
+
 
   ft_indirect <- flextable(df_ind_rounded)
   ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = "in")
