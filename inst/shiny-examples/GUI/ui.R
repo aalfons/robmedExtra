@@ -131,7 +131,7 @@ shinyUI(fluidPage(
                  uiOutput('downloadbuttontableOLS'),
                  h2(" Diagnostic Plot"),
                  radioButtons(inputId = "plot_format",
-                              label = 'File format plot',
+                              label = 'File format',
                               choices = c("pdf", "png"), selected = "pdf"),
                  radioButtons(inputId = "plot_units",
                               label = "Units of height/width",

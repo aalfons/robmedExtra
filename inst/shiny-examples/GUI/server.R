@@ -21,95 +21,6 @@ shinyServer(function(input, output, session) {
       session$onSessionEnded(function() { stopApp() })
       vals <- reactiveValues()
       vals$script <- c("library('robmed')")
-      vals$usedDF <- c()
-      vals$counter <- 1
-
-
-      # Updates the script to include the current analysis that is being run
-      observeEvent(input$runRobust, {
-        df <- get_data()
-
-        # Load the RData file in the R Script
-        if (input$datatype == "RData"){
-          env <- new_env
-          df_name <- input$rdata_dfname
-        } else{
-          env <- .GlobalEnv
-          df_name <- input$dfname
-        }
-
-
-        if (!df_name %in% vals$usedDF) {
-          filename <- as.character(paste(getwd(),"/",  df_name, ".Rdata", sep = ""))
-          save(df, file = filename)
-          vals$script <- c(vals$script, paste("load('",filename, "')", sep = ""))
-          vals$usedDF <- c(vals$usedDF, df_name)
-        }
-
-        #Write test_mediation(formula, data)
-        txt_controlvars <- paste("control_var <- reg_control(efficiency = ",
-                                 input$MM_eff, ", max_iterations = ",
-                                 input$max_iter,")")
-        if (!is.na(input$seedROBMED)) {
-          txt_seed <- paste("set.seed(", input$seedROBMED, ")", sep = "")
-        } else {
-          txt_seed <- ""
-        }
-
-        txt_formulamodel <- paste("formula_model_", vals$counter, " <- ",
-                                  paste(deparse(formula(), width.cutoff = 500),
-                                        collapse=""), sep = "")
-
-        txt_test <- paste("bootstrap_test_",vals$counter,
-                          " <- test_mediation(formula_model_",vals$counter,
-                          ", data = ", df_name,", ", "robust = TRUE,",
-                          "level = ", input$ConfidenceROBMED,
-                          ", control = control_var)", sep = "")
-
-        vals$script <- c(vals$script, txt_controlvars, txt_seed,
-                         txt_formulamodel, txt_test, "\n")
-        vals$counter <<- vals$counter + 1
-      })
-
-      observeEvent(input$runOLS, {
-        df <- get_data()
-
-        # Load the RData file in the R Script
-        if (input$datatype == "RData"){
-          env = new_env
-          df_name <- input$rdata_dfname
-        } else{
-          env = .GlobalEnv
-          df_name <- input$dfname
-        }
-
-
-        if (!df_name %in% vals$usedDF) {
-          filename <- paste(getwd(),"/",  df_name, ".Rdata", sep = '')
-          save(df, file = filename)
-          vals$script <- c(vals$script, paste("load('",filename, "')", sep = ''))
-          vals$usedDF <- c(vals$usedDF, df_name)
-        }
-
-        #Write test_mediation(formula, data)
-        if (!is.na(input$seedOLS)) {
-          txt_seed <- paste("set.seed(", input$seedOLS, ")", sep = '')
-        } else {
-          txt_seed <- ""
-        }
-
-        txt_formulamodel <- paste("formula_model_", vals$counter, "<- ",
-                                  paste(deparse(formula(), width.cutoff = 500),
-                                        collapse=""), sep = '')
-        txt_test <- paste("bootstrap_test_",vals$counter,
-                          "<- test_mediation(formula_model_", vals$counter,
-                          ", data = ", df_name,", ", "robust = FALSE,",
-                          "level = ", input$ConfidenceROBMED, ")", sep = '')
-
-        vals$script <- c(vals$script, txt_seed, txt_formulamodel, txt_test, "\n")
-        vals$counter <<- vals$counter + 1
-      })
-
 
       # Reactive expression to get data in dataframe
       get_data <- reactive({
@@ -174,35 +85,77 @@ shinyServer(function(input, output, session) {
 
 
         form_out <- as.formula(formula_string)
-
       })
 
-
       # Creates boot_test_mediation object
-      robust_bootstrap_test <- eventReactive(input$runRobust,
-                                              {
-      df <- get_data()
-      f_test <- formula()
-      control_var <- reg_control(efficiency = input$MM_eff,
-                                 max_iterations = input$max_iter)
+      robust_bootstrap_test <- eventReactive(input$runRobust,{
 
-      if (!is.na(input$seedROBMED)) {set.seed(input$seedROBMED)}
-      robust_boot_test <- test_mediation(f_test, data = df, robust = TRUE,
-                                         level = input$ConfidenceROBMED,
-                                         R = input$boot_samplesROBMED,
-                                         control = control_var)
+      df_name <- ifelse(input$datatype == "RData", input$rdata_dfname,
+                        input$dfname)
 
+      command_control <- call("reg_control", efficiency = input$MM_eff,
+                              max_iterations = input$max_iter)
+
+      command_robust_test <- call("test_mediation",
+                                  as.name(df_name),
+                                  x = input$Explanatory,
+                                  y = input$Response,
+                                  m = input$Mediators,
+                                  robust = TRUE,
+                                  level = input$ConfidenceOLS,
+                                  R = input$boot_samplesROBMED,
+                                  control = as.name("ctrl"))
+
+      command_seed <- call("set.seed", input$seedROBMED)
+
+      if (!is.null(input$Covariates)) {
+        command_robust_test$covariates <- input$Covariates
+      }
+
+      if (!is.na(input$seedROBMED)) {
+        eval(command_seed)
+        vals$script <- c(vals$script, as.character(as.expression(command_seed)))
+      }
+
+      vals$script <- c(vals$script,
+                       paste("ctrl <-", as.character(as.expression(command_control))),
+                       as.character(as.expression(command_robust_test)),
+                       "")
+
+      assign("ctrl", eval(command_control))
+      eval(command_robust_test)
       })
 
       ols_bootstrap_test <- eventReactive(input$runOLS,
        {
-         if (!is.na(input$seedOLS)) {set.seed(input$seedOLS)}
-         df <- get_data()
-         f_test <- formula()
-         ols_bootstrap <- test_mediation(f_test, data = df, robust = FALSE,
-                                         level = input$ConfidenceOLS,
-                                         R = input$boot_samplesOLS)
-         ols_bootstrap
+         df_name <- ifelse(input$datatype == "RData", input$rdata_dfname,
+                           input$dfname)
+
+         command_seed <- call("set.seed", input$seedOLS)
+         command_ols_test <- call("test_mediation",
+                                  as.name(df_name),
+                                  x = input$Explanatory,
+                                  y = input$Response,
+                                  m = input$Mediators,
+                                  robust = FALSE,
+                                  level = input$ConfidenceOLS,
+                                  R = input$boot_samplesOLS)
+
+
+         if (!is.null(input$Covariates)) {
+           command_robust_test$covariates <- input$Covariates
+         }
+
+         if (!is.na(input$seedOLS)) {
+           eval(command_seed)
+           vals$script <- c(vals$script,
+                            as.character(as.expression(command_seed)))
+         }
+         vals$script <- c(vals$script,
+                          as.character(as.expression(command_ols_test)),
+                          "")
+
+         eval(command_ols_test)
        })
 
       # Renders plot of expected vs empirical weights
@@ -817,7 +770,6 @@ create_tables <- function(test_model, digits = 4) {
   ft_direct <- hline(ft_direct, i = a_paths - 1, border = fp_border("gray"), part = "body")
   ft_direct <- hline(ft_direct, i = b_paths - 1, border = fp_border("gray"), part = "body")
   ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"), part = "body")
-
 
   ft_indirect <- flextable(df_ind_rounded)
   ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = "in")
