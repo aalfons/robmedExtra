@@ -179,7 +179,6 @@ shinyServer(function(input, output, session) {
         },
         content = function(file) {
           if (input$plot_format == "png") {
-
             png(file, width = input$width_plot, height = input$height_plot,
                 units = input$plot_units, res = input$plot_resolution)
           } else if (input$plot_format == "pdf") {
@@ -441,7 +440,7 @@ shinyServer(function(input, output, session) {
     output$ui_resolution <- renderUI({
       if (input$plot_format == "png") {
         numericInput(inputId = "plot_resolution",
-                     label = "Resolution of the plot",
+                     label = "Resolution of the plot (ppi)",
                      value = 300)
       }
 
