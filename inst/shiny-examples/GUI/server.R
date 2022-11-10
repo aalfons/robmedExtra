@@ -104,12 +104,17 @@ shinyServer(function(input, output, session) {
                                   robust = TRUE,
                                   level = input$ConfidenceOLS,
                                   R = input$boot_samplesROBMED,
-                                  control = as.name("ctrl"))
+                                  control = as.name("ctrl")
+                                  )
 
       command_seed <- call("set.seed", input$seedROBMED)
 
       if (!is.null(input$Covariates)) {
         command_robust_test$covariates <- input$Covariates
+      }
+
+      if (!is.null(input$Modeltype)) {
+        command_robust_test$model <- input$Modeltype
       }
 
       if (!is.na(input$seedROBMED)) {
@@ -141,9 +146,12 @@ shinyServer(function(input, output, session) {
                                   level = input$ConfidenceOLS,
                                   R = input$boot_samplesOLS)
 
-
          if (!is.null(input$Covariates)) {
            command_robust_test$covariates <- input$Covariates
+         }
+
+         if (!is.null(input$Modeltype)) {
+           command_ols_test$model <- input$Modeltype
          }
 
          if (!is.na(input$seedOLS)) {
@@ -151,6 +159,7 @@ shinyServer(function(input, output, session) {
            vals$script <- c(vals$script,
                             as.character(as.expression(command_seed)))
          }
+
          vals$script <- c(vals$script,
                           as.character(as.expression(command_ols_test)),
                           "")
@@ -591,6 +600,48 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4, ...) {
   doc <- body_add_flextable(doc, ft_direct)
   doc <- body_add_flextable(doc, ft_indirect)
   return(doc)
+}
+
+# Function for a single test_mediation object
+export_table_latex <- function(test_model, digits = 4, ...) {
+
+  tables <- create_tables(test_model = test_model, digits = 4)
+  data_direct <- tables$direct$body$data
+  data_indirect <- tables$indirect$body$data
+
+  latex_direct <- xtable::xtable(data_direct, digits = digits)
+  latex_indirect <- xtable::xtable(data_indirect, digits = digits)
+
+  latex_direct <- print(latex_direct, include.rownames = FALSE)
+  latex_direct <- print(latex_indirect, include.rownames = FALSE)
+
+  #latex_full <- merge_vertical_xtable(latex_direct, latex_indirect)
+
+  table_direct <- knitr::kable(data_direct, digits = digits,
+                        row.names = F, align = 'c',
+                        format = 'latex')
+
+  table_indirect <- knitr::kable(data_indirect, digits = digits,
+                                 row.names = F, align = 'c', format = 'latex')
+  table_indirect <- kableExtra::column_spec(table_indirect, column = 3,
+                                            width = '2in')
+
+  table_full <- cat(c(table_direct, table_indirect), 'latex')
+
+  return(table_full)
+}
+
+merge_vertical_xtable <- function(table1, table2) {
+
+  list_table1 <- capture.output(table1)
+  list_table2 <- capture.output(table2)
+
+  # Remove last three lines from first tablea and first 5 from second table
+  list_table1 <- list_table1[1:(length(list_table1) - 3)]
+  list_table2 <- list_table2[6:length(list_table2)]
+
+  full_table <- append(list_table1, list_table2)
+  return(full_table)
 }
 
 create_tables <- function(test_model, digits = 4) {
