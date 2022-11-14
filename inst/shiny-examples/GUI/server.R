@@ -34,7 +34,7 @@ shinyServer(function(input, output, session) {
             if (is.null(input$rdata_dfname)) {
               final_df <- data.frame()
             } else {
-              final_df <- as.data.frame(get(input$rdata_dfname, envir = new_env ))
+              final_df <- as.data.frame(get(input$rdata_dfname, envir = new_env))
             }
           }
 
@@ -123,7 +123,8 @@ shinyServer(function(input, output, session) {
       }
 
       vals$script <- c(vals$script,
-                       paste("ctrl <-", as.character(as.expression(command_control))),
+                       paste("ctrl <-",
+                             as.character(as.expression(command_control))),
                        as.character(as.expression(command_robust_test)),
                        "")
 
@@ -168,7 +169,6 @@ shinyServer(function(input, output, session) {
        })
 
       # Renders plot of expected vs empirical weights
-
       create_plot <- reactive({
           robust_boot_simple <- robust_bootstrap_test()
           summary_simple <- summary(robust_boot_simple)
@@ -261,7 +261,7 @@ shinyServer(function(input, output, session) {
                         selected = selectedInput)
     })
 
-    # Generates the UI that allows users to select variables of the uploaded data
+    # Generates the UI that allows users to select variables of the data
     output$selectExplanatory <- renderUI({
       choices <- colnames(get_data())
       selectInput(inputId="Explanatory", label = "Independent variable(s)",
@@ -342,11 +342,13 @@ shinyServer(function(input, output, session) {
     })
 
     observeEvent(input$ConfidenceOLS, {
-      updateSliderInput(session, "ConfidenceROBMED", value = input$ConfidenceOLS)
+      updateSliderInput(session, "ConfidenceROBMED",
+                        value = input$ConfidenceOLS)
     })
 
     observeEvent(input$ConfidenceROBMED, {
-      updateSliderInput(session, "ConfidenceOLS", value = input$ConfidenceROBMED)
+      updateSliderInput(session, "ConfidenceOLS",
+                        value = input$ConfidenceROBMED)
     })
 
     observe({
@@ -603,40 +605,63 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4, ...) {
 }
 
 # Function for a single test_mediation object
+
 export_table_latex <- function(test_model, digits = 4, ...) {
 
-  tables <- create_tables(test_model = test_model, digits = 4)
+  tables <- create_tables(test_model = test_model, digits = digits)
+
   data_direct <- tables$direct$body$data
   data_indirect <- tables$indirect$body$data
 
-  latex_direct <- xtable::xtable(data_direct, digits = digits)
-  latex_indirect <- xtable::xtable(data_indirect, digits = digits)
-
-  latex_direct <- print(latex_direct, include.rownames = FALSE)
-  latex_direct <- print(latex_indirect, include.rownames = FALSE)
-
-  #latex_full <- merge_vertical_xtable(latex_direct, latex_indirect)
-
   table_direct <- knitr::kable(data_direct, digits = digits,
-                        row.names = F, align = 'c',
-                        format = 'latex')
+                        row.names = F, align = "c",
+                        format = "latex", booktabs = T)
 
   table_indirect <- knitr::kable(data_indirect, digits = digits,
-                                 row.names = F, align = 'c', format = 'latex')
-  table_indirect <- kableExtra::column_spec(table_indirect, column = 3,
-                                            width = '2in')
+                                 row.names = F, align = "c", format = "latex",
+                                 booktabs = T)
 
-  table_full <- cat(c(table_direct, table_indirect), 'latex')
+  # Ensure that for for column 1, 2 the widths are equal to:
+  col_width_1 <- "4em"
+
+  # Ensure that for column 5 of table1 width is same as column 4 of table2
+  col_width_2 <- "2em"
+
+  # Column width of columns 3, 4 for table 1
+  col_width_3 <- "2em"
+
+  # Column width of column 3 for table 2
+  col_width_4 <- gsub(substr(col_width_3, 1, 1),
+                      2 * as.numeric(substr(col_width_3, 1, 1)),
+                      col_width_3)
+
+  table_direct <- table_direct %>% column_spec(column = 1,
+                                               width = col_width_1) %>%
+    column_spec(column = 2, width = col_width_1) %>%
+    column_spec(column = 3, width = col_width_3) %>%
+    column_spec(column = 4, width = col_width_3) %>%
+    column_spec(column = 5, width = col_width_2)
+
+
+
+  table_indirect <- table_indirect %>%
+    column_spec(column = 1, width = col_width_1) %>%
+    column_spec(column = 2, width = col_width_1) %>%
+    column_spec(column = 3, width = col_width_4) %>%
+    column_spec(column = 4, width = col_width_2)
+
+  table_full <- cat(c(table_direct, table_indirect), "latex")
 
   return(table_full)
 }
 
+# Works but not so nice. Xtable does not look so promising.
 merge_vertical_xtable <- function(table1, table2) {
 
   list_table1 <- capture.output(table1)
   list_table2 <- capture.output(table2)
 
-  # Remove last three lines from first tablea and first 5 from second table
+  # Remove last three lines from first table and first 5 from second table
   list_table1 <- list_table1[1:(length(list_table1) - 3)]
   list_table2 <- list_table2[6:length(list_table2)]
 
@@ -644,6 +669,8 @@ merge_vertical_xtable <- function(table1, table2) {
   return(full_table)
 }
 
+# Internal function to create two tables for a model of type test_mediation
+# One table with direct effects and one table with indirect effects
 create_tables <- function(test_model, digits = 4) {
 
   sm <- summary(test_model)$summary
@@ -666,7 +693,8 @@ create_tables <- function(test_model, digits = 4) {
   }
 
   df_dir <- as.data.frame(matrix(NA, nrow = directrows, ncol = 5))
-  colnames(df_dir) <- c("Direct Effects", 'Estimate', 'Std. Error', 'z statistic', 'p-value')
+  colnames(df_dir) <- c("Direct Effects", "Estimate", "Std. Error",
+                        "z statistic", "p-value")
 
   row <- 1
   for (med in sm$m) {
@@ -688,7 +716,7 @@ create_tables <- function(test_model, digits = 4) {
   coefs_b <- sm$fit_ymx$coefficients
   for (med in sm$m) {
     #Add b paths
-    df_dir[row, 1] <- paste('(X),',med ,'->' , sm$y)
+    df_dir[row, 1] <- paste("(X),",med ,"->" , sm$y)
     df_dir[row, 2:5] <- coefs_b[med, 2:5]
     row <- row + 1
   }
@@ -709,11 +737,12 @@ create_tables <- function(test_model, digits = 4) {
     row <- row + 1
   }
 
-  pvals <- p_value(test_model, parm = 'indirect')
+  pvals <- p_value(test_model, parm = "indirect")
 
   #Add indirect effects (a (d) b paths)
   df_ind <- data.frame(matrix(0, nrow = indirectrows, ncol = 4))
-  colnames(df_ind) <- c("Indirect Effects", 'Estimate', 'Confidence Interval', 'p-value')
+  colnames(df_ind) <- c("Indirect Effects", "Estimate",
+                        "Confidence Interval", "p-value")
   if (test_model$fit$model == "serial" ){
     row <- 1
     for (reg in sm$x) {
@@ -740,7 +769,7 @@ create_tables <- function(test_model, digits = 4) {
       # Path through both mediators
       effectname <- paste(reg, '->', sm$m[1], '->', sm$m[2], sep = '')
 
-      df_ind[row,1] <- paste(effectname, '(Indirect)', sep = '')
+      df_ind[row,1] <- paste(effectname, "(Indirect)", sep = '')
       df_ind[row, 2] <- test_model$indirect[effectname][[1]]
 
       lower <- round(test_model$ci[effectname, 1], digits)
@@ -754,22 +783,23 @@ create_tables <- function(test_model, digits = 4) {
     row <- 1
     for (reg in sm$x) {
       for (med in sm$m) {
-        effectname <- paste(reg, '->', med, sep ='')
-        df_ind[row,1] <- paste(effectname, '(Indirect)')
+        effectname <- paste(reg, "->", med, sep = "")
+        df_ind[row,1] <- paste(effectname, "(Indirect)")
 
         if (length(sm$m) > 1) {
           if (length(sm$x) > 1) {
             lower <- round(test_model$ci[effectname, 1], digits)
             upper <- round(test_model$ci[effectname, 2], digits)
             df_ind[row, 2] <- test_model$indirect[effectname][[1]]
-            df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = '_')][[1]]
+            df_ind[row, 4] <- pvals[paste("Indirect", effectname,
+                                          sep = "_")][[1]]
 
           } else {
             # Only 1 explanatory variable, multiple mediators
             lower <- round(test_model$ci[med, 1], digits)
             upper <- round(test_model$ci[med, 2], digits)
             df_ind[row, 2] <- test_model$indirect[med][[1]]
-            df_ind[row, 4] <- pvals[paste("Indirect", med, sep = '_')][[1]]
+            df_ind[row, 4] <- pvals[paste("Indirect", med, sep = "_")][[1]]
 
           }
         } else {
@@ -778,7 +808,7 @@ create_tables <- function(test_model, digits = 4) {
             lower <- round(test_model$ci[reg, 1], digits)
             upper <- round(test_model$ci[reg, 2], digits)
             df_ind[row,2] <- test_model$indirect[reg][[1]]
-            df_ind[row, 4] <- pvals[paste("Indirect", reg, sep = '_')][[1]]
+            df_ind[row, 4] <- pvals[paste("Indirect", reg, sep = "_")][[1]]
 
           } else {
             # only 1 indirect effect
@@ -789,7 +819,7 @@ create_tables <- function(test_model, digits = 4) {
 
           }
         }
-        df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
+        df_ind[row, 3] <- paste("(", lower, ",", upper,")", sep = "")
         row <- row + 1
       }
     }
@@ -807,27 +837,36 @@ create_tables <- function(test_model, digits = 4) {
   ft_direct <- flextable(df_rounded)
   ft_direct <- width(ft_direct, j = 1, width = 2.5, unit = "in")
   ft_direct <- width(ft_direct, j = 2:5, width = 1, unit = "in")
-  ft_direct <- add_header_row(ft_direct, top = TRUE, values = c("METHOD"), colwidths = c(5))
-  ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = "center", part = "body")
+  ft_direct <- add_header_row(ft_direct, top = TRUE, values = c("METHOD"),
+                              colwidths = c(5))
+  ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = "center",
+                     part = "body")
   ft_direct <- align(ft_direct, align = "center", part = "header")
 
   # Add spacing and a line between different kinds of paths
-  ft_direct <- padding(ft_direct, i = a_paths, padding.bottom =  5, part = "body")
-  ft_direct <- padding(ft_direct, i = b_paths, padding.bottom =  5, part = "body")
-  ft_direct <- padding(ft_direct, i = c_paths, padding.bottom =  5, part = "body")
-  ft_direct <- padding(ft_direct, i = directrows, padding.bottom =  10, part = "body")
+  ft_direct <- padding(ft_direct, i = a_paths, padding.bottom =  5,
+                       part = "body")
+  ft_direct <- padding(ft_direct, i = b_paths, padding.bottom =  5,
+                       part = "body")
+  ft_direct <- padding(ft_direct, i = c_paths, padding.bottom =  5,
+                       part = "body")
+  ft_direct <- padding(ft_direct, i = directrows, padding.bottom =  10,
+                       part = "body")
 
-  ft_direct <- hline(ft_direct, i = a_paths - 1, border = fp_border("gray"), part = "body")
-  ft_direct <- hline(ft_direct, i = b_paths - 1, border = fp_border("gray"), part = "body")
-  ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"), part = "body")
+  ft_direct <- hline(ft_direct, i = a_paths - 1, border = fp_border("gray"),
+                     part = "body")
+  ft_direct <- hline(ft_direct, i = b_paths - 1, border = fp_border("gray"),
+                     part = "body")
+  ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"),
+                     part = "body")
 
   ft_indirect <- flextable(df_ind_rounded)
   ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = "in")
   ft_indirect <- width(ft_indirect, j = 3, width = 2, unit = "in")
   ft_indirect <- width(ft_indirect, j = c(2,4), width = 1, unit = "in")
-  ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4, align = "center", part = "body")
+  ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4,
+                       align = "center", part = "body")
   ft_indirect <- align(ft_indirect, j = 2:4, align = "center", part = "header")
-  ft_indirect
 
   ft_indirect <- add_footer_lines(ft_indirect, paste('Sample size = ', nrow(test_model$fit$data),
                                                      '. Number of bootstrap samples = ', test_model$R , '.\n',
