@@ -450,24 +450,40 @@ shinyServer(function(input, output, session) {
       updateSliderInput(session, inputId = "height_plot",
                         label = "Height plot",
                         min = min_val, max = max_val, value = standard)
-
     })
 
     output$download_tables <- downloadHandler(
       filename = function() {
-        paste(Sys.Date(), df_name(), "table",input$table_orientation,
-               ".docx", sep = "_")
+        paste(Sys.Date(), df_name(), "table",input$table_orientation, ".docx",
+              sep = "_")
       },
       content = function(file) {
-        showModal(modalDialog("Loading", footer=NULL))
+        showModal(modalDialog("Loading", footer = NULL))
         on.exit(removeModal())
 
-        document <- export_table_MSWord(list(ols_bootstrap_test(),
-                                            robust_bootstrap_test()),
+        mediation_list <- list()
+        if (isTruthy(robust_bootstrap_test())) {
+          mediation_list$robust <- robust_bootstrap_test()
+        }
+
+        if (isTruthy(ols_bootstrap_test())) {
+          mediation_list$ols <- ols_bootstrap_test()
+        }
+
+        document <- export_table_MSWord(mediation_list,
                                         orientation = input$table_orientation)
         print(document, file)
       }
     )
+
+    output$ui_checkbox_table <- renderUI({
+      if (isTruthy(robust_bootstrap_test()) && isTruthy(ols_bootstrap_test())) {
+        checkboxGroupInput(inputId = "models_tables",
+                           label = "Models to include:",
+                           choices = c("ROBMED", "OLS Bootstrap"),
+                           selected = c("ROBMED", "OLS Bootstrap"))
+      }
+    })
 
     output$ui_resolution <- renderUI({
       if (input$plot_format == "png") {

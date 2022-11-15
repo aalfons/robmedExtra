@@ -125,6 +125,7 @@ shinyUI(fluidPage(
              sidebarLayout(
                sidebarPanel(
                  h2("Table"),
+                 uiOutput("ui_checkbox_table"),
                  radioButtons(inputId = "table_orientation",
                               label = "Orientation",
                               choices = c("portrait", "landscape")),
