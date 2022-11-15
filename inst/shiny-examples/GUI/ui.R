@@ -10,9 +10,12 @@ library(shiny)
 library(robmed)
 library(shinythemes)
 library(DT)
+library(shinybusy)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
+    shinybusy::add_busy_spinner(spin = "fading-circle", height = "60px",
+                                width = "60px"),
     theme = shinytheme("sandstone"),
     title = "ROBMED",
 

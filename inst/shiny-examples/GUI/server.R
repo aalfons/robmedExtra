@@ -19,6 +19,7 @@ library(kableExtra)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
 
+
       session$onSessionEnded(function() { stopApp() })
       vals <- reactiveValues()
       vals$script <- c("library('robmed')")
@@ -188,6 +189,9 @@ shinyServer(function(input, output, session) {
           paste(Sys.Date() ,"diagnosticplot.", ext, sep = '')
         },
         content = function(file) {
+          showModal(modalDialog("Loading", footer=NULL))
+          on.exit(removeModal())
+
           if (input$plot_format == "png") {
             png(file, width = input$width_plot, height = input$height_plot,
                 units = input$plot_units, res = input$plot_resolution)
@@ -372,7 +376,7 @@ shinyServer(function(input, output, session) {
     )
 
     output$downloadbuttontableRobust <- renderUI({
-      downloadButton("downloadTableRobust", "Download Table Robust")
+      downloadButton("downloadTableRobust", "Download Table ROBMED")
     })
 
     output$downloadTableRobust <- downloadHandler(
@@ -380,7 +384,11 @@ shinyServer(function(input, output, session) {
         paste(Sys.Date(), "tableROBMED.docx", sep = "")
       },
       content = function(file) {
+        showModal(modalDialog("Loading", footer=NULL))
+        on.exit(removeModal())
+
         tabledoc <- export_table_MSWord(robust_bootstrap_test())
+        print("REACHED")
         print(tabledoc, file)
       }
     )
@@ -394,6 +402,9 @@ shinyServer(function(input, output, session) {
         paste(Sys.Date(), "tableOLS.docx", sep = "")
       },
       content = function(file) {
+        showModal(modalDialog("Loading", footer=NULL))
+        on.exit(removeModal())
+
         tabledoc <- export_table_MSWord(ols_bootstrap_test())
         print(tabledoc, file)
       }
@@ -442,6 +453,9 @@ shinyServer(function(input, output, session) {
         paste0(Sys.Date(), "combined_tables",input$table_orientation,".docx")
       },
       content = function(file) {
+        showModal(modalDialog("Loading", footer=NULL))
+        on.exit(removeModal())
+
         document <- export_table_MSWord(list(ols_bootstrap_test(),
                                             robust_bootstrap_test()),
                                         orientation = input$table_orientation)
