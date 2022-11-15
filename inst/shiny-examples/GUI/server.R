@@ -13,6 +13,7 @@ library(vroom)
 library(DT)
 library(officer)
 library(flextable)
+library(kableExtra)
 
 
 # Define server logic required to draw a histogram
@@ -604,58 +605,33 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4, ...) {
   return(doc)
 }
 
-# Function for a single test_mediation object
-
-export_table_latex <- function(test_model, digits = 4, ...) {
-
+# Function using xtable to create latex table
+to_latex <- function(test_model, digits = 4) {
   tables <- create_tables(test_model = test_model, digits = digits)
 
   data_direct <- tables$direct$body$data
   data_indirect <- tables$indirect$body$data
 
-  table_direct <- knitr::kable(data_direct, digits = digits,
-                        row.names = F, align = "c",
-                        format = "latex", booktabs = T)
+  table_direct <- xtable::xtable(data_direct, digits = digits,
+                                 align = "lXllll")
 
-  table_indirect <- knitr::kable(data_indirect, digits = digits,
-                                 row.names = F, align = "c", format = "latex",
-                                 booktabs = T)
-
-  # Ensure that for for column 1, 2 the widths are equal to:
-  col_width_1 <- "4em"
-
-  # Ensure that for column 5 of table1 width is same as column 4 of table2
-  col_width_2 <- "2em"
-
-  # Column width of columns 3, 4 for table 1
-  col_width_3 <- "2em"
-
-  # Column width of column 3 for table 2
-  col_width_4 <- gsub(substr(col_width_3, 1, 1),
-                      2 * as.numeric(substr(col_width_3, 1, 1)),
-                      col_width_3)
-
-  table_direct <- table_direct %>% column_spec(column = 1,
-                                               width = col_width_1) %>%
-    column_spec(column = 2, width = col_width_1) %>%
-    column_spec(column = 3, width = col_width_3) %>%
-    column_spec(column = 4, width = col_width_3) %>%
-    column_spec(column = 5, width = col_width_2)
+  table_indirect <- xtable::xtable(data_indirect, digits = digits,
+                                 align = "lXlXl")
 
 
+  xtable_direct <- print(table_direct, tabular.environment = "tabularx",
+                           width = "1.5\\textwidth",
+        include.rownames = F, hline.after = c(0:nrow(data_direct)))
 
-  table_indirect <- table_indirect %>%
-    column_spec(column = 1, width = col_width_1) %>%
-    column_spec(column = 2, width = col_width_1) %>%
-    column_spec(column = 3, width = col_width_4) %>%
-    column_spec(column = 4, width = col_width_2)
+  xtable_indirect <- print(table_indirect, tabular.environment = "tabularx",
+                           width = "1.5\\textwidth",
+        include.rownames = F, hline.after = c(0:nrow(data_indirect)))
 
-  table_full <- cat(c(table_direct, table_indirect), "latex")
+  return(merge_vertical_xtable(xtable_direct, xtable_indirect))
 
-  return(table_full)
 }
 
-# Works but not so nice. Xtable does not look so promising.
+# Works but not so nice
 merge_vertical_xtable <- function(table1, table2) {
 
   list_table1 <- capture.output(table1)
