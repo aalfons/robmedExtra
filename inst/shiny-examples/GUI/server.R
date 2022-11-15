@@ -22,7 +22,7 @@ shinyServer(function(input, output, session) {
 
       session$onSessionEnded(function() { stopApp() })
       vals <- reactiveValues()
-      vals$script <- c("library('robmed')")
+      vals$script <- c('library("robmed")')
 
       # Reactive expression to get data in dataframe
       get_data <- reactive({
@@ -89,8 +89,14 @@ shinyServer(function(input, output, session) {
         form_out <- as.formula(formula_string)
       })
 
+      df_name <- reactive(
+        ifelse(input$datatype == "RData", input$rdata_dfname,
+                        input$dfname)
+      )
+
       # Creates boot_test_mediation object
       robust_bootstrap_test <- eventReactive(input$runRobust,{
+        vals$script <- c("", vals$script)
 
       df_name <- ifelse(input$datatype == "RData", input$rdata_dfname,
                         input$dfname)
@@ -127,8 +133,7 @@ shinyServer(function(input, output, session) {
       vals$script <- c(vals$script,
                        paste("ctrl <-",
                              as.character(as.expression(command_control))),
-                       as.character(as.expression(command_robust_test)),
-                       "")
+                       as.character(as.expression(command_robust_test)))
 
       assign("ctrl", eval(command_control))
       eval(command_robust_test)
@@ -136,6 +141,8 @@ shinyServer(function(input, output, session) {
 
       ols_bootstrap_test <- eventReactive(input$runOLS,
        {
+         vals$script <- c("", vals$script)
+
          df_name <- ifelse(input$datatype == "RData", input$rdata_dfname,
                            input$dfname)
 
@@ -164,8 +171,7 @@ shinyServer(function(input, output, session) {
          }
 
          vals$script <- c(vals$script,
-                          as.character(as.expression(command_ols_test)),
-                          "")
+                          as.character(as.expression(command_ols_test)))
 
          eval(command_ols_test)
        })
@@ -367,7 +373,7 @@ shinyServer(function(input, output, session) {
     output$downloadScript <- downloadHandler(
 
       filename = function() {
-        paste(Sys.Date(), "script.R", sep = '')
+        paste(Sys.Date(), df_name(), "script.R", sep = '_')
       },
       content = function(file) {
         file.create(file)
@@ -381,14 +387,13 @@ shinyServer(function(input, output, session) {
 
     output$downloadTableRobust <- downloadHandler(
       filename = function() {
-        paste(Sys.Date(), "tableROBMED.docx", sep = "")
+        paste(Sys.Date(), df_name(), "table.docx", sep = '_')
       },
       content = function(file) {
         showModal(modalDialog("Loading", footer=NULL))
         on.exit(removeModal())
 
         tabledoc <- export_table_MSWord(robust_bootstrap_test())
-        print("REACHED")
         print(tabledoc, file)
       }
     )
@@ -399,7 +404,7 @@ shinyServer(function(input, output, session) {
 
     output$downloadTableOLS <- downloadHandler(
       filename = function() {
-        paste(Sys.Date(), "tableOLS.docx", sep = "")
+        paste(Sys.Date(), df_name(), "table.docx", sep = "_")
       },
       content = function(file) {
         showModal(modalDialog("Loading", footer=NULL))
@@ -450,7 +455,8 @@ shinyServer(function(input, output, session) {
 
     output$download_tables <- downloadHandler(
       filename = function() {
-        paste0(Sys.Date(), "combined_tables",input$table_orientation,".docx")
+        paste(Sys.Date(), df_name(), "table",input$table_orientation,
+               ".docx", sep = "_")
       },
       content = function(file) {
         showModal(modalDialog("Loading", footer=NULL))
