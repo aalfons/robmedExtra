@@ -616,30 +616,35 @@ to_latex <- function(test_model, digits = 4) {
                                  align = "lXllll")
 
   table_indirect <- xtable::xtable(data_indirect, digits = digits,
-                                 align = "lXlXl")
+                                 align = "lXlll")
 
+  xtable_direct <- capture.output(print(table_direct,
+                                         tabular.environment = "tabularx",
+                                         width = "1.2\\textwidth",
+        include.rownames = F, hline.after = c(0:nrow(data_direct))))
 
-  xtable_direct <- print(table_direct, tabular.environment = "tabularx",
-                           width = "1.5\\textwidth",
-        include.rownames = F, hline.after = c(0:nrow(data_direct)))
+  xtable_indirect <- capture.output(print(table_indirect,
+                                          tabular.environment = "tabularx",
+                                          width = "1.2\\textwidth",
+                                          include.rownames = F,
+                                          hline.after = c(0:nrow(data_indirect)))
+                                    )
 
-  xtable_indirect <- print(table_indirect, tabular.environment = "tabularx",
-                           width = "1.5\\textwidth",
-        include.rownames = F, hline.after = c(0:nrow(data_indirect)))
-
-  return(merge_vertical_xtable(xtable_direct, xtable_indirect))
+  full_table <- merge_vertical_xtable(xtable_direct, xtable_indirect)
+  full_table <- cat(full_table, sep = '\n')
+  return(full_table)
 
 }
 
 # Works but not so nice
 merge_vertical_xtable <- function(table1, table2) {
 
-  list_table1 <- capture.output(table1)
-  list_table2 <- capture.output(table2)
+  list_table1 <- table1
+  list_table2 <- table2
 
-  # Remove last three lines from first table and first 5 from second table
-  list_table1 <- list_table1[1:(length(list_table1) - 3)]
-  list_table2 <- list_table2[6:length(list_table2)]
+  # Remove last line from first table and first 3 from second table
+  list_table1 <- list_table1[1:(length(list_table1) - 1)]
+  list_table2 <- list_table2[4:length(list_table2)]
 
   full_table <- append(list_table1, list_table2)
   return(full_table)
