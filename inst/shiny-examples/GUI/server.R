@@ -454,20 +454,32 @@ shinyServer(function(input, output, session) {
 
     output$download_tables <- downloadHandler(
       filename = function() {
-        paste(Sys.Date(), df_name(), "table",input$table_orientation, ".docx",
-              sep = "_")
+        paste(Sys.Date(), "_", df_name(), "_", "table", "_",input$table_orientation, ".docx")
       },
       content = function(file) {
         showModal(modalDialog("Loading", footer = NULL))
         on.exit(removeModal())
 
         mediation_list <- list()
-        if (isTruthy(robust_bootstrap_test())) {
-          mediation_list$robust <- robust_bootstrap_test()
+
+        if (isTruthy(input$models_tables)) {
+          contains_robust <- "ROBMED" %in% input$models_tables
+          contains_ols <- "OLS" %in% input$models_tables
+        } else {
+          contains_robust <- TRUE
+          contains_ols <- TRUE
         }
 
-        if (isTruthy(ols_bootstrap_test())) {
-          mediation_list$ols <- ols_bootstrap_test()
+        if (contains_robust) {
+          if(isTruthy(input$runRobust)) {
+            mediation_list$robust <- robust_bootstrap_test()
+          }
+        }
+
+        if (contains_ols) {
+          if(isTruthy(input$runOLS)) {
+            mediation_list$ols <- ols_bootstrap_test()
+          }
         }
 
         document <- export_table_MSWord(mediation_list,
@@ -480,8 +492,8 @@ shinyServer(function(input, output, session) {
       if (isTruthy(robust_bootstrap_test()) && isTruthy(ols_bootstrap_test())) {
         checkboxGroupInput(inputId = "models_tables",
                            label = "Models to include:",
-                           choices = c("ROBMED", "OLS Bootstrap"),
-                           selected = c("ROBMED", "OLS Bootstrap"))
+                           choices = c("ROBMED", "OLS"),
+                           selected = c("ROBMED", "OLS"))
       }
     })
 
