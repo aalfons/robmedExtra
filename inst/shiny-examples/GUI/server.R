@@ -192,7 +192,7 @@ shinyServer(function(input, output, session) {
           } else if (input$plot_format == "pdf") {
             ext <- "pdf"
           }
-          paste(Sys.Date() ,"diagnosticplot.", ext, sep = '')
+          paste(Sys.Date(),"_",df_name(),"_","diagnostic_plot.", ext, sep = '')
         },
         content = function(file) {
           showModal(modalDialog("Loading", footer=NULL))
@@ -373,7 +373,7 @@ shinyServer(function(input, output, session) {
     output$downloadScript <- downloadHandler(
 
       filename = function() {
-        paste(Sys.Date(), df_name(), "script.R", sep = '_')
+        paste(Sys.Date(), df_name(), "script.R", sep = "_")
       },
       content = function(file) {
         file.create(file)
@@ -387,7 +387,7 @@ shinyServer(function(input, output, session) {
 
     output$downloadTableRobust <- downloadHandler(
       filename = function() {
-        paste(Sys.Date(), df_name(), "table.docx", sep = '_')
+        paste(Sys.Date(), df_name(), "table.docx", sep = "_")
       },
       content = function(file) {
         showModal(modalDialog("Loading", footer=NULL))
