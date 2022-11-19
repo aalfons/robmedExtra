@@ -782,6 +782,7 @@ create_tables <- function(test_model, digits = 4) {
         df_ind[row,1] <- paste(effectname, '(Indirect)')
 
         if (length(sm$m) > 1) {
+          # TODO Add case of three mediators. This code is for only two.
           df_ind[row, 2] <- test_model$indirect[effectname][[1]]
           lower <- round(test_model$ci[effectname, 1], digits)
           upper <- round(test_model$ci[effectname, 2], digits)
@@ -873,8 +874,7 @@ create_tables <- function(test_model, digits = 4) {
   ft_direct <- flextable(df_rounded)
   ft_direct <- width(ft_direct, j = 1, width = 2.5, unit = "in")
   ft_direct <- width(ft_direct, j = 2:5, width = 1, unit = "in")
-  ft_direct <- add_header_row(ft_direct, top = TRUE, values = c("METHOD"),
-                              colwidths = c(5))
+
   ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = "center",
                      part = "body")
   ft_direct <- align(ft_direct, align = "center", part = "header")
@@ -896,6 +896,10 @@ create_tables <- function(test_model, digits = 4) {
   ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"),
                      part = "body")
 
+  ft_direct <- add_header_row(ft_direct,
+                              values = c(get_method_robmed(test_model)),
+                              colwidths = c(5))
+
   ft_indirect <- flextable(df_ind_rounded)
   ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = "in")
   ft_indirect <- width(ft_indirect, j = 3, width = 2, unit = "in")
@@ -912,5 +916,15 @@ create_tables <- function(test_model, digits = 4) {
   result$indirect <- ft_indirect
 
   return(result)
+}
+
+get_method_robmed <- function(test_model) {
+  # TODO implement this function to return the proper method type
+  if (test_model$fit$robust %in% c("MM", TRUE)) {
+    return("ROBMED")
+  } else {
+    return("OLS-Bootstrap")
+  }
+
 }
 })
