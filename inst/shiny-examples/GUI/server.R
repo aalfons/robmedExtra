@@ -574,11 +574,14 @@ export_table_MSWord.list <- function(test_model,
   if (orientation == "landscape") {
     doc <- officer::body_end_section_landscape(doc)
     for (index in seq(1, ceiling((length(test_model) + 1)/2), 2)) {
-      tables_left <- create_tables(test_model[[index]])
+      test_model_left <- test_model[[index]]
+      test_model_right <- test_model[[index + 1]]
+
+      tables_left <- create_tables(test_model_left)
       direct_data_left <- tables_left$direct$body$dataset
       indirect_data_left <- tables_left$indirect$body$dataset
 
-      tables_right <- create_tables(test_model[[index + 1]])
+      tables_right <- create_tables(test_model_right)
       direct_data_right <- tables_right$direct$body$dataset
       indirect_data_right <- tables_right$indirect$body$dataset
 
@@ -596,8 +599,11 @@ export_table_MSWord.list <- function(test_model,
       ft_direct <- flextable::flextable(direct_data)
       ft_direct <- flextable::width(ft_direct, j = 1, width = 2, unit = "in")
       ft_direct <- flextable::add_header_row(ft_direct,
-                                  values = c(" ", "METHOD", "METHOD"),
+                                  values = c(" ",
+                                             get_method_robmed(test_model_left),
+                                             get_method_robmed(test_model_right)),
                                   top = TRUE, colwidths = c(1, 4, 4))
+
       ft_direct <- align(ft_direct, align = "center", part = "all")
 
       ft_indirect <- flextable::flextable(indirect_data)
