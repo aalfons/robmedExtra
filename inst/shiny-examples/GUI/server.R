@@ -745,7 +745,7 @@ create_tables <- function(test_model, digits = 4) {
   coefs_b <- sm$fit_ymx$coefficients
   for (med in sm$m) {
     #Add b paths
-    df_dir[row, 1] <- paste("(X),",med ,"->" , sm$y)
+    df_dir[row, 1] <- paste(med ,"->" , sm$y)
     df_dir[row, 2:5] <- coefs_b[med, 2:5]
     row <- row + 1
   }
