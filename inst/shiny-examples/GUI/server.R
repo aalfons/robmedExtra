@@ -735,7 +735,7 @@ create_tables <- function(test_model, digits = 4) {
 
     #Add a paths
     for (reg in sm$x) {
-      df_dir[row, 1] <- paste(reg, med, sep = "->")
+      df_dir[row, 1] <- paste(reg,"->", med, paste0("a", row))
       df_dir[row, 2:5] <- coefs_a[reg, 2:5]
       row <- row + 1
     }
@@ -745,7 +745,7 @@ create_tables <- function(test_model, digits = 4) {
   coefs_b <- sm$fit_ymx$coefficients
   for (med in sm$m) {
     #Add b paths
-    df_dir[row, 1] <- paste(med ,"->" , sm$y)
+    df_dir[row, 1] <- paste(med ,"->" , sm$y, paste0("b", row - a_paths + 1))
     df_dir[row, 2:5] <- coefs_b[med, 2:5]
     row <- row + 1
   }
@@ -753,7 +753,7 @@ create_tables <- function(test_model, digits = 4) {
 
   # Add c path (Direct effect)
   for (reg in sm$x){
-    df_dir[row, 1] <- paste(reg,'->', sm$y, '(direct)')
+    df_dir[row, 1] <- paste(reg,'->', sm$y, paste0("c", row - b_paths + 1))
     df_dir[row, 2:5] <- sm$direct[reg, 2:5]
     row <- row + 1
   }
@@ -761,7 +761,7 @@ create_tables <- function(test_model, digits = 4) {
 
   # Add c' path (Total effect)
   for (reg in sm$x) {
-    df_dir[row, 1] <- paste(reg, '->', sm$y, '(total)')
+    df_dir[row, 1] <- paste(reg, '->', sm$y, paste0("c'", row - c_paths + 1))
     df_dir[row, 2:5] <- sm$total[reg, 2:5]
     row <- row + 1
   }
@@ -777,7 +777,7 @@ create_tables <- function(test_model, digits = 4) {
     for (reg in sm$x) {
       # Through only first or only second mediator
       for (med in sm$m) {
-        effectname <- paste(reg, '->', med, sep ='')
+        effectname <- paste(reg, '->', med, sep = "")
         df_ind[row,1] <- paste(effectname, '(Indirect)')
 
         if (length(sm$m) > 1) {
