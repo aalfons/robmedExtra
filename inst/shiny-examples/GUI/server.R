@@ -721,9 +721,8 @@ create_tables <- function(test_model, digits = 4) {
     directrows = rows - indirectrows
   }
 
-  df_dir <- as.data.frame(matrix(NA, nrow = directrows, ncol = 5))
-  colnames(df_dir) <- c("Direct Effects", "Estimate", "Std. Error",
-                        "z statistic", "p-value")
+  # Create dataframe for the direct effects
+  df_dir <- data.frame(matrix(NA, nrow = directrows, ncol = 5))
 
   row <- 1
   for (med in sm$m) {
@@ -735,7 +734,7 @@ create_tables <- function(test_model, digits = 4) {
 
     #Add a paths
     for (reg in sm$x) {
-      df_dir[row, 1] <- paste(reg,"->", med, paste0("a", row))
+      df_dir[row, 1] <- paste(reg,"->", med, paste0("(a", row, ")"))
       df_dir[row, 2:5] <- coefs_a[reg, 2:5]
       row <- row + 1
     }
@@ -745,7 +744,8 @@ create_tables <- function(test_model, digits = 4) {
   coefs_b <- sm$fit_ymx$coefficients
   for (med in sm$m) {
     #Add b paths
-    df_dir[row, 1] <- paste(med ,"->" , sm$y, paste0("b", row - a_paths + 1))
+    df_dir[row, 1] <- paste(med ,"->" , sm$y,
+                            paste0("(b", row - a_paths + 1, ")"))
     df_dir[row, 2:5] <- coefs_b[med, 2:5]
     row <- row + 1
   }
@@ -753,7 +753,8 @@ create_tables <- function(test_model, digits = 4) {
 
   # Add c path (Direct effect)
   for (reg in sm$x){
-    df_dir[row, 1] <- paste(reg,'->', sm$y, paste0("c", row - b_paths + 1))
+    df_dir[row, 1] <- paste(reg,'->', sm$y,
+                            paste0("(c", row - b_paths + 1, ")"))
     df_dir[row, 2:5] <- sm$direct[reg, 2:5]
     row <- row + 1
   }
@@ -761,7 +762,8 @@ create_tables <- function(test_model, digits = 4) {
 
   # Add c' path (Total effect)
   for (reg in sm$x) {
-    df_dir[row, 1] <- paste(reg, '->', sm$y, paste0("c'", row - c_paths + 1))
+    df_dir[row, 1] <- paste(reg, '->', sm$y,
+                            paste0("(c'", row - c_paths + 1, ")"))
     df_dir[row, 2:5] <- sm$total[reg, 2:5]
     row <- row + 1
   }
@@ -770,8 +772,7 @@ create_tables <- function(test_model, digits = 4) {
 
   #Add indirect effects (a (d) b paths)
   df_ind <- data.frame(matrix(0, nrow = indirectrows, ncol = 4))
-  colnames(df_ind) <- c("Indirect Effects", "Estimate",
-                        "Confidence Interval", "p-value")
+
   if (test_model$fit$model == "serial" ){
     row <- 1
     for (reg in sm$x) {
@@ -857,6 +858,12 @@ create_tables <- function(test_model, digits = 4) {
   # Create the table from the dataframes
   df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, digits) else y))
   df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, digits) else y))
+
+  colnames(df_rounded) <- c("Direct Effects", "Estimate", "Std. Error",
+                                                  "z statistic", "p-value")
+
+  colnames(df_ind_rounded) <- c("Indirect Effects", "Estimate",
+                                "Confidence Interval", "p-value")
 
   set_flextable_defaults(
     font.size = 10,
