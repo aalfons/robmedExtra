@@ -776,6 +776,9 @@ create_tables <- function(test_model, digits = 4) {
 
   pvals <- p_value(test_model, parm = "indirect")
 
+  # changing number of columns from 4 to 5. Last column should contain pvals
+  # 4th column should be empty
+
   #Add indirect effects (a (d) b paths)
   df_ind <- data.frame(matrix(0, nrow = indirectrows, ncol = 4))
 
@@ -866,16 +869,58 @@ create_tables <- function(test_model, digits = 4) {
   df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, digits) else y))
   df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, digits) else y))
 
-  colnames(df_rounded) <- c("Direct Effects", "Estimate", "Std. Error",
-                                                  "z statistic", "p-value")
-
   colnames(df_ind_rounded) <- c("Indirect Effects", "Estimate",
                                 "Confidence Interval", "p-value")
+
+  colnames(df_rounded) <- c("Direct Effects", "Estimate", "Std. Error",
+                            "z statistic", "p-value")
+
+  # Added below to produce the results in a single flextable rather than two.
+
+  dim_ind <- dim(df_ind_rounded)
+  dim_dir <- dim(df_rounded)
+
+  df_ind_merge <- as.data.frame(matrix(NA, nrow = dim_ind[1], ncol = dim_ind[2]))
+  df_ind_merge[,1:3] <- df_ind_rounded[,1:3]
+  df_ind_merge[,5] <- df_ind_rounded[,4]
+
+  df_ind_merge <- rbind(c("Indirect Effects", "Estimate",
+                        "Confidence Interval","", "p-value"), df_ind_merge)
+
+  df_dir_merge <- df_rounded
+  colnames(df_dir_merge) <- colnames(df_ind_merge)
+  df_dir_merge <- data.frame(apply(df_dir_merge, FUN = as.character, MARGIN = 2))
+
+  df_stacked <- rbind(df_dir_merge, df_ind_merge)
+  colnames(df_stacked) <- c("Direct Effects", "Estimate", "Std. Error",
+                             "z statistic", "p-value")
+
+  ft <- flextable(df_stacked)
+
+
+  # Merge the third and fourth column for the indirect effects to create one
+  # column for the confidence interval
+  indirect_range <- c((nrow(df_dir_merge) + 1): (nrow(df_dir_merge) + nrow(df_ind_merge)))
+
+  for (index in indirect_range) {
+    ft <- merge_at(ft, i = index, j = 3:4)
+  }
+
+  # Changing cosmetics
+  ft <- flextable::theme_booktabs(ft, bold_header = TRUE)
+  ft <- align(ft, align = "center", part = "all")
+  ft <- bold(ft, i = nrow(df_dir) + 1, bold = T)
+  ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
+                       colwidths = c(5))
+  ft <- hline(ft, border = NULL, part = "body")
+
+
 
   set_flextable_defaults(
     font.size = 10,
     padding = 2,
     background.color = 'white')
+
 
   ft_direct <- flextable(df_rounded)
   ft_direct <- width(ft_direct, j = 1, width = 2.5, unit = "in")
@@ -914,22 +959,27 @@ create_tables <- function(test_model, digits = 4) {
                        align = "center", part = "body")
   ft_indirect <- align(ft_indirect, j = 2:4, align = "center", part = "header")
 
-  ft_indirect <- add_footer_lines(ft_indirect, paste('Sample size = ', nrow(test_model$fit$data),
-                                                     '. Number of bootstrap samples = ', test_model$R , '.\n',
-                                                     '†p < .1. *p < .05. **p < .01. ***p < .001.'))
+  footer_text <- paste('Sample size = ', nrow(test_model$fit$data),
+                       '. Number of bootstrap samples = ', test_model$R , '.\n',
+                       '†p < .1. *p < .05. **p < .01. ***p < .001.')
+
+  ft_indirect <- add_footer_lines(ft_indirect, footer_text)
+
   result = list()
   result$direct <- ft_direct
   result$indirect <- ft_indirect
+  result$all <- ft
 
   return(result)
 }
 
 get_method_robmed <- function(test_model) {
-  # TODO implement this function to return the proper method type
+  # TODO implement this function to return the proper method type for different
+  # methods included in robmed based on robust, method, and family attributes
   if (test_model$fit$robust %in% c("MM", TRUE)) {
     return("ROBMED")
   } else {
-    return("OLS-Bootstrap")
+    return("OLS Bootstrap")
   }
 
 }
