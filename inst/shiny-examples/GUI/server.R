@@ -640,6 +640,7 @@ merged_flextable <- function(test1, test2) {
 #'
 export_table_MSWord.list <- function(test_model,
                                      orientation = c("landscape", "portrait"),
+                                     filename,
                                      ...) {
   doc <- officer::read_docx()
 
@@ -669,15 +670,21 @@ export_table_MSWord.list <- function(test_model,
         }
       }
   }
+
+  print(doc, filename)
   return(doc)
 }
 
 #'@export
-export_table_MSWord.test_mediation <- function(test_model, digits = 4, ...) {
+export_table_MSWord.test_mediation <- function(test_model,
+                                               digits = 4,
+                                               filename,
+                                               ...) {
   table <- to_flextable(test_model = test_model, digits = digits)
 
   doc <- read_docx()
   doc <- body_add_flextable(doc, table)
+  print(doc, filename)
   return(doc)
 }
 
