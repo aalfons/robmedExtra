@@ -557,92 +557,87 @@ export_table_MSWord <- function(test_model, ...) {
   UseMethod("export_table_MSWord")
 }
 
+# Takes two flextables and merges them into 1, expanding over columns
+merged_flextable <- function(test1, test2) {
+  ft1 <- create_tables(test1)
+  ft2 <- create_tables(test2)
+
+  merged_df <- data.frame(ft1$body$dataset, ft2$body$dataset[,-1],
+                          check.names = FALSE)
+
+  # Work around to prevent duplicate col keys
+  for(i in c(6:9)) {
+    colnames(merged_df)[i] <- paste0(colnames(merged_df)[i], "\r")
+  }
+  merged_ft <- flextable(merged_df)
+
+  start_merge <- which(merged_df[,1] == "Indirect Effects")
+
+  indirect_range <- c(start_merge : nrow(ft1$body$dataset))
+
+  for (index in indirect_range) {
+    merged_ft <- merge_at(merged_ft, i = index, j = 3:4)
+    merged_ft <- merge_at(merged_ft, i = index, j = 7:8)
+  }
+
+  merged_ft <- autofit(merged_ft)
+  merged_ft <- align(merged_ft, align = "center", part = "all")
+
+  # Changing cosmetics
+  merged_ft <- theme_booktabs(merged_ft, bold_header = TRUE)
+  merged_ft <- bold(merged_ft, i = start_merge, bold = TRUE)
+
+  merged_ft <- add_header_row(merged_ft,
+                              top = TRUE,
+                              values = c("",get_method_robmed(test1),
+                                         get_method_robmed(test2)),
+                       colwidths = c(1,4,4))
+
+  footer_text_left <- paste('Sample size = ', nrow(test1$fit$data),
+                       '. Number of bootstrap samples = ', test1$R , ".\n",
+                       "†p < .1. *p < .05. **p < .01. ***p < .001.")
+
+  footer_text_right <- paste('Sample size = ', nrow(test2$fit$data),
+                            '. Number of bootstrap samples = ', test2$R , ".\n",
+                            "†p < .1. *p < .05. **p < .01. ***p < .001.")
+
+  merged_ft <- add_footer_row(merged_ft,
+                              values = c(footer_text_left, footer_text_right),
+                              colwidths = c(4, 5))
+
+  merged_ft <- hline(merged_ft, border = NULL, part = "body")
+
+  return(merged_ft)
+}
 
 #' @export
 #'
 export_table_MSWord.list <- function(test_model,
                                      orientation = c("landscape", "portrait"),
                                      ...) {
-  if (length(test_model) == 1) {
-    return(export_table_MSWord(test_model[[1]]))
-  }
-
-  model_robust = Filter(function(x) x$fit$robust != FALSE, test_model)[[1]]
-  model_ols = Filter(function(x) (x$fit$robust == FALSE), test_model)[[1]]
-
-  tables_robust <- create_tables(model_robust)
-  tables_ols <- create_tables(model_ols)
-
   doc <- officer::read_docx()
 
   if (orientation == "landscape") {
+    tables <- create_tables(test_model = test_model, digits = digits,
+                            merged = TRUE)
     doc <- officer::body_end_section_landscape(doc)
-    for (index in seq(1, ceiling((length(test_model) + 1)/2), 2)) {
-      test_model_left <- test_model[[index]]
-      test_model_right <- test_model[[index + 1]]
 
-      tables_left <- create_tables(test_model_left)
-      direct_data_left <- tables_left$direct$body$dataset
-      indirect_data_left <- tables_left$indirect$body$dataset
-
-      tables_right <- create_tables(test_model_right)
-      direct_data_right <- tables_right$direct$body$dataset
-      indirect_data_right <- tables_right$indirect$body$dataset
-
-      colnames(direct_data_right) <- unlist(lapply(colnames(direct_data_right),
-                                                 FUN = function(x) paste0(x, "\r")))
-      colnames(indirect_data_right) <- unlist(lapply(colnames(indirect_data_right),
-                                                   FUN = function(x) paste0(x, "\r")))
-
-      direct_data_right <- direct_data_right[,2:ncol(direct_data_right)]
-      indirect_data_right <- indirect_data_right[,2:ncol(indirect_data_right)]
-
-      direct_data <- data.frame(direct_data_left, direct_data_right)
-      indirect_data <- data.frame(indirect_data_left, indirect_data_right)
-
-      ft_direct <- flextable::flextable(direct_data)
-      ft_direct <- flextable::width(ft_direct, j = 1, width = 2, unit = "in")
-      ft_direct <- flextable::add_header_row(ft_direct,
-                                  values = c(" ",
-                                             get_method_robmed(test_model_left),
-                                             get_method_robmed(test_model_right)),
-                                  top = TRUE, colwidths = c(1, 4, 4))
-
-      ft_direct <- align(ft_direct, align = "center", part = "all")
-
-      ft_indirect <- flextable::flextable(indirect_data)
-      ft_indirect <- flextable::width(ft_indirect, j = 1, width = 2,
-                                      unit = "in")
-      ft_indirect <- flextable::width(ft_indirect, j = 3, width = 1.5,
-                                      unit = "in")
-      ft_indirect <- flextable::width(ft_indirect, j = 6, width = 1.5,
-                                      unit = "in")
-      ft_indirect <- flextable::align(ft_indirect, align = "center",
-                                      part = "all")
-
-      doc <- flextable::body_add_flextable(doc, ft_direct)
-      doc <- flextable::body_add_flextable(doc, ft_indirect)
-      doc <- officer::body_add_break(doc, "after")
+    for(table in tables) {
+      doc <- flextable::body_add_flextable(doc, table)
     }
-
-    if (length(test_model) %% 2 == 1) {
-      tables <- create_tables(test_model[[length(test_model)]])
-      #direct_table <- flextable::add_header_row(tables$direct,
-      #                                          values = c("METHOD"),
-      #                                          top = TRUE,
-      #                                          colwidths = c(5))
-      doc <- flextable::body_add_flextable(doc, tables$direct)
-      doc <- flextable::body_add_flextable(doc, tables$indirect)
-    }
-
     doc <- officer::body_end_section_landscape(doc)
+
   } else if (orientation == "portrait") {
       count_page <- 0
-      for (test_object in test_model) {
-        tables <- create_tables(test_object)
-        doc <- flextable::body_add_flextable(doc, tables$direct)
-        doc <- flextable::body_add_flextable(doc, tables$indirect)
+      tables <- create_tables(test_model = test_model, digits = digits,
+                              merged = FALSE)
+
+      for (table in tables) {
+        doc <- flextable::body_add_flextable(doc, table)
+        doc <- body_add_par(doc, value = "")
+
         count_page <- count_page + 1
+
         if (count_page %% 2 == 0) {
         doc <- officer::body_add_break(doc, "after")
         }
@@ -656,7 +651,7 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4, ...) {
   tables <- create_tables(test_model = test_model, digits = digits)
 
   doc <- read_docx()
-  doc <- body_add_flextable(doc, tables$all)
+  doc <- body_add_flextable(doc, tables)
   return(doc)
 }
 
@@ -705,10 +700,68 @@ merge_vertical_xtable <- function(table1, table2) {
   return(full_table)
 }
 
+
+create_tables <- function(test_model, ...) {
+  UseMethod("create_tables")
+}
+
 # Internal function to create two tables for a model of type test_mediation
 # One table with direct effects and one table with indirect effects
-create_tables <- function(test_model, digits = 4) {
+create_tables.test_mediation <- function(test_model, digits = 4) {
 
+  df_stacked <- prep_data_table(test_model = test_model, digits = digits)
+  ft <- flextable(df_stacked)
+  start_merge <- which(df_stacked[,1] == "Indirect Effects")
+
+  # Merge the third and fourth column for the indirect effects to create one
+  # column for the confidence interval
+  indirect_range <- c(start_merge: (nrow(df_stacked)))
+
+  for (index in indirect_range) {
+    ft <- merge_at(ft, i = index, j = 3:4)
+  }
+
+  # Changing cosmetics
+  ft <- flextable::theme_booktabs(ft, bold_header = TRUE)
+  ft <- align(ft, align = "center", part = "all")
+  ft <- bold(ft, i = start_merge, bold = T)
+  ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
+                       colwidths = c(5))
+  ft <- hline(ft, border = NULL, part = "body")
+
+  ft <- autofit(ft)
+
+  return(ft)
+}
+
+create_tables.list <- function(test_model, digits, merged = F, ...) {
+  result = list()
+  count <-
+  if(merged) {
+    for (index in seq(1, ceiling((length(test_model) + 1)/2), 2)) {
+      test_model_left <- test_model[[index]]
+      test_model_right <- test_model[[index + 1]]
+
+      ft <- merged_flextable(test_model_left, test_model_right)
+      result <- append(result, list(ft))
+    }
+
+    if (length(test_model) %% 2 == 1) {
+      ft <- create_tables(test_model[[length(test_model)]])
+      result <- append(result, list(ft))
+    }
+
+  } else {
+    for(test in test_model) {
+      ft <- create_tables(test)
+      result <- append(result, list(ft))
+    }
+  }
+
+  return(result)
+}
+
+prep_data_table <- function(test_model, digits = 4) {
   sm <- summary(test_model)$summary
 
   if (test_model$fit$model == "serial") {
@@ -876,8 +929,6 @@ create_tables <- function(test_model, digits = 4) {
   colnames(df_rounded) <- c("Direct Effects", "Estimate", "Std. Error",
                             "z statistic", "p-value")
 
-  # Added below to produce the results in a single flextable rather than two.
-
   dim_ind <- dim(df_ind_rounded)
   dim_dir <- dim(df_rounded)
 
@@ -886,7 +937,7 @@ create_tables <- function(test_model, digits = 4) {
   df_ind_merge[,5] <- df_ind_rounded[,4]
 
   df_ind_merge <- rbind(c("Indirect Effects", "Estimate",
-                        "Confidence Interval","", "p-value"), df_ind_merge)
+                          "Confidence Interval","", "p-value"), df_ind_merge)
 
   df_dir_merge <- df_rounded
   colnames(df_dir_merge) <- colnames(df_ind_merge)
@@ -894,86 +945,10 @@ create_tables <- function(test_model, digits = 4) {
 
   df_stacked <- rbind(df_dir_merge, df_ind_merge)
   colnames(df_stacked) <- c("Direct Effects", "Estimate", "Std. Error",
-                             "z statistic", "p-value")
-
-  ft <- flextable(df_stacked)
-
-
-  # Merge the third and fourth column for the indirect effects to create one
-  # column for the confidence interval
-  indirect_range <- c((nrow(df_dir_merge) + 1): (nrow(df_dir_merge) + nrow(df_ind_merge)))
-
-  for (index in indirect_range) {
-    ft <- merge_at(ft, i = index, j = 3:4)
-  }
-
-  # Changing cosmetics
-  ft <- flextable::theme_booktabs(ft, bold_header = TRUE)
-  ft <- align(ft, align = "center", part = "all")
-  ft <- bold(ft, i = nrow(df_dir) + 1, bold = T)
-  ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
-                       colwidths = c(5))
-  ft <- hline(ft, border = NULL, part = "body")
-
-  ft <- autofit(ft)
-
-
-  set_flextable_defaults(
-    font.size = 10,
-    padding = 2,
-    background.color = 'white')
-
-
-  ft_direct <- flextable(df_rounded)
-  ft_direct <- width(ft_direct, j = 1, width = 2.5, unit = "in")
-  ft_direct <- width(ft_direct, j = 2:5, width = 1, unit = "in")
-
-  ft_direct <- align(ft_direct, i = 1:directrows, j = 2:5, align = "center",
-                     part = "body")
-  ft_direct <- align(ft_direct, align = "center", part = "header")
-
-  # Add spacing and a line between different kinds of paths
-  ft_direct <- padding(ft_direct, i = a_paths, padding.bottom =  5,
-                       part = "body")
-  ft_direct <- padding(ft_direct, i = b_paths, padding.bottom =  5,
-                       part = "body")
-  ft_direct <- padding(ft_direct, i = c_paths, padding.bottom =  5,
-                       part = "body")
-  ft_direct <- padding(ft_direct, i = directrows, padding.bottom =  10,
-                       part = "body")
-
-  ft_direct <- hline(ft_direct, i = a_paths - 1, border = fp_border("gray"),
-                     part = "body")
-  ft_direct <- hline(ft_direct, i = b_paths - 1, border = fp_border("gray"),
-                     part = "body")
-  ft_direct <- hline(ft_direct, i = c_paths - 1, border = fp_border("gray"),
-                     part = "body")
-
-  ft_direct <- add_header_row(ft_direct,
-                              values = c(get_method_robmed(test_model)),
-                              colwidths = c(5))
-
-  ft_indirect <- flextable(df_ind_rounded)
-  ft_indirect <- width(ft_indirect, j = 1, width = 2.5, unit = "in")
-  ft_indirect <- width(ft_indirect, j = 3, width = 2, unit = "in")
-  ft_indirect <- width(ft_indirect, j = c(2,4), width = 1, unit = "in")
-  ft_indirect <- align(ft_indirect, i = 1:indirectrows, j = 2:4,
-                       align = "center", part = "body")
-  ft_indirect <- align(ft_indirect, j = 2:4, align = "center", part = "header")
-
-  footer_text <- paste('Sample size = ', nrow(test_model$fit$data),
-                       '. Number of bootstrap samples = ', test_model$R , '.\n',
-                       '†p < .1. *p < .05. **p < .01. ***p < .001.')
-
-  ft_indirect <- add_footer_lines(ft_indirect, footer_text)
-
-  result = list()
-  result$direct <- ft_direct
-  result$indirect <- ft_indirect
-  result$all <- ft
-
-  return(result)
+                            "z statistic", "p-value")
+  return(df_stacked)
 }
+
 
 get_method_robmed <- function(test_model) {
   # TODO implement this function to return the proper method type for different
