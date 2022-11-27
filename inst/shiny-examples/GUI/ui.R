@@ -32,7 +32,7 @@ shinyUI(fluidPage(
                                             choices = c(
                                                         "Existing data frame",
                                                         "RData"),
-                                            selected = "RData"),
+                                            selected = "Existing data frame"),
                                 uiOutput('dataframechoice'),
                                 uiOutput('rdatafile_dataframes'),
                              ),
