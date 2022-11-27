@@ -533,13 +533,11 @@ shinyServer(function(input, output, session) {
 #' by side.
 #'
 #'
-#'
 #' @return An object of class \code{"\link{rdocx}"}, containing a table of the
 #' results of the provided objects.
 #'
 #'
 #' @author Vincent Drenth
-#'
 #'
 #'
 #' @examples
@@ -656,12 +654,9 @@ export_table_MSWord.list <- function(test_model,
 #'@export
 export_table_MSWord.test_mediation <- function(test_model, digits = 4, ...) {
   tables <- create_tables(test_model = test_model, digits = digits)
-  ft_direct <- tables$direct
-  ft_indirect <- tables$indirect
 
   doc <- read_docx()
-  doc <- body_add_flextable(doc, ft_direct)
-  doc <- body_add_flextable(doc, ft_indirect)
+  doc <- body_add_flextable(doc, tables$all)
   return(doc)
 }
 
@@ -920,6 +915,7 @@ create_tables <- function(test_model, digits = 4) {
                        colwidths = c(5))
   ft <- hline(ft, border = NULL, part = "body")
 
+  ft <- autofit(ft)
 
 
   set_flextable_defaults(
