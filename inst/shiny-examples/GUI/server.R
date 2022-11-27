@@ -712,7 +712,7 @@ to_latex <- function(test_model, digits = 4) {
 
 }
 
-# Works but not so nice
+# Works kind of but not so nice
 merge_vertical_xtable <- function(table1, table2) {
 
   list_table1 <- table1
@@ -727,12 +727,59 @@ merge_vertical_xtable <- function(table1, table2) {
 }
 
 
+#' Create flextable from mediation test
+#'
+#' Creates a flextable from a test_mediation object
+#'
+#' @param test_model an object inheriting from class
+#' \code{"\link{test_mediation}"} or a list of objects of that class.
+#' of object
+#'
+#' @param digits a positive integer, which determines the number of decimals
+#' that should be displayed in the table. The default is to display 4 decimals.
+#'
+#' @param merged boolean that determines whether the flextables are merged to show
+#' the results of two tests in one table (except possibly the last one) or
+#' seperate. Only used when test_model
+#' is a list.
+#'
+#' @return An object of class \code{"\link{flextable}"} or a list of objects of
+#' this class.
+#'
+#' @importFrom flextable theme_booktabs algin bold add_header_row autofit
+#' merge_at flextable add_footer_row hline
+#'
+#' @author Vincent Drenth
+#'
+#' @examples
+#' data("BSG2014")
+#'
+#' boot_robust <- test_mediation(TeamCommitment ~
+#'                                 m(TaskConflict) +
+#'                                   ValueDiversity,
+#'                               data = BSG2014)
+#'
+#' ft <- to_flextable(boot_robust)
+#'
+#' boot_ols <- test_mediation(TeamCommitment ~
+#'                                 m(TaskConflict) +
+#'                                   ValueDiversity,
+#'                               data = BSG2014,
+#'                               robust = FALSE)
+#'
+#' flextables_list <- to_flextable(list(boot_robust, boot_ols))
+#'
+#'
+#' @export
+
 to_flextable <- function(test_model, ...) {
   UseMethod("to_flextable")
 }
 
-# Internal function to create two tables for a model of type test_mediation
-# One table with direct effects and one table with indirect effects
+
+#' @export
+#' @method to_flextable test_mediation
+
 to_flextable.test_mediation <- function(test_model, digits = 4) {
 
   df_stacked <- prep_data_table(test_model = test_model, digits = digits)
@@ -759,6 +806,9 @@ to_flextable.test_mediation <- function(test_model, digits = 4) {
 
   return(ft)
 }
+
+#' @export
+#' @method to_flextable list
 
 to_flextable.list <- function(test_model, digits, merged = F, ...) {
   result = list()
