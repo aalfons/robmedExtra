@@ -102,6 +102,11 @@ shinyServer(function(input, output, session) {
 
       # Creates boot_test_mediation object
       robust_bootstrap_test <- eventReactive(input$runRobust,{
+        if (length(input$Mediators) > 1) {
+          validate(need(input$Modeltype,
+          "Please select a type of mediation model in the MODEL tab."))
+        }
+
         vals$script <- c(vals$script, "",
                          "# Perform robust bootstrap test ROBMED")
 
@@ -156,8 +161,12 @@ shinyServer(function(input, output, session) {
       eval(command_robust_test)
       })
 
-      ols_bootstrap_test <- eventReactive(input$runOLS,
-       {
+      ols_bootstrap_test <- eventReactive(input$runOLS, {
+        if (length(input$Mediators) > 1) {
+          validate(need(input$Modeltype,
+                        "Please select a type of mediation model in the MODEL tab."))
+         }
+
          vals$script <- c(vals$script, "", "# Perform OLS bootstrap test")
 
          df_name <- ifelse(input$datatype == "RData", input$rdata_dfname,
@@ -171,7 +180,6 @@ shinyServer(function(input, output, session) {
 
            vals$script <- c(vals$script, paste0("load(",df_name, ")"))
          }
-
 
          command_seed <- call("set.seed", input$seedOLS)
          command_ols_test <- call("test_mediation",
@@ -538,8 +546,6 @@ shinyServer(function(input, output, session) {
 
     })
 
-# This function takes the summary output of ROBMED
-# and turns it into a nicely formatted table
 
 #' Export result table to Word
 #'
@@ -690,10 +696,18 @@ export_table_MSWord.test_mediation <- function(test_model,
 
 # Function using xtable to create latex table
 to_latex <- function(test_model, digits = 4) {
-  tables <- to_flextable(test_model = test_model, digits = digits)
+  table <- to_flextable(test_model = test_model, digits = digits)
+  dataset <- table$body$data
 
-  data_direct <- tables$direct$body$data
-  data_indirect <- tables$indirect$body$data
+  index_split_table <- which(dataset == "Indirect Effects")
+
+  # Split dataset into the seperate dataframes
+  data_direct <- dataset[1:(index_split_table - 1),]
+  data_indirect <- dataset[index_split_table:nrow(dataset), c(1,2,3,5)]
+
+  names(data_indirect) <- as.character(unlist(data_indirect[1,]))
+  data_indirect <- data_indirect[-1,]
+
 
   table_direct <- xtable::xtable(data_direct, digits = digits,
                                  align = "lXllll")
@@ -816,7 +830,6 @@ to_flextable.test_mediation <- function(test_model, digits = 4) {
 
 #' @export
 #' @method to_flextable list
-
 to_flextable.list <- function(test_model, digits, merged = F, ...) {
   result = list()
   count <-
@@ -843,6 +856,11 @@ to_flextable.list <- function(test_model, digits, merged = F, ...) {
 
   return(result)
 }
+
+# Creates a single dataframe that contains the data needed to create the table
+# The 4th column contains NA for all rows corresponding to the indirect effects
+# as the 3rd and 4th column will be later merged to create the column for
+# the Confidence Interval
 
 prep_data_table <- function(test_model, digits = 4) {
   sm <- summary(test_model)$summary
@@ -923,38 +941,43 @@ prep_data_table <- function(test_model, digits = 4) {
     row <- 1
     for (reg in sm$x) {
       # Through only first or only second mediator
-      for (med in sm$m) {
-        effectname <- paste(reg, '->', med, sep = "")
+
+        # The effectname in this case is "reg -> med_1 -> ... -> med_n" with
+        # n for 1 up to 3. The order of mediators remains the same.
+
+      for (num_mediators in c(1:length(sm$m))) {
+        effectname <- paste(reg, med[1:num_mediators], sep = "->")
+
+        if (length(sm$x) == 1) {
+          effectname <- gsub(pattern = paste0(reg,"-> "),
+                             replacement = "",
+                             x = effectname)
+        }
+
         df_ind[row,1] <- paste(effectname, '(Indirect)')
 
         if (length(sm$m) > 1) {
           # TODO Add case of three mediators. This code is for only two.
-          df_ind[row, 2] <- test_model$indirect[effectname][[1]]
-          lower <- round(test_model$ci[effectname, 1], digits)
-          upper <- round(test_model$ci[effectname, 2], digits)
+
+            df_ind[row, 2] <- test_model$indirect[effectname][[1]]
+
+            lower <- round(test_model$ci[effectname, 1], digits)
+            upper <- round(test_model$ci[effectname, 2], digits)
+
         } else {
           df_ind[row,2] <- test_model$indirect[reg][[1]]
+
           lower <- round(test_model$ci[1], digits)
           upper <- round(test_model$ci[2], digits)
         }
-
-        df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
-
-        row <- row + 1
       }
-
-      # Path through both mediators
-      effectname <- paste(reg, '->', sm$m[1], '->', sm$m[2], sep = '')
-
-      df_ind[row,1] <- paste(effectname, "(Indirect)", sep = '')
-      df_ind[row, 2] <- test_model$indirect[effectname][[1]]
-
-      lower <- round(test_model$ci[effectname, 1], digits)
-      upper <- round(test_model$ci[effectname, 2], digits)
-
-      df_ind[row, 3] <- paste('(', lower, ',', upper,')', sep = '')
-      row <- row + 1
+        df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
+        # TODO: add p-value in col 4
+        print(paste("row", row, "completed"))
+-
+        row <- row + 1
     }
+
   } else {
     # Parallel model
     row <- 1
