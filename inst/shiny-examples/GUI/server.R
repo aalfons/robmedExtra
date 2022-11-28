@@ -613,7 +613,7 @@ merged_flextable <- function(test1, test2) {
   }
 
   merged_ft <- autofit(merged_ft)
-  merged_ft <- align(merged_ft, align = "center", part = "all")
+  merged_ft <- flextable::align(merged_ft, align = "center", part = "all")
 
   # Changing cosmetics
   merged_ft <- theme_booktabs(merged_ft, bold_header = TRUE)
@@ -817,7 +817,7 @@ to_flextable.test_mediation <- function(test_model, digits = 4) {
 
   # Changing cosmetics
   ft <- flextable::theme_booktabs(ft, bold_header = TRUE)
-  ft <- align(ft, align = "center", part = "all")
+  ft <- flextable::align(ft, align = "center", part = "all")
   ft <- bold(ft, i = start_merge, bold = T)
   ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
                        colwidths = c(5))
