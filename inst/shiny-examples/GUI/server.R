@@ -699,11 +699,10 @@ to_latex <- function(test_model, digits = 4) {
   table <- to_flextable(test_model = test_model, digits = digits)
   dataset <- table$body$data
 
-  full_table <- xtable(dataset, align = "ccccc")
+  full_table <- xtable(dataset, align = "cccccc")
   print.xtable(full_table, booktabs = T, hline.after = (-1:nrow(dataset)),
                include.rownames = F)
 
-  return(full_table)
 }
 
 # Works kind of but not so nice
