@@ -699,38 +699,11 @@ to_latex <- function(test_model, digits = 4) {
   table <- to_flextable(test_model = test_model, digits = digits)
   dataset <- table$body$data
 
-  index_split_table <- which(dataset == "Indirect Effects")
+  full_table <- xtable(dataset, align = "ccccc")
+  print.xtable(full_table, booktabs = T, hline.after = (-1:nrow(dataset)),
+               include.rownames = F)
 
-  # Split dataset into the seperate dataframes
-  data_direct <- dataset[1:(index_split_table - 1),]
-  data_indirect <- dataset[index_split_table:nrow(dataset), c(1,2,3,5)]
-
-  names(data_indirect) <- as.character(unlist(data_indirect[1,]))
-  data_indirect <- data_indirect[-1,]
-
-
-  table_direct <- xtable::xtable(data_direct, digits = digits,
-                                 align = "lXllll")
-
-  table_indirect <- xtable::xtable(data_indirect, digits = digits,
-                                 align = "lXlll")
-
-  xtable_direct <- capture.output(print(table_direct,
-                                         tabular.environment = "tabularx",
-                                         width = "1.2\\textwidth",
-        include.rownames = F, hline.after = c(0:nrow(data_direct))))
-
-  xtable_indirect <- capture.output(print(table_indirect,
-                                          tabular.environment = "tabularx",
-                                          width = "1.2\\textwidth",
-                                          include.rownames = F,
-                                          hline.after = c(0:nrow(data_indirect)))
-                                    )
-
-  full_table <- merge_vertical_xtable(xtable_direct, xtable_indirect)
-  full_table <- cat(full_table, sep = '\n')
   return(full_table)
-
 }
 
 # Works kind of but not so nice
