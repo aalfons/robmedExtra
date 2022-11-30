@@ -113,7 +113,10 @@ shinyServer(function(input, output, session) {
 
       # takes care of entering the data in the script
       if(input$datatype == "Existing data frame") {
-        vals$used_data <- c(vals$used_data, df_name)
+        vals$used_data <- c(vals$used_data,
+                            paste0(df_name,"(",
+                                   paste(dim(get_data()), collapse = ","),
+                                   ")"))
       } else {
         vals$script <- c(vals$script, paste0("load(",input$rdatafile$name, ")"))
       }
@@ -172,7 +175,11 @@ shinyServer(function(input, output, session) {
 
          # takes care of entering the data in the script
          if(input$datatype == "Existing data frame") {
-            vals$used_data <- c(vals$used_data, df_name)
+           vals$used_data <- c(vals$used_data,
+                               paste0(df_name,"(",
+                                     paste(dim(get_data()), collapse = ","),
+                                     ")"))
+
 
          } else {
 
@@ -922,7 +929,6 @@ prep_data_table <- function(test_model, digits = 4) {
   if (test_model$fit$model == "serial" ){
     row <- 1
     for (reg in sm$x) {
-      print(reg)
         # The effectname in this case is "reg -> med_1 -> ... -> med_n" with
         # n for 1 up to 3. The order of mediators remains the same but can skip
         # a value.
@@ -975,7 +981,6 @@ prep_data_table <- function(test_model, digits = 4) {
 
         df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
         # TODO: add p-value in col 4
-        print(paste("row", row, "completed"))
         df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = "_")][[1]]
 
 
