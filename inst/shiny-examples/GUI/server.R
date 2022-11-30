@@ -9,11 +9,9 @@
 
 library(shiny)
 library(robmed)
-library(vroom)
 library(DT)
 library(officer)
 library(flextable)
-library(kableExtra)
 
 
 # Define server logic required to draw a histogram
@@ -646,7 +644,7 @@ merged_flextable <- function(test1, test2) {
 #'
 export_table_MSWord.list <- function(test_model,
                                      orientation = c("landscape", "portrait"),
-                                     filename,
+                                     filename = NULL,
                                      ...) {
   doc <- officer::read_docx()
 
@@ -677,21 +675,28 @@ export_table_MSWord.list <- function(test_model,
       }
   }
 
-  print(doc, filename)
-  return(doc)
+
+  if (!is.null(filename)) {
+    print(doc, filename)
+  } else {
+    return(doc)
+  }
 }
 
 #'@export
 export_table_MSWord.test_mediation <- function(test_model,
                                                digits = 4,
-                                               filename,
+                                               filename = NULL,
                                                ...) {
   table <- to_flextable(test_model = test_model, digits = digits)
 
   doc <- read_docx()
   doc <- body_add_flextable(doc, table)
-  print(doc, filename)
-  return(doc)
+  if (!is.null(filename)) {
+    print(doc, filename)
+  } else {
+    return(doc)
+  }
 }
 
 # Function using xtable to create latex table
@@ -843,9 +848,13 @@ prep_data_table <- function(test_model, digits = 4) {
       indirectrows <- length(sm$x)
 
     } else if (length(sm$m) == 2) {
-      #Generate table for 2 serial mediators
+      # to generate table for 2 serial mediators
       directrows <- 3 * (1 + length(sm$x))
       indirectrows <- 3 * length(sm$x)
+    } else if (length(sm$m) == 3) {
+      # Table for 3 serial mediators
+      directrows <- 4 * length(sm$x) + 5
+      indirectrows <- (3 + 3 + 1) * length(sm$x)
     }
   } else {
     #Model is parallel
@@ -901,6 +910,7 @@ prep_data_table <- function(test_model, digits = 4) {
     row <- row + 1
   }
 
+
   pvals <- p_value(test_model, parm = "indirect")
 
   # changing number of columns from 4 to 5. Last column should contain pvals
@@ -912,24 +922,43 @@ prep_data_table <- function(test_model, digits = 4) {
   if (test_model$fit$model == "serial" ){
     row <- 1
     for (reg in sm$x) {
-      # Through only first or only second mediator
-
+      print(reg)
         # The effectname in this case is "reg -> med_1 -> ... -> med_n" with
-        # n for 1 up to 3. The order of mediators remains the same.
+        # n for 1 up to 3. The order of mediators remains the same but can skip
+        # a value.
 
-      for (num_mediators in c(1:length(sm$m))) {
-        effectname <- paste(reg, med[1:num_mediators], sep = "->")
+
+      indirect_effects <- list()
+
+      if (length(sm$m) >= 1) {
+        indirect_effects <- append(indirect_effects, list(1))
+      }
+      if (length(sm$m) >= 2) {
+        indirect_effects <- append(indirect_effects, list(c(2)))
+        indirect_effects <- append(indirect_effects, list(c(1:2)))
+      }
+      if (length(sm$m) == 3) {
+        indirect_effects <- append(indirect_effects, list(c(3)))
+        indirect_effects <- append(indirect_effects, list(c(1,3)))
+        indirect_effects <- append(indirect_effects, list(c(2:3)))
+        indirect_effects <- append(indirect_effects, list(c(1:3)))
+      }
+
+
+      for (effect in indirect_effects) {
+        effectname <- paste(reg, paste0(sm$m[effect], collapse = "->"), sep = "->")
 
         if (length(sm$x) == 1) {
-          effectname <- gsub(pattern = paste0(reg,"-> "),
+          effectname <- gsub(pattern = paste0(reg,"->"),
                              replacement = "",
                              x = effectname)
         }
 
+        x <<- effectname
         df_ind[row,1] <- paste(effectname, '(Indirect)')
 
         if (length(sm$m) > 1) {
-          # TODO Add case of three mediators. This code is for only two.
+            # TODO Add case of three mediators. This code is for only two.
 
             df_ind[row, 2] <- test_model$indirect[effectname][[1]]
 
@@ -939,15 +968,19 @@ prep_data_table <- function(test_model, digits = 4) {
         } else {
           df_ind[row,2] <- test_model$indirect[reg][[1]]
 
+
           lower <- round(test_model$ci[1], digits)
           upper <- round(test_model$ci[2], digits)
         }
-      }
+
         df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
         # TODO: add p-value in col 4
         print(paste("row", row, "completed"))
--
+        df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = "_")][[1]]
+
+
         row <- row + 1
+      }
     }
 
   } else {
@@ -991,7 +1024,7 @@ prep_data_table <- function(test_model, digits = 4) {
 
           }
         }
-        df_ind[row, 3] <- paste("(", lower, ",", upper,")", sep = "")
+        df_ind[row, 3] <- paste("(", lower, ", ", upper,")", sep = "")
         row <- row + 1
       }
     }
