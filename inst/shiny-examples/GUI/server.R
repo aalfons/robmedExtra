@@ -910,13 +910,27 @@ prep_data_table <- function(test_model, digits = 4) {
 
   # Add c' path (Total effect)
   for (reg in sm$x) {
-    df_dir[row, 1] <- paste(reg, '->', sm$y,
+    df_dir[row, 1] <- paste(reg, "->", sm$y,
                             paste0("(c'", row - c_paths + 1, ")"))
     df_dir[row, 2:5] <- sm$total[reg, 2:5]
     row <- row + 1
   }
 
   # TODO: add d-path
+  if (test_model$fit$model == "serial" && length(sm$m) > 1) {
+    d_paths <- names(test_model$d)
+
+    if (length(sm$m) == 2) {
+    df_dir[row, 1] <- d_paths
+    df_dir[row, 2] <- test_model$d
+    } else if (length(sm$m) == 3) {
+      d_paths <- names(test_model$d)
+
+      df_dir[row:(row + 2), 1] <-  d_paths
+      df_dir[row:(row + 2), 2] <- as.numeric(test_model$d)
+
+    }
+  }
 
 
   pvals <- p_value(test_model, parm = "indirect")
