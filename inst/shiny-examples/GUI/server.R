@@ -152,15 +152,18 @@ shinyServer(function(input, output, session) {
         vals$script <- c(vals$script, as.character(as.expression(command_seed)))
       }
 
+      command_complete <- call("<-", as.name("robust_boot"), command_robust_test)
+      command_control_complete <- call("<-",
+                                       as.name("ctrl"),
+                                       command_control)
+
       vals$script <- c(vals$script,
-                       paste("ctrl <-",
-                             as.character(as.expression(command_control))),
-                       paste("robust_boot <-",
-                       as.character(as.expression(command_robust_test))),
+                       as.character(as.expression(command_control_complete)),
+                       as.character(as.expression(command_complete)),
                        "summary(robust_boot)")
 
-      assign("ctrl", eval(command_control))
-      eval(command_robust_test)
+      eval(command_control_complete)
+      eval(command_complete)
       })
 
       ols_bootstrap_test <- eventReactive(input$runOLS, {
@@ -208,15 +211,16 @@ shinyServer(function(input, output, session) {
          if (!is.na(input$seedOLS)) {
            eval(command_seed)
            vals$script <- c(vals$script,
-                            as.character(as.expression(command_seed)))         }
+                            as.character(as.expression(command_seed)))
+         }
+
+         command_complete <- call("<-", as.name("ols_boot"), command_ols_test)
 
          vals$script <- c(vals$script,
-                          paste("ols_boot <-",
-                                as.character(as.expression(command_ols_test))),
+                                as.character(as.expression(command_complete)),
                           "summary(ols_boot)")
 
-
-         eval(command_ols_test)
+         eval(command_complete)
        })
 
       # Renders plot of expected vs empirical weights
@@ -864,7 +868,7 @@ to_flextable.list <- function(test_model, digits, merged = F, ...) {
 # as the 3rd and 4th column will be later merged to create the column for
 # the Confidence Interval
 
-prep_data_table <- function(test_model, digits = 4) {
+prep_data_table <- function(test_model, digits = 4, p_values = T) {
   sm <- summary(test_model)$summary
 
   if (test_model$fit$model == "serial") {
@@ -935,7 +939,6 @@ prep_data_table <- function(test_model, digits = 4) {
     row <- row + 1
   }
 
-  # TODO: add d-path
   if (test_model$fit$model == "serial" && length(sm$m) > 1) {
 
     if (length(sm$m) == 2) {
@@ -960,9 +963,9 @@ prep_data_table <- function(test_model, digits = 4) {
     }
   }
 
-
-  pvals <- p_value(test_model, parm = "indirect")
-
+  if (p_values) {
+    pvals <- p_value(test_model, parm = "indirect")
+  }
   # changing number of columns from 4 to 5. Last column should contain p-vals
   # 4th column should be empty
 
