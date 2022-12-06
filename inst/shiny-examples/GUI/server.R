@@ -12,6 +12,7 @@ library(robmed)
 library(DT)
 library(officer)
 library(flextable)
+library(xtable)
 
 
 # Define server logic required to draw a histogram
@@ -709,11 +710,29 @@ export_table_MSWord.test_mediation <- function(test_model,
 to_latex <- function(test_model, digits = 4) {
   table <- to_flextable(test_model = test_model, digits = digits)
   dataset <- table$body$data
+  indirect_start <- which(dataset[,1] == "Indirect Effects")
 
-  full_table <- xtable(dataset, align = "cccccc")
-  print.xtable(full_table, booktabs = T, hline.after = (-1:nrow(dataset)),
-               include.rownames = F)
 
+  full_table <- xtable(dataset, align = "llcccc")
+  final_table_character <- print(full_table, booktabs = T, hline.after = (-1:nrow(dataset)),
+        include.rownames = F, type = "latex")
+
+  final_table_character <- gsub(pattern = "(\\(-[^)]*\\))",
+                                replacement = paste0("\\\\multicolumn{2}{c}{",
+                                                     "\\1", "}"),
+                                x = final_table_character)
+
+  final_table_character <- gsub(pattern = "(Confidence Interval &  )",
+                                replacement = "\\\\multicolumn{2}{c}{Confidence Interval}",
+                                x = final_table_character)
+
+  final_table_character <- gsub(pattern = "&  &",
+                                replacement = "&",
+                                x = final_table_character)
+
+
+
+  cat(final_table_character, sep = "\n")
 }
 
 # Works kind of but not so nice
