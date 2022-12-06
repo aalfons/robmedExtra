@@ -937,17 +937,26 @@ prep_data_table <- function(test_model, digits = 4) {
 
   # TODO: add d-path
   if (test_model$fit$model == "serial" && length(sm$m) > 1) {
-    d_paths <- names(test_model$d)
 
     if (length(sm$m) == 2) {
-    df_dir[row, 1] <- d_paths
-    df_dir[row, 2] <- test_model$d
+    df_dir[row, 1] <- paste(paste(sm$m, collapse = "->"), "(d)")
+    df_dir[row, 2:5] <- as.numeric(sm$fit_mx[sm$m[2]][[1]]$coefficients[sm$m[1],2:5])
+    row <- row + 1
+
     } else if (length(sm$m) == 3) {
       d_paths <- names(test_model$d)
 
-      df_dir[row:(row + 2), 1] <-  d_paths
-      df_dir[row:(row + 2), 2] <- as.numeric(test_model$d)
+      for (path in d_paths) {
+        meds <- strsplit(path, split = "->")[[1]]
+        med1 <- meds[1]
+        med2 <- meds[2]
 
+        coefs <- sm$fit_mx[med2][[1]]$coefficients[med1, 2:5]
+        df_dir[row, 1] <- paste(path, "(d)")
+        df_dir[row, 2:5] <- as.numeric(coefs)
+        row <- row + 1
+
+      }
     }
   }
 
@@ -1014,7 +1023,6 @@ prep_data_table <- function(test_model, digits = 4) {
         }
 
         df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
-        # TODO: add p-value in col 4
         df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = "_")][[1]]
 
 
