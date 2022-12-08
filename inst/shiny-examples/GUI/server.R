@@ -439,7 +439,7 @@ shinyServer(function(input, output, session) {
         paste(Sys.Date(), df_name(), "table.docx", sep = "_")
       },
       content = function(file) {
-        showModal(modalDialog("Loading", footer=NULL))
+        showModal(modalDialog("Loading table", footer=NULL))
         on.exit(removeModal())
 
         tabledoc <- export_table_MSWord(robust_bootstrap_test())
@@ -456,7 +456,7 @@ shinyServer(function(input, output, session) {
         paste(Sys.Date(), df_name(), "table.docx", sep = "_")
       },
       content = function(file) {
-        showModal(modalDialog("Loading", footer=NULL))
+        showModal(modalDialog("Loading table", footer=NULL))
         on.exit(removeModal())
 
         tabledoc <- export_table_MSWord(ols_bootstrap_test())
@@ -828,6 +828,30 @@ to_flextable.test_mediation <- function(test_model, digits = 4) {
   ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
                        colwidths = c(5))
   ft <- hline(ft, border = NULL, part = "body")
+
+  for (row in c(1:(start_merge - 1))) {
+    orig_text <- df_stacked[row,1]
+    text_list <- strsplit(orig_text, " ")[[1]]
+
+    effect <- paste(text_list[1:3], collapse = " ")
+    letter_number <- strsplit(gsub("[()]", "", text_list[4]), "")[[1]]
+    if (letter_number[2] == "'") {
+      letter = paste0(letter_number[1:2], collapse = "")
+      number = paste0(letter_number[3:length(letter_number)], collapse = "")
+    } else {
+      letter = letter_number[1]
+      number = paste0(letter_number[2:length(letter_number)], collapse = "")
+    }
+
+
+
+    new_text <- as_paragraph(as_chunk(effect), as_chunk(" ("),
+                             as_chunk(letter),
+                             as_sub(number),
+                             as_chunk(")"))
+
+    ft <- flextable::compose(ft, i = row, j = 1, value = new_text)
+  }
 
   ft <- autofit(ft)
 
