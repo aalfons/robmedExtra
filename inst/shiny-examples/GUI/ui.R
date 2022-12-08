@@ -54,6 +54,55 @@ shinyUI(fluidPage(
                ),
                mainPanel(
 
+                 h2("Simple mediation model"),
+                 p("The mediation model in its simplest form looks as follows"),
+                 img(src = "mediation-simple.png", height = 120, width = 255),
+
+                 h2("Parallel multiple mediator model"),
+                 p("The simple mediation model can be extended with multiple
+                 parallel mediators. In the parallel multiple mediator model,
+                 an independent variable X is hypothesized to influence a
+                 dependent variable Y through multiple mediators M1, ..., Mk,
+                 while the mediator variables do not influence each other. "),
+                 img(src = "mediation-parallel.png", height = 140, width = 255),
+
+                 h2("Serial multiple mediator model"),
+                 p("This differs from the parallel multiple mediator model in
+                  that it allows the hypothesized mediators to influence each other
+                    in a sequential manner."),
+                 img(src = "mediation-serial.png", height = 140, width = 255),
+
+
+                 h2("Multiple independent variables"),
+                 p("All the above models can extended by allowing multiple
+                   independent variables."),
+                 img(src = "mediation-multiple.png", height = 140, width = 255),
+
+                 h2("Control variables"),
+                 p("To isolate the effects of the independent variables of
+                   interest from other factors, control variables can be added
+                   to all regression equations of a mediation model. Note that
+                   that there is no intrinsic difference between independent
+                   variables of interest and control variables in terms of the
+                   model or its estimation. The difference is purely conceptual
+                   in nature: for the control variables, the estimates of the
+                   direct and indirect paths are not of particular interest to
+                   the researcher. Control variables can therefore be specified
+                   separately from the independent variables of interest.
+                   Only for the latter, results for the indirect effects
+                   are included in the output.")
+
+
+
+
+
+
+
+
+
+
+
+
                )
              )
             ),
