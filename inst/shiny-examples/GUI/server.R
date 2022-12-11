@@ -555,12 +555,25 @@ shinyServer(function(input, output, session) {
 
     })
 
+    output$button_latex_robust <- renderUI({
+      if (isTruthy(robust_bootstrap_test())) {
+        actionButton("copy_latex_robust","Copy ROBMED table")
+
+      }
+    })
 
     observe({
       if (isTruthy(robust_bootstrap_test()) || isTruthy(ols_bootstrap_test())) {
-        output$text_latex <- renderPrint(to_latex(robust_bootstrap_test()))
+        output$text_latex_robust <- renderPrint(to_latex(robust_bootstrap_test()))
       }
     })
+
+    observeEvent(input$copy_latex_robust, {
+      content = to_latex(robust_bootstrap_test())
+      clipr::write_clip(content = content)
+
+    })
+
 
 #' Export result table to Word
 #'
@@ -741,6 +754,7 @@ to_latex <- function(test_model, digits = 4) {
                                 x = final_table_character)
 
   cat(final_table_character, sep = "\n")
+  return(final_table_character)
 }
 
 # Works kind of but not so nice
