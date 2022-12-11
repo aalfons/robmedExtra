@@ -556,6 +556,12 @@ shinyServer(function(input, output, session) {
     })
 
 
+    observe({
+      if (isTruthy(robust_bootstrap_test()) || isTruthy(ols_bootstrap_test())) {
+        output$text_latex <- renderPrint(to_latex(robust_bootstrap_test()))
+      }
+    })
+
 #' Export result table to Word
 #'
 #' Export the table containing results of mediation analysis to a Microsoft Word
@@ -716,10 +722,10 @@ to_latex <- function(test_model, digits = 4) {
   dataset <- table$body$data
   indirect_start <- which(dataset[,1] == "Indirect Effects")
 
-
   full_table <- xtable(dataset, align = "llcccc")
-  final_table_character <- print(full_table, booktabs = T, hline.after = (-1:nrow(dataset)),
-        include.rownames = F, type = "latex")
+  capture.output(final_table_character <- print(full_table, booktabs = T,
+                                 hline.after = (-1:nrow(dataset)),
+                                 include.rownames = F, type = "latex"))
 
   final_table_character <- gsub(pattern = "(\\(-[^)]*\\))",
                                 replacement = paste0("\\\\multicolumn{2}{c}{",
@@ -733,8 +739,6 @@ to_latex <- function(test_model, digits = 4) {
   final_table_character <- gsub(pattern = "&  &",
                                 replacement = "&",
                                 x = final_table_character)
-
-
 
   cat(final_table_character, sep = "\n")
 }
