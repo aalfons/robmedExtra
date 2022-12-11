@@ -558,21 +558,43 @@ shinyServer(function(input, output, session) {
     output$button_latex_robust <- renderUI({
       if (isTruthy(robust_bootstrap_test())) {
         actionButton("copy_latex_robust","Copy ROBMED table")
-
       }
     })
 
+    output$button_latex_ols <- renderUI({
+      if (isTruthy(ols_bootstrap_test())) {
+        actionButton("copy_latex_ols","Copy OLS table")
+      }
+    })
+
+    latex_ols <- reactive({
+      to_latex(ols_bootstrap_test())
+    })
+
+    latex_robust <- reactive({
+      to_latex(robust_bootstrap_test())
+    })
+
+
     observe({
-      if (isTruthy(robust_bootstrap_test()) || isTruthy(ols_bootstrap_test())) {
-        output$text_latex_robust <- renderPrint(to_latex(robust_bootstrap_test()))
+      if (isTruthy(robust_bootstrap_test())){
+        output$text_latex_robust <- renderPrint(latex_robust())
+      }
+
+      if (isTruthy(ols_bootstrap_test())) {
+        output$text_latex_ols <- renderPrint(latex_ols())
       }
     })
 
     observeEvent(input$copy_latex_robust, {
-      content = to_latex(robust_bootstrap_test())
-      clipr::write_clip(content = content)
+      clipr::write_clip(content = latex_robust())
+    })
+
+    observeEvent(input$copy_latex_ols, {
+      clipr::write_clip(content = latex_ols())
 
     })
+
 
 
 #' Export result table to Word

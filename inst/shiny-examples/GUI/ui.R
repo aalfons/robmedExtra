@@ -198,7 +198,9 @@ shinyUI(fluidPage(
                  uiOutput("downloadbuttonscript"),
                ),
                mainPanel(uiOutput("button_latex_robust"),
-                 verbatimTextOutput("text_latex_robust")
+                 verbatimTextOutput("text_latex_robust"),
+                 uiOutput("button_latex_ols"),
+                 verbatimTextOutput("text_latex_ols")
 
                )
              )
