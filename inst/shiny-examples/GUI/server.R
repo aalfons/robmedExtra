@@ -152,7 +152,7 @@ shinyServer(function(input, output, session) {
         vals$script <- c(vals$script, as.character(as.expression(command_seed)))
       }
 
-      command_complete <- call("<-", as.name("robust_boot"), command_robust_test)
+      command_complete <- call("<<-", as.name("robust_boot"), command_robust_test)
       command_control_complete <- call("<-",
                                        as.name("ctrl"),
                                        command_control)
@@ -214,7 +214,7 @@ shinyServer(function(input, output, session) {
                             as.character(as.expression(command_seed)))
          }
 
-         command_complete <- call("<-", as.name("ols_boot"), command_ols_test)
+         command_complete <- call("<<-", as.name("ols_boot"), command_ols_test)
 
          vals$script <- c(vals$script,
                                 as.character(as.expression(command_complete)),
@@ -246,22 +246,41 @@ shinyServer(function(input, output, session) {
           on.exit(removeModal())
 
           if (input$plot_format == "png") {
-            png(file, width = input$width_plot, height = input$height_plot,
-                units = input$plot_units, res = input$plot_resolution)
+            command_plot <- call("png",file = file, width = input$width_plot,
+                                 height = input$height_plot,
+                                 units = input$plot_units,
+                                 res = input$plot_resolution)
           } else if (input$plot_format == "pdf") {
             if (input$plot_units == "cm") {
               # Convert to inch for pdf
-              pdf(file, width = input$width_plot/2.54,
+              command_plot <- call("pdf",file = file, width = input$width_plot/2.54,
                   height = input$height_plot/2.54)
             } else if (input$plot_units == 'in') {
-              pdf(file, width = input$width_plot, height = input$height_plot)
+              command_plot <- call("pdf", file = file, width = input$width_plot,
+                                   height = input$height_plot)
             }
           }
-          print(create_plot())
+          command_plot1 <- call("summary", as.name("robust_boot"))
+          command_plot2 <- call("$", command_plot1, as.name("plot"))
+          command_assign_plot <- call("<-", as.name("diagnostic_plot"),
+                                      command_plot2)
+
+          command_print <- call("print", as.name("diagnostic_plot"))
+
+          vals$script <- c(vals$script,
+                           "",
+                           as.character(as.expression(command_plot)),
+                           as.character(as.expression(command_assign_plot)),
+                           as.character(as.expression(command_print)))
+
+          eval(command_plot)
+          eval(command_assign_plot)
+          eval(command_print)
           dev.off()
         },
         contentType = "image/png"
       )
+
 
     # Renders the summary text for ROBMED
     output$summary <- renderPrint({
@@ -521,19 +540,33 @@ shinyServer(function(input, output, session) {
 
         if (contains_robust) {
           if(isTruthy(input$runRobust)) {
-            mediation_list$robust <- robust_bootstrap_test()
+            mediation_list$robust <- as.name("robust_boot")
           }
         }
 
         if (contains_ols) {
           if(isTruthy(input$runOLS)) {
-            mediation_list$ols <- ols_bootstrap_test()
+            mediation_list$ols <- as.name("ols_boot")
           }
         }
 
-        document <- export_table_MSWord(mediation_list,
-                                        orientation = input$table_orientation)
-        print(document, file)
+        command_model_list <- call("<-", as.name("models"), mediation_list)
+        command_doc <- call("export_table_MSWord", test_model = as.name("models"),
+                            orientation = input$table_orientation)
+
+        assign_doc <- call("<-", as.name("document"), command_doc)
+        print_doc <- call("print", as.name("document"), file)
+
+        vals$script <- c(vals$script,
+                         "",
+                         "# Saving tables in Word doc",
+                         as.character(as.expression(command_model_list)),
+                         as.character(as.expression(assign_doc)),
+                         as.character(as.expression(print_doc)))
+
+        eval(command_model_list)
+        eval(assign_doc)
+        eval(print_doc)
       }
     )
 
@@ -727,7 +760,6 @@ export_table_MSWord.list <- function(test_model,
       }
   }
 
-
   if (!is.null(filename)) {
     print(doc, filename)
   } else {
@@ -883,8 +915,6 @@ to_flextable.test_mediation <- function(test_model, digits = 4) {
       number = paste0(letter_number[2:length(letter_number)], collapse = "")
     }
 
-
-
     new_text <- as_paragraph(as_chunk(effect), as_chunk(" ("),
                              as_chunk(letter),
                              as_sub(number),
@@ -898,11 +928,20 @@ to_flextable.test_mediation <- function(test_model, digits = 4) {
   return(ft)
 }
 
+to_flextable.name <- function(test_model, digits, ...) {
+  tryCatch({model <- get(x = test_model)},
+           error = function(cond) {
+             message(paste("No object with name", test_model))
+             return(NA)
+           }
+  )
+  return(to_flextable(model))
+}
+
 #' @export
 #' @method to_flextable list
 to_flextable.list <- function(test_model, digits, merged = F, ...) {
-  result = list()
-  count <-
+  result <- list()
   if(merged) {
     for (index in seq(1, ceiling((length(test_model) + 1)/2), 2)) {
       test_model_left <- test_model[[index]]
