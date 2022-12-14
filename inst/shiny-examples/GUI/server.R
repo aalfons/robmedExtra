@@ -896,6 +896,7 @@ to_flextable.test_mediation <- function(test_model, digits = 4) {
   # Changing cosmetics
   ft <- flextable::theme_booktabs(ft, bold_header = TRUE)
   ft <- flextable::align(ft, align = "center", part = "all")
+  ft <- flextable::align(ft, align = "left", j = 1, parts = "all")
   ft <- bold(ft, i = start_merge, bold = T)
   ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
                        colwidths = c(5))
