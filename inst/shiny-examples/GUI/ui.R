@@ -147,12 +147,11 @@ shinyUI(fluidPage(
                  h2("Random Number Generator"),
                  numericInput('seedOLS', label = 'Seed', value = NULL),
                  textInput(inputId = 'rng_version_ols', label = 'Version',
-                           value = as.character(getRversion()))
-
-
+                           value = as.character(getRversion())
+                           )
                ),
                mainPanel(
-                 verbatimTextOutput('CI'),
+                 verbatimTextOutput("CI"),
                  h3("Model and Test summary"),
                  verbatimTextOutput('summaryOLS')
                )
@@ -168,11 +167,12 @@ shinyUI(fluidPage(
                               choices = c("portrait", "landscape")),
                  downloadButton(outputId = "download_tables",
                                 label = "Download table(s)"),
-                 checkboxInput(inputId = "includ_pval",
-                               label = "Include p-values in table",
+                 checkboxInput(inputId = "include_pval",
+                               label = p("Include p-values in table",
+                                         span("(Computing p-values takes time)",
+                                              style = "color: 	#A0A0A0")),
                                value = TRUE),
-
-                 h2(" Diagnostic Plot"),
+                 h2("Diagnostic Plot"),
                  radioButtons(inputId = "plot_format",
                               label = 'File format',
                               choices = c("pdf", "png"), selected = "pdf"),

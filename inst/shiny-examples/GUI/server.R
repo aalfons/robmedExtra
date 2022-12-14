@@ -214,7 +214,7 @@ shinyServer(function(input, output, session) {
                             as.character(as.expression(command_seed)))
          }
 
-         command_complete <- call("<<-", as.name("ols_boot"), command_ols_test)
+         command_complete <- call("<-", as.name("ols_boot"), command_ols_test)
 
          vals$script <- c(vals$script,
                                 as.character(as.expression(command_complete)),
@@ -449,39 +449,9 @@ shinyServer(function(input, output, session) {
       }
     )
 
-    output$downloadbuttontableRobust <- renderUI({
-      downloadButton("downloadTableRobust", "Download Table ROBMED")
-    })
-
-    output$downloadTableRobust <- downloadHandler(
-      filename = function() {
-        paste(Sys.Date(), df_name(), "table.docx", sep = "_")
-      },
-      content = function(file) {
-        showModal(modalDialog("Loading table", footer=NULL))
-        on.exit(removeModal())
-
-        tabledoc <- export_table_MSWord(robust_bootstrap_test())
-        print(tabledoc, file)
-      }
-    )
-
     output$downloadbuttontableOLS <- renderUI({
       downloadButton("downloadTableOLS", "Download Table OLS")
     })
-
-    output$downloadTableOLS <- downloadHandler(
-      filename = function() {
-        paste(Sys.Date(), df_name(), "table.docx", sep = "_")
-      },
-      content = function(file) {
-        showModal(modalDialog("Loading table", footer=NULL))
-        on.exit(removeModal())
-
-        tabledoc <- export_table_MSWord(ols_bootstrap_test())
-        print(tabledoc, file)
-      }
-    )
 
     output$ui_model_type <- renderUI({
       if (length(input$Mediators) > 1) {
@@ -522,7 +492,8 @@ shinyServer(function(input, output, session) {
 
     output$download_tables <- downloadHandler(
       filename = function() {
-        paste0(Sys.Date(), "_", df_name(), "_", "table", "_",input$table_orientation, ".docx")
+        paste0(Sys.Date(), "_", df_name(), "_", "table", "_",
+               input$table_orientation, ".docx")
       },
       content = function(file) {
         showModal(modalDialog("Loading", footer = NULL))
@@ -551,8 +522,10 @@ shinyServer(function(input, output, session) {
         }
 
         command_model_list <- call("<-", as.name("models"), mediation_list)
-        command_doc <- call("export_table_MSWord", test_model = as.name("models"),
-                            orientation = input$table_orientation)
+        command_doc <- call("export_table_MSWord",
+                            test_model = as.name("models"),
+                            orientation = input$table_orientation,
+                            p_values = as.logical(input$include_pval))
 
         assign_doc <- call("<-", as.name("document"), command_doc)
         print_doc <- call("print", as.name("document"), file)
@@ -672,6 +645,23 @@ export_table_MSWord <- function(test_model, ...) {
   UseMethod("export_table_MSWord")
 }
 
+export_table_MSWord.name <- function(test_model, digits = 4,
+                                     orientation = c("landscape", "portrait"),
+                                     filename = NULL, p_values = T,
+                                     ...) {
+  print("export msword.name")
+  tryCatch({model <- get(x = test_model)},
+           error = function(cond) {
+             message(paste("No object with name", test_model))
+             return(NA)
+           }
+  )
+  return(export_table_MSWord(model, digits = digits, orientation = orientation,
+                             filename = filename, p_values = p_values))
+
+
+}
+
 # Takes two flextables and merges them into 1, expanding over columns
 merged_flextable <- function(test1, test2) {
   ft1 <- to_flextable(test1)
@@ -727,15 +717,15 @@ merged_flextable <- function(test1, test2) {
 
 #' @export
 #'
-export_table_MSWord.list <- function(test_model,
+export_table_MSWord.list <- function(test_model, digits = 4,
                                      orientation = c("landscape", "portrait"),
-                                     filename = NULL,
+                                     filename = NULL, p_values = TRUE,
                                      ...) {
   doc <- officer::read_docx()
 
   if (orientation == "landscape") {
     tables <- to_flextable(test_model = test_model, digits = digits,
-                            merged = TRUE)
+                            merged = TRUE, p_values = p_values)
     doc <- officer::body_end_section_landscape(doc)
 
     for(table in tables) {
@@ -746,7 +736,7 @@ export_table_MSWord.list <- function(test_model,
   } else if (orientation == "portrait") {
       count_page <- 0
       tables <- to_flextable(test_model = test_model, digits = digits,
-                              merged = FALSE)
+                              merged = FALSE, p_values = p_values)
 
       for (table in tables) {
         doc <- flextable::body_add_flextable(doc, table)
@@ -768,14 +758,15 @@ export_table_MSWord.list <- function(test_model,
 }
 
 #'@export
-export_table_MSWord.test_mediation <- function(test_model,
-                                               digits = 4,
-                                               filename = NULL,
+export_table_MSWord.test_mediation <- function(test_model, digits = 4,
+                                               filename = NULL, p_values = T,
                                                ...) {
-  table <- to_flextable(test_model = test_model, digits = digits)
+  table <- to_flextable(test_model = test_model, digits = digits,
+                        p_values = p_values)
 
   doc <- read_docx()
   doc <- body_add_flextable(doc, table)
+
   if (!is.null(filename)) {
     print(doc, filename)
   } else {
@@ -879,24 +870,31 @@ to_flextable <- function(test_model, ...) {
 #' @export
 #' @method to_flextable test_mediation
 
-to_flextable.test_mediation <- function(test_model, digits = 4) {
+to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
+  print(paste(p_values, "flextable"))
 
-  df_stacked <- prep_data_table(test_model = test_model, digits = digits)
+
+  df_stacked <- prep_data_table(test_model = test_model, digits = digits,
+                                p_values = p_values)
   ft <- flextable(df_stacked)
   start_merge <- which(df_stacked[,1] == "Indirect Effects")
 
   # Merge the third and fourth column for the indirect effects to create one
   # column for the confidence interval
   indirect_range <- c(start_merge: (nrow(df_stacked)))
-
+  if (p_values) {
+    merge_range <- c(3:4)
+  } else {
+    merge_range <- c(3:5)
+  }
   for (index in indirect_range) {
-    ft <- merge_at(ft, i = index, j = 3:4)
+    ft <- merge_at(ft, i = index, j = merge_range)
   }
 
   # Changing cosmetics
   ft <- flextable::theme_booktabs(ft, bold_header = TRUE)
   ft <- flextable::align(ft, align = "center", part = "all")
-  ft <- flextable::align(ft, align = "left", j = 1, parts = "all")
+  ft <- flextable::align(ft, align = "left", j = 1, part = "all")
   ft <- bold(ft, i = start_merge, bold = T)
   ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
                        colwidths = c(5))
@@ -929,19 +927,21 @@ to_flextable.test_mediation <- function(test_model, digits = 4) {
   return(ft)
 }
 
-to_flextable.name <- function(test_model, digits, ...) {
+to_flextable.name <- function(test_model, digits = 4,
+                              p_values = T, ...) {
   tryCatch({model <- get(x = test_model)},
            error = function(cond) {
              message(paste("No object with name", test_model))
              return(NA)
            }
   )
-  return(to_flextable(model))
+  return(to_flextable(model, digits = digits, p_values = p_values))
 }
 
 #' @export
 #' @method to_flextable list
-to_flextable.list <- function(test_model, digits, merged = F, ...) {
+to_flextable.list <- function(test_model, digits = 4, merged = F,
+                              p_values = TRUE, ...) {
   result <- list()
   if(merged) {
     for (index in seq(1, ceiling((length(test_model) + 1)/2), 2)) {
@@ -953,13 +953,15 @@ to_flextable.list <- function(test_model, digits, merged = F, ...) {
     }
 
     if (length(test_model) %% 2 == 1) {
-      ft <- to_flextable(test_model[[length(test_model)]])
+      ft <- to_flextable(test_model[[length(test_model)]], p_values = p_values)
       result <- append(result, list(ft))
     }
 
   } else {
+    # Seperate tables for each method
+    print(p_values)
     for(test in test_model) {
-      ft <- to_flextable(test)
+      ft <- to_flextable(test, digits = digits, p_values = p_values)
       result <- append(result, list(ft))
     }
   }
@@ -1130,7 +1132,10 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
         }
 
         df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
-        df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = "_")][[1]]
+
+        if (p_values) {
+          df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = "_")][[1]]
+        }
 
 
         row <- row + 1
@@ -1167,15 +1172,19 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
             lower <- round(test_model$ci[reg, 1], digits)
             upper <- round(test_model$ci[reg, 2], digits)
             df_ind[row,2] <- test_model$indirect[reg][[1]]
-            df_ind[row, 4] <- pvals[paste("Indirect", reg, sep = "_")][[1]]
 
+            if (p_values) {
+              df_ind[row, 4] <- pvals[paste("Indirect", reg, sep = "_")][[1]]
+            }
           } else {
             # only 1 indirect effect
             df_ind[row,2] <- test_model$indirect
             lower <- round(test_model$ci[1], digits)
             upper <- round(test_model$ci[2], digits)
-            df_ind[row, 4] <- pvals["Indirect"][[1]]
 
+            if (p_values) {
+              df_ind[row, 4] <- pvals["Indirect"][[1]]
+            }
           }
         }
         df_ind[row, 3] <- paste("(", lower, ", ", upper,")", sep = "")
