@@ -251,10 +251,13 @@ shinyServer(function(input, output, session) {
                                  units = input$plot_units,
                                  res = input$plot_resolution)
           } else if (input$plot_format == "pdf") {
+
             if (input$plot_units == "cm") {
+
               # Convert to inch for pdf
-              command_plot <- call("pdf",file = file, width = input$width_plot/2.54,
-                  height = input$height_plot/2.54)
+              command_plot <- call("pdf",file = file,
+                                   width = input$width_plot/2.54,
+                                   height = input$height_plot/2.54)
             } else if (input$plot_units == 'in') {
               command_plot <- call("pdf", file = file, width = input$width_plot,
                                    height = input$height_plot)
@@ -322,6 +325,7 @@ shinyServer(function(input, output, session) {
 
     observe({
       isolate(selectedInput <- input$Response)
+
       updateSelectInput(session, inputId = "Response",
                         choices = setdiff(colnames(numeric_data()),
                                           c(input$Explanatory,
@@ -480,7 +484,6 @@ shinyServer(function(input, output, session) {
       actionButton('runOLS', 'Run')
     })
 
-
     observeEvent(input$plot_units, {
       # Set reasonable values depending on inch or cm
       if (input$plot_units == "in") {
@@ -593,7 +596,6 @@ shinyServer(function(input, output, session) {
       to_latex(robust_bootstrap_test())
     })
 
-
     observe({
       if (isTruthy(robust_bootstrap_test())){
         output$text_latex_robust <- renderPrint(latex_robust())
@@ -604,16 +606,14 @@ shinyServer(function(input, output, session) {
       }
     })
 
+
     observeEvent(input$copy_latex_robust, {
       clipr::write_clip(content = latex_robust())
     })
 
     observeEvent(input$copy_latex_ols, {
       clipr::write_clip(content = latex_ols())
-
     })
-
-
 
 #' Export result table to Word
 #'
@@ -638,7 +638,6 @@ shinyServer(function(input, output, session) {
 #'
 #'
 #' @author Vincent Drenth
-#'
 #'
 #' @examples
 #' data("BSG2014")
@@ -674,27 +673,42 @@ export_table_MSWord.name <- function(test_model, digits = 4,
 
 }
 
-# Takes two flextables and merges them into 1, expanding over columns
-merged_flextable <- function(test1, test2) {
-  ft1 <- to_flextable(test1)
-  ft2 <- to_flextable(test2)
+# Takes two test objects and merges them into 1 flextable, expanding over columns
+merged_flextable <- function(test1, test2, digits = 4, p_values = T) {
+  data1 <- prep_data_table(test1, digits = digits, p_values = p_values)
+  data2 <- prep_data_table(test2, digits = digits, p_values = p_values)
 
-  merged_df <- data.frame(ft1$body$dataset, ft2$body$dataset[,-1],
+  df1 <- data1[[1]]
+  df2 <- data2[[1]]
+  hline_paths <- data1[[2]] - 1
+
+  merged_df <- data.frame(df1, df2[,-1],
                           check.names = FALSE)
 
-  # Work around to prevent duplicate col keys
+  # Work around to prevent duplicate col keys which is not normally allowed
   for(i in c(6:9)) {
     colnames(merged_df)[i] <- paste0(colnames(merged_df)[i], "\r")
   }
-  merged_ft <- flextable(merged_df)
+
 
   start_merge <- which(merged_df[,1] == "Indirect Effects")
 
-  indirect_range <- c(start_merge : nrow(ft1$body$dataset))
+  indirect_range <- c(start_merge : nrow(df1))
+
+  if (p_values) {
+    j_range_left <- c(3:4)
+    j_range_right <- c(7:8)
+  } else {
+    j_range_left <- c(3:5)
+    j_range_right <- c(7:9)
+    merged_df[start_merge, c(5, 9)] <- ""
+  }
+
+  merged_ft <- flextable(merged_df)
 
   for (index in indirect_range) {
-    merged_ft <- merge_at(merged_ft, i = index, j = 3:4)
-    merged_ft <- merge_at(merged_ft, i = index, j = 7:8)
+    merged_ft <- merge_at(merged_ft, i = index, j = j_range_left)
+    merged_ft <- merge_at(merged_ft, i = index, j = j_range_right)
   }
 
   merged_ft <- autofit(merged_ft)
@@ -710,11 +724,11 @@ merged_flextable <- function(test1, test2) {
                                          get_method_robmed(test2)),
                        colwidths = c(1,4,4))
 
-  footer_text_left <- paste('Sample size = ', nrow(test1$fit$data),
+  footer_text_left <- paste('Sample size = ', nrow(df1),
                        '. Number of bootstrap samples = ', test1$R , ".\n",
                        "†p < .1. *p < .05. **p < .01. ***p < .001.")
 
-  footer_text_right <- paste('Sample size = ', nrow(test2$fit$data),
+  footer_text_right <- paste('Sample size = ', nrow(df2),
                             '. Number of bootstrap samples = ', test2$R , ".\n",
                             "†p < .1. *p < .05. **p < .01. ***p < .001.")
 
@@ -723,6 +737,8 @@ merged_flextable <- function(test1, test2) {
                               colwidths = c(4, 5))
 
   merged_ft <- hline(merged_ft, border = NULL, part = "body")
+  merged_ft <- flextable::align(merged_ft, part = "body", align = "center")
+  merged_ft <- flextable::align(merged_ft,i = 1, part = "body", align = "left")
 
   return(merged_ft)
 }
@@ -811,9 +827,15 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4,
 #' @importFrom xtable xtable print.xtable
 #'
 #' @export
-to_latex <- function(test_model, digits = 4) {
-  table <- to_flextable(test_model = test_model, digits = digits)
-  dataset <- table$body$data
+to_latex <- function(test_model, digits = 4, data = NULL, ...) {
+
+  if(is.null(data)) {
+    table <- to_flextable(test_model = test_model, digits = digits)
+    dataset <- table$body$data
+  } else {
+    dataset <- data
+  }
+
   indirect_start <- which(dataset[,1] == "Indirect Effects")
 
   full_table <- xtable(dataset, align = "llcccc")
@@ -912,7 +934,7 @@ to_flextable <- function(test_model, ...) {
 
 to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
 
-  tables_paths <<- prep_data_table(test_model = test_model, digits = digits,
+  tables_paths <- prep_data_table(test_model = test_model, digits = digits,
                                   p_values = p_values)
 
   df_stacked <- tables_paths[[1]]
@@ -920,7 +942,6 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
 
   start_merge <- which(df_stacked[,1] == "Indirect Effects")
   path_values <- c(tables_paths[[2]] - 1, start_merge, start_merge - 1)
-
 
   # Merge the third and fourth column for the indirect effects to create one
   # column for the confidence interval
@@ -940,8 +961,8 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
   ft <- flextable::theme_booktabs(ft, bold_header = TRUE)
   ft <- flextable::align(ft, align = "center", part = "all")
   ft <- flextable::align(ft, align = "left", j = 1, part = "all")
-  ft <- bold(ft, i = start_merge, bold = T)
-  ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
+  ft <- flextable::bold(ft, i = start_merge, bold = T)
+  ft <- flextable::add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
                        colwidths = c(5))
   ft <- hline(ft, i = path_values, border = NULL, part = "body")
 
@@ -972,6 +993,7 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
   return(ft)
 }
 
+# Helper function used for shiny
 to_flextable.name <- function(test_model, digits = 4,
                               p_values = T, ...) {
   tryCatch({model <- get(x = test_model)},
