@@ -652,7 +652,7 @@ shinyServer(function(input, output, session) {
 #' print(table, target = "filename.docx")
 #'
 #' @export
-
+#'
 export_table_MSWord <- function(test_model, ...) {
   UseMethod("export_table_MSWord")
 }
@@ -786,7 +786,31 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4,
   }
 }
 
-# Function using xtable to create latex table
+#' Generate LaTeX code for table
+#'
+#' Generates LaTeX code that displays a table containing results of mediation
+#' analyis.
+#'
+#' @param test_model an object inheriting from class
+#' \code{"\link{test_mediation}"} or a list of objects of that class.
+#' @param digits a positive integer, which determines the number of decimals
+#' that should be displayed in the table. The default is to display 4 decimals.
+#'
+#' @return A character object containing the latex code that produces a table of
+#' the results of the test_mediation object.
+#'
+#' @example
+#' data("BSG2014")
+#'
+#' boot_robust <- test_mediation(TeamCommitment ~
+#'                                 m(TaskConflict) +
+#'                                   ValueDiversity,
+#'                               data = BSG2014)
+#' to_latex(boot_robust)
+#'
+#' @importFrom xtable xtable print.xtable
+#'
+#' @export
 to_latex <- function(test_model, digits = 4) {
   table <- to_flextable(test_model = test_model, digits = digits)
   dataset <- table$body$data
@@ -845,10 +869,14 @@ merge_vertical_xtable <- function(table1, table2) {
 #' seperate. Only used when test_model
 #' is a list.
 #'
+#' @param p_values boolean that indicates whether the p-values for indirect
+#' effects should be included in the flextable or not.
+#' Default is to include the p-values
+#'
 #' @return An object of class \code{"\link{flextable}"} or a list of objects of
 #' this class.
 #'
-#' @importFrom flextable theme_booktabs algin bold add_header_row autofit
+#' @importFrom flextable theme_booktabs align bold add_header_row autofit
 #' merge_at flextable add_footer_row hline
 #'
 #' @author Vincent Drenth
@@ -884,19 +912,26 @@ to_flextable <- function(test_model, ...) {
 
 to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
 
-  df_stacked <- prep_data_table(test_model = test_model, digits = digits,
-                                p_values = p_values)
+  tables_paths <<- prep_data_table(test_model = test_model, digits = digits,
+                                  p_values = p_values)
+
+  df_stacked <- tables_paths[[1]]
   ft <- flextable(df_stacked)
+
   start_merge <- which(df_stacked[,1] == "Indirect Effects")
+  path_values <- c(tables_paths[[2]] - 1, start_merge, start_merge - 1)
+
 
   # Merge the third and fourth column for the indirect effects to create one
   # column for the confidence interval
-  indirect_range <- c(start_merge: (nrow(df_stacked)))
+  indirect_range <- c(start_merge:(nrow(df_stacked)))
+
   if (p_values) {
     merge_range <- c(3:4)
   } else {
     merge_range <- c(3:5)
   }
+
   for (index in indirect_range) {
     ft <- merge_at(ft, i = index, j = merge_range)
   }
@@ -908,7 +943,7 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
   ft <- bold(ft, i = start_merge, bold = T)
   ft <- add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
                        colwidths = c(5))
-  ft <- hline(ft, border = NULL, part = "body")
+  ft <- hline(ft, i = path_values, border = NULL, part = "body")
 
   for (row in c(1:(start_merge - 1))) {
     orig_text <- df_stacked[row,1]
@@ -1144,7 +1179,6 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
           df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = "_")][[1]]
         }
 
-
         row <- row + 1
       }
     }
@@ -1229,7 +1263,7 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
   df_stacked <- rbind(df_dir_merge, df_ind_merge)
   colnames(df_stacked) <- c("Direct Effects", "Estimate", "Std. Error",
                             "z statistic", "p-value")
-  return(df_stacked)
+  return(list(df_stacked, c(a_paths, b_paths, c_paths)))
 }
 
 
