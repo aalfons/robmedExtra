@@ -294,6 +294,10 @@ shinyServer(function(input, output, session) {
       summary(robust_boot_simple)
     })
 
+
+    # Below observers are used to exclude any already chosen variables from the
+    # displayed options
+
     observe({
       isolate(selectedInput <- input$Explanatory)
       updateSelectInput(session, inputId = "Explanatory",
@@ -345,6 +349,7 @@ shinyServer(function(input, output, session) {
     })
 
     output$selectMediator <- renderUI({
+      # Mediator only allows for numeric values
       choices <- colnames(numeric_data())
       selectInput(inputId="Mediators",
                   label= p("Mediator(s)",
@@ -353,6 +358,7 @@ shinyServer(function(input, output, session) {
     })
 
     output$selectResponse <- renderUI({
+      # Response only allows for numeric values
       choices <- colnames(numeric_data())
       selectInput(inputId="Response",
                   label = p("Dependent variable",
@@ -417,6 +423,8 @@ shinyServer(function(input, output, session) {
       downloadButton("downloadScript", "Generate R script")
     })
 
+    # Two below observers are used to maintain equal confidence level for both
+    # OLS and ROBMED tabs
     observeEvent(input$ConfidenceOLS, {
       updateSliderInput(session, "ConfidenceROBMED",
                         value = input$ConfidenceOLS)
@@ -427,6 +435,8 @@ shinyServer(function(input, output, session) {
                         value = input$ConfidenceROBMED)
     })
 
+    # Two below observers are used to maintain equal seeds for both OLS and
+    # ROBMED tabs
     observe({
       updateNumericInput(session, "seedOLS", value = input$seedROBMED)
       })
@@ -472,6 +482,7 @@ shinyServer(function(input, output, session) {
 
 
     observeEvent(input$plot_units, {
+      # Set reasonable values depending on inch or cm
       if (input$plot_units == "in") {
         min_val <- 1
         max_val <- 40
@@ -543,6 +554,7 @@ shinyServer(function(input, output, session) {
       }
     )
 
+    #UI to select which models to include in the table
     output$ui_checkbox_table <- renderUI({
       if (isTruthy(robust_bootstrap_test()) && isTruthy(ols_bootstrap_test())) {
         checkboxGroupInput(inputId = "models_tables",
@@ -871,8 +883,6 @@ to_flextable <- function(test_model, ...) {
 #' @method to_flextable test_mediation
 
 to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
-  print(paste(p_values, "flextable"))
-
 
   df_stacked <- prep_data_table(test_model = test_model, digits = digits,
                                 p_values = p_values)
@@ -959,7 +969,6 @@ to_flextable.list <- function(test_model, digits = 4, merged = F,
 
   } else {
     # Seperate tables for each method
-    print(p_values)
     for(test in test_model) {
       ft <- to_flextable(test, digits = digits, p_values = p_values)
       result <- append(result, list(ft))
@@ -1064,7 +1073,6 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
         df_dir[row, 1] <- paste(path, "(d)")
         df_dir[row, 2:5] <- as.numeric(coefs)
         row <- row + 1
-
       }
     }
   }
@@ -1102,7 +1110,6 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
         indirect_effects <- append(indirect_effects, list(c(1:3)))
       }
 
-
       for (effect in indirect_effects) {
         effectname <- paste(reg, paste0(sm$m[effect], collapse = "->"), sep = "->")
 
@@ -1131,7 +1138,7 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
           upper <- round(test_model$ci[2], digits)
         }
 
-        df_ind[row, 3] <- paste('(', lower, ',',upper,')', sep = '')
+        df_ind[row, 3] <- paste0("("(), lower, ",",upper,")")
 
         if (p_values) {
           df_ind[row, 4] <- pvals[paste("Indirect", effectname, sep = "_")][[1]]
@@ -1193,7 +1200,7 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
     }
   }
 
-  # Create the table from the dataframes
+  # Create the table from the dataframes and round columns
   df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, digits) else y))
   df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, digits) else y))
 
@@ -1214,6 +1221,8 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
                           "Confidence Interval","", "p-value"), df_ind_merge)
 
   df_dir_merge <- df_rounded
+
+  # Set colnames equal so that rbind can be applied
   colnames(df_dir_merge) <- colnames(df_ind_merge)
   df_dir_merge <- data.frame(apply(df_dir_merge, FUN = as.character, MARGIN = 2))
 
@@ -1232,6 +1241,5 @@ get_method_robmed <- function(test_model) {
   } else {
     return("OLS Bootstrap")
   }
-
 }
 })

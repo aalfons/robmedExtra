@@ -25,21 +25,20 @@ shinyUI(fluidPage(
 
     tabsetPanel(
       tabPanel('Data',
-                             sidebarLayout(
-                               sidebarPanel(
-                                textOutput("robmedversion"),
-                                selectInput("datatype", "datatype",
-                                            choices = c(
-                                                        "Existing data frame",
-                                                        "RData"),
-                                            selected = "Existing data frame"),
-                                uiOutput('dataframechoice'),
-                                uiOutput('rdatafile_dataframes'),
-                             ),
+                       sidebarLayout(
+                         sidebarPanel(
+                          textOutput("robmedversion"),
+                          selectInput("datatype", "datatype",
+                                      choices = c("Existing data frame",
+                                                  "RData"),
+                                      selected = "Existing data frame"),
+                          uiOutput('dataframechoice'),
+                          uiOutput('rdatafile_dataframes'),
+                       ),
 
-                             mainPanel(
-                             DT::dataTableOutput('data_table')
-                               )
+                       mainPanel(
+                       DT::dataTableOutput('data_table')
+                         )
         )
     ),
     tabPanel("Model",
@@ -103,13 +102,13 @@ shinyUI(fluidPage(
                               numericInput("boot_samplesROBMED",
                                            label = "Number of bootstrap samples",
                                            value = 5000),
+
                               h2("Random Number Generator"),
                               numericInput("seedROBMED", label = "Seed",
                                            value = NULL),
                               textInput(inputId = "rng_version_robust",
                                         label = "Version",
                                         value = as.character(getRversion())),
-
 
                               h2("MM-estimator"),
                               selectInput("MM_eff",
@@ -119,8 +118,6 @@ shinyUI(fluidPage(
                               numericInput("max_iter",
                                            "Maximum number of iterations",
                                            value = 10000),
-
-
                  ),
 
                  # Show a plot of the generated distribution
