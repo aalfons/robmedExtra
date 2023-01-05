@@ -463,10 +463,6 @@ shinyServer(function(input, output, session) {
       }
     )
 
-    output$downloadbuttontableOLS <- renderUI({
-      downloadButton("downloadTableOLS", "Download Table OLS")
-    })
-
     output$ui_model_type <- renderUI({
       if (length(input$Mediators) > 1) {
       selectInput("Modeltype", "Multiple mediator model:",
@@ -594,15 +590,16 @@ shinyServer(function(input, output, session) {
 
     latex_robust <- reactive({
       to_latex(robust_bootstrap_test())
+
     })
 
     observe({
       if (isTruthy(robust_bootstrap_test())){
-        output$text_latex_robust <- renderPrint(latex_robust())
+        output$text_latex_robust <- renderText(latex_robust())
       }
 
       if (isTruthy(ols_bootstrap_test())) {
-        output$text_latex_ols <- renderPrint(latex_ols())
+        output$text_latex_ols <- renderText(latex_ols())
       }
     })
 
@@ -811,6 +808,8 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4,
 #' \code{"\link{test_mediation}"} or a list of objects of that class.
 #' @param digits a positive integer, which determines the number of decimals
 #' that should be displayed in the table. The default is to display 4 decimals.
+#' @param data dataframe containing the data of the direct and indirect effects
+#' as would be produced by prep_data_table
 #'
 #' @return A character object containing the latex code that produces a table of
 #' the results of the test_mediation object.
@@ -829,6 +828,7 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4,
 #' @export
 to_latex <- function(test_model, digits = 4, data = NULL, ...) {
 
+  #
   if(is.null(data)) {
     table <- to_flextable(test_model = test_model, digits = digits)
     dataset <- table$body$data
@@ -839,39 +839,23 @@ to_latex <- function(test_model, digits = 4, data = NULL, ...) {
   indirect_start <- which(dataset[,1] == "Indirect Effects")
 
   full_table <- xtable(dataset, align = "llcccc")
-  capture.output(final_table_character <- print(full_table, booktabs = T,
-                                 hline.after = (-1:nrow(dataset)),
-                                 include.rownames = F, type = "latex"))
 
+  # Adding multicolumn for column title of indirect effects
   final_table_character <- gsub(pattern = "(\\(-[^)]*\\))",
                                 replacement = paste0("\\\\multicolumn{2}{c}{",
                                                      "\\1", "}"),
                                 x = final_table_character)
 
+  # Adding multicolumn for values of indirect effects
   final_table_character <- gsub(pattern = "(Confidence Interval &  )",
                                 replacement = "\\\\multicolumn{2}{c}{Confidence Interval}",
                                 x = final_table_character)
 
-  final_table_character <- gsub(pattern = "&  &",
+  final_table_character <<- gsub(pattern = "&  &",
                                 replacement = "&",
                                 x = final_table_character)
 
-  cat(final_table_character, sep = "\n")
   return(final_table_character)
-}
-
-# Works kind of but not so nice
-merge_vertical_xtable <- function(table1, table2) {
-
-  list_table1 <- table1
-  list_table2 <- table2
-
-  # Remove last line from first table and first 3 from second table
-  list_table1 <- list_table1[1:(length(list_table1) - 1)]
-  list_table2 <- list_table2[4:length(list_table2)]
-
-  full_table <- append(list_table1, list_table2)
-  return(full_table)
 }
 
 
