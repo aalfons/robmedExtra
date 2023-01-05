@@ -52,6 +52,10 @@ shinyUI(fluidPage(
                  uiOutput('ui_model_type')
                ),
                mainPanel(
+                 h2("Notation"),
+                 p("X: Independent variable"),
+                 p("M: Mediating variable"),
+                 p("Y: Dependent variable"),
                  h2("Simple mediation model"),
                  p("The mediation model in its simplest form looks as follows:"),
                  img(src = "mediation-simple.png", height = 120, width = 260),
@@ -169,9 +173,10 @@ shinyUI(fluidPage(
                                          span("(Computing p-values takes time)",
                                               style = "color: 	#A0A0A0")),
                                value = TRUE),
+                 uiOutput("checkbox_latex_table"),
                  h2("Diagnostic Plot"),
                  radioButtons(inputId = "plot_format",
-                              label = 'File format',
+                              label = "File format",
                               choices = c("pdf", "png"), selected = "pdf"),
                  radioButtons(inputId = "plot_units",
                               label = "Units of height/width",
@@ -190,7 +195,6 @@ shinyUI(fluidPage(
                  verbatimTextOutput("text_latex_robust"),
                  uiOutput("button_latex_ols"),
                  verbatimTextOutput("text_latex_ols")
-
                )
              )
             )
