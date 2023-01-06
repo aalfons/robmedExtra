@@ -208,7 +208,6 @@ shinyUI(fluidPage(
                  textOutput("robmedversion"),
                  h2("Citation"),
                  verbatimTextOutput("citation_text")
-
                )
              )
 

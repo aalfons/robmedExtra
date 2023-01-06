@@ -47,11 +47,13 @@ shinyServer(function(input, output, session) {
         final_df
       })
 
+      # Filters only numeric values in the selected dataframe
       numeric_data <- reactive({
         df <- get_data()
         Filter(is.numeric, df)
       })
 
+      # Observers ensuring that the rng version for ols and robmed is the same
       observe({
         updateTextInput(session, inputId = "rng_version_ols",
                         value = input$rng_version_robust)
@@ -64,12 +66,10 @@ shinyServer(function(input, output, session) {
         RNGversion(input$rng_version_ols)
       })
 
-
+      # reactive value for the name of the dataframe
       df_name <- reactive({
-        name <- ifelse(input$datatype == "RData file", input$rdata_dfname,
+        ifelse(input$datatype == "RData file", input$rdata_dfname,
                         input$dfname)
-
-        name
       })
 
       # Creates boot_test_mediation object
@@ -82,13 +82,10 @@ shinyServer(function(input, output, session) {
       vals$script <- c(vals$script, "",
                          "# Perform robust bootstrap test ROBMED")
 
-      df_name <- ifelse(input$datatype == "RData", input$rdata_dfname,
-                        input$dfname)
-
       # takes care of entering the data in the script
       if(input$datatype == "R environment") {
         vals$used_data <- c(vals$used_data,
-                            paste0(df_name,"(",
+                            paste0(df_name(),"(",
                                    paste(dim(get_data()), collapse = ","),
                                    ")")
                             )
@@ -96,9 +93,11 @@ shinyServer(function(input, output, session) {
         vals$script <- c(vals$script, paste0("load(",input$rdatafile$name, ")"))
       }
 
+      # Command to create the control that sets options
       command_control <- call("reg_control", efficiency = input$MM_eff,
                               max_iterations = input$max_iter)
 
+      # Command to create the test_mediation object
       command_robust_test <- call("test_mediation",
                                   as.name(df_name),
                                   x = input$Explanatory,
@@ -109,13 +108,16 @@ shinyServer(function(input, output, session) {
                                   R = input$boot_samplesROBMED,
                                   control = as.name("ctrl")
                                   )
-
+      # Command may not be used
       command_seed <- call("set.seed", input$seedROBMED)
 
 
       if (!is.null(input$Covariates)) {
         command_robust_test$covariates <- input$Covariates
       }
+
+      # Check if mediation model is specified
+      # might not be specified in case of simple model
 
       if (!is.null(input$Modeltype)) {
         command_robust_test$model <- input$Modeltype
@@ -126,11 +128,14 @@ shinyServer(function(input, output, session) {
         vals$script <- c(vals$script, as.character(as.expression(command_seed)))
       }
 
+      # Chaining together the commands and assigning the resulting object to a
+      # name object
       command_complete <- call("<-", as.name("robust_boot"), command_robust_test)
       command_control_complete <- call("<-",
                                        as.name("ctrl"),
                                        command_control)
 
+      # Adding all to script
       vals$script <- c(vals$script,
                        as.character(as.expression(command_control_complete)),
                        as.character(as.expression(command_complete)),
@@ -141,6 +146,7 @@ shinyServer(function(input, output, session) {
       })
 
       ols_bootstrap_test <- eventReactive(input$runOLS, {
+        # Check if mediation model has been specified if needed
         if (length(input$Mediators) > 1) {
           validate(need(input$Modeltype,
                         "Please select a type of mediation model in the MODEL tab."))
@@ -148,24 +154,21 @@ shinyServer(function(input, output, session) {
 
          vals$script <- c(vals$script, "", "# Perform OLS bootstrap test")
 
-         df_name <- ifelse(input$datatype == "RData file", input$rdata_dfname,
-                           input$dfname)
-
          # takes care of entering the dataframes in the script
          if(input$datatype == "R environment") {
            vals$used_data <- c(vals$used_data,
-                               paste0(df_name,"(",
+                               paste0(df_name(),"(",
                                      paste(dim(get_data()), collapse = ","),
-                                     ")"))
-
+                                     ")")
+                               )
 
          } else {
-           vals$script <- c(vals$script, paste0("load(",df_name, ")"))
+           vals$script <- c(vals$script, paste0("load(",df_name(), ")"))
          }
 
          command_seed <- call("set.seed", input$seedOLS)
          command_ols_test <- call("test_mediation",
-                                  as.name(df_name),
+                                  as.name(df_name()),
                                   x = input$Explanatory,
                                   y = input$Response,
                                   m = input$Mediators,
@@ -215,6 +218,7 @@ shinyServer(function(input, output, session) {
           paste(Sys.Date(),"_",df_name(),"_","diagnostic_plot.", ext, sep = '')
         },
         content = function(file) {
+          # Gives popup with 'loading' while downloading
           showModal(modalDialog("Loading", footer = NULL))
           on.exit(removeModal())
 
@@ -378,6 +382,8 @@ shinyServer(function(input, output, session) {
         new_env <<- new.env()
         load(input$rdatafile$datapath, new_env)
 
+        # Select names of all dataframes in the environment after loading the
+        # selected RData file
         dataframes <- names(which(unlist(eapply(new_env,is.data.frame))))
 
         selectInput("rdata_dfname", "DataFrame",
@@ -612,7 +618,7 @@ shinyServer(function(input, output, session) {
     )
 
     output$citation_text <- renderText({
-      as.character(citation("robmed"))
+      toString(citation("robmed"))
     })
 
 
