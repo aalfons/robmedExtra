@@ -17,27 +17,27 @@ shinyUI(fluidPage(
     shinybusy::add_busy_spinner(spin = "fading-circle", height = "60px",
                                 width = "60px"),
     theme = shinytheme("sandstone"),
-    title = "ROBMED",
+    title = "robmed",
 
     # Application title
-    titlePanel(h1("ROBMED", align = 'center')
+    titlePanel(h1("robmed", align = "center")
                ),
 
     tabsetPanel(
-      tabPanel('Data',
+      tabPanel("Data",
                        sidebarLayout(
                          sidebarPanel(
-                          textOutput("robmedversion"),
-                          selectInput("datatype", "datatype",
-                                      choices = c("Existing data frame",
-                                                  "RData"),
-                                      selected = "Existing data frame"),
-                          uiOutput('dataframechoice'),
-                          uiOutput('rdatafile_dataframes'),
+                          selectInput("datatype", "Data source",
+                                      choices = c("R environment",
+                                                  "RData file"),
+                                      selected = "R environment"),
+                          uiOutput("dataframechoice"),
+                          uiOutput("rdatafile_dataframes"),
+                          uiOutput("save_rdata_ui")
                        ),
 
                        mainPanel(
-                       DT::dataTableOutput('data_table')
+                       DT::dataTableOutput("data_table")
                          )
         )
     ),
@@ -197,6 +197,21 @@ shinyUI(fluidPage(
                  verbatimTextOutput("text_latex_ols")
                )
              )
-            )
+            ),
+    tabPanel("Info",
+             sidebarLayout(
+               sidebarPanel(
+
+               ),
+               mainPanel(
+                 h2("Package Version"),
+                 textOutput("robmedversion"),
+                 h2("Citation"),
+
+
+               )
+             )
+
+    )
     )
 ))

@@ -29,13 +29,13 @@ shinyServer(function(input, output, session) {
 
       # Reactive expression to get data in dataframe
       get_data <- reactive({
-        if (input$datatype == "Existing data frame"){
+        if (input$datatype == "R environment"){
             if (is.null(input$dfname)) {
               final_df <- data.frame()
             } else {
               final_df <- as.data.frame(get(input$dfname, .GlobalEnv))
             }
-          } else if (input$datatype == "RData") {
+          } else if (input$datatype == "RData file") {
             if (is.null(input$rdata_dfname)) {
               final_df <- data.frame()
             } else {
@@ -65,9 +65,8 @@ shinyServer(function(input, output, session) {
       })
 
 
-
       df_name <- reactive({
-        name <- ifelse(input$datatype == "RData", input$rdata_dfname,
+        name <- ifelse(input$datatype == "RData file", input$rdata_dfname,
                         input$dfname)
 
         name
@@ -80,14 +79,14 @@ shinyServer(function(input, output, session) {
           "Please select a type of mediation model in the MODEL tab."))
         }
 
-        vals$script <- c(vals$script, "",
+      vals$script <- c(vals$script, "",
                          "# Perform robust bootstrap test ROBMED")
 
       df_name <- ifelse(input$datatype == "RData", input$rdata_dfname,
                         input$dfname)
 
       # takes care of entering the data in the script
-      if(input$datatype == "Existing data frame") {
+      if(input$datatype == "R environment") {
         vals$used_data <- c(vals$used_data,
                             paste0(df_name,"(",
                                    paste(dim(get_data()), collapse = ","),
@@ -148,11 +147,11 @@ shinyServer(function(input, output, session) {
 
          vals$script <- c(vals$script, "", "# Perform OLS bootstrap test")
 
-         df_name <- ifelse(input$datatype == "RData", input$rdata_dfname,
+         df_name <- ifelse(input$datatype == "RData file", input$rdata_dfname,
                            input$dfname)
 
          # takes care of entering the dataframes in the script
-         if(input$datatype == "Existing data frame") {
+         if(input$datatype == "R environment") {
            vals$used_data <- c(vals$used_data,
                                paste0(df_name,"(",
                                      paste(dim(get_data()), collapse = ","),
@@ -160,7 +159,6 @@ shinyServer(function(input, output, session) {
 
 
          } else {
-
            vals$script <- c(vals$script, paste0("load(",df_name, ")"))
          }
 
@@ -338,7 +336,7 @@ shinyServer(function(input, output, session) {
     output$selectResponse <- renderUI({
       # Response only allows for numeric values
       choices <- colnames(numeric_data())
-      selectInput(inputId="Response",
+      selectInput(inputId = "Response",
                   label = p("Dependent variable",
                             span("(Numeric)", style = "color: 	#A0A0A0")),
                   choices = c("",choices), multiple = FALSE, selected = NULL)
@@ -357,16 +355,16 @@ shinyServer(function(input, output, session) {
     # Creates input UI for type of data
     output$dataframechoice <- renderUI({
 
-      if (input$datatype == "Existing data frame") {
+      if (input$datatype == "R environment") {
         if (!any(as.logical(lapply(.GlobalEnv, is.data.frame)))){
-          helpText("There are no data frames in your Global Environment.")
+          helpText("There are no data frames in your R environment.")
         } else {
           mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
-          selectInput("dfname", "DataFrame from Global Env",
+          selectInput("dfname", "DataFrame from R environment",
                       choices = mydataframes, multiple = FALSE)
         }
       }
-      else if (input$datatype == "RData") {
+      else if (input$datatype == "RData file") {
         fileInput("rdatafile", "RData File",
                   accept = c(".RData"))
       }
@@ -374,7 +372,7 @@ shinyServer(function(input, output, session) {
 
     # Creates input UI for the dataframe in an RData file
     output$rdatafile_dataframes <- renderUI({
-      if (input$datatype == "RData") {
+      if (input$datatype == "RData file") {
         req(input$rdatafile)
         new_env <<- new.env()
         load(input$rdatafile$datapath, new_env)
@@ -592,6 +590,24 @@ shinyServer(function(input, output, session) {
                                                           "Copy OLS table")})
       }
     })
+
+    # Create action button for saving the dataframe to RData file
+    observe({
+      if (input$datatype == "R environment") {
+        output$save_rdata_ui <- renderUI({downloadButton("save_rdata",
+                                                       "Save selected dataframe")})
+      }
+    })
+
+    output$download_data <- downloadHandler(
+      filename = function() {
+        paste0(Sys.Date(),"_",df_name(), ".RData")
+      },
+      content = function(file) {
+        save(get_data(), file = file)
+      }
+    )
+
 
 
 
