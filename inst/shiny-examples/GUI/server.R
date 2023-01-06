@@ -90,7 +90,8 @@ shinyServer(function(input, output, session) {
         vals$used_data <- c(vals$used_data,
                             paste0(df_name,"(",
                                    paste(dim(get_data()), collapse = ","),
-                                   ")"))
+                                   ")")
+                            )
       } else {
         vals$script <- c(vals$script, paste0("load(",input$rdatafile$name, ")"))
       }
@@ -594,19 +595,25 @@ shinyServer(function(input, output, session) {
     # Create action button for saving the dataframe to RData file
     observe({
       if (input$datatype == "R environment") {
-        output$save_rdata_ui <- renderUI({downloadButton("save_rdata",
-                                                       "Save selected dataframe")})
+        output$save_rdata_ui <- renderUI({downloadButton("download_data",
+                                                       "Save selected dataframe",
+                                                       class = "dlButton")})
       }
     })
 
     output$download_data <- downloadHandler(
-      filename = function() {
+      filename <- function(){
         paste0(Sys.Date(),"_",df_name(), ".RData")
       },
-      content = function(file) {
-        save(get_data(), file = file)
+      content <- function(file) {
+        df <- get_data()
+        save(df, file = file)
       }
     )
+
+    output$citation_text <- renderText({
+      as.character(citation("robmed"))
+    })
 
 
 
