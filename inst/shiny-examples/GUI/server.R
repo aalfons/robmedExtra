@@ -99,7 +99,7 @@ shinyServer(function(input, output, session) {
 
       # Command to create the test_mediation object
       command_robust_test <- call("test_mediation",
-                                  as.name(df_name),
+                                  as.name(df_name()),
                                   x = input$Explanatory,
                                   y = input$Response,
                                   m = input$Mediators,
@@ -582,15 +582,16 @@ shinyServer(function(input, output, session) {
       }
     })
 
+    # Reacts to display latex button
     observeEvent(input$show_latex, {
-
       output$text_latex_ols <- renderText(latex_ols())
       output$text_latex_robust <- renderText(latex_robust())
+
+      # Display download button only if the corresponding test object exists
       if (isTruthy(robust_bootstrap_test())) {
         output$button_latex_robust <- renderUI({actionButton("copy_latex_robust",
                                                    "Copy ROBMED table")})
       }
-
 
       if (isTruthy(ols_bootstrap_test())) {
         output$button_latex_ols <- renderUI({actionButton("copy_latex_ols",
@@ -620,9 +621,6 @@ shinyServer(function(input, output, session) {
     output$citation_text <- renderText({
       toString(citation("robmed"))
     })
-
-
-
 
 
 #' Export result table to Word
@@ -841,7 +839,7 @@ export_table_MSWord.test_mediation <- function(test_model, digits = 4,
 #' @export
 to_latex <- function(test_model, digits = 4, data = NULL, ...) {
 
-
+  # Check if data is passed and if so, use that data
   if(is.null(data)) {
     table <- to_flextable(test_model = test_model, digits = digits)
     dataset <- table$body$data
@@ -849,9 +847,17 @@ to_latex <- function(test_model, digits = 4, data = NULL, ...) {
     dataset <- data
   }
 
+  # row number where indirect effects start in the dataframe
   indirect_start <- which(dataset[,1] == "Indirect Effects")
 
   full_table <- xtable(dataset, align = "llcccc")
+
+  final_table_character <- capture.output(print(full_table, booktabs = T,
+                                                hline.after = (-1:nrow(dataset)),
+                                                include.rownames = F, type = "latex"))
+
+  final_table_character <- paste(final_table_character, collapse = "\n")
+
 
   # Adding multicolumn for column title of indirect effects
   final_table_character <- gsub(pattern = "(\\(-[^)]*\\))",
@@ -864,10 +870,12 @@ to_latex <- function(test_model, digits = 4, data = NULL, ...) {
                                 replacement = "\\\\multicolumn{2}{c}{Confidence Interval}",
                                 x = final_table_character)
 
-  final_table_character <<- gsub(pattern = "&  &",
+
+  final_table_character <- gsub(pattern = "&  &",
                                 replacement = "&",
                                 x = final_table_character)
 
+  print(final_table_character)
   return(final_table_character)
 }
 
@@ -1173,7 +1181,7 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
                              x = effectname)
         }
 
-        x <<- effectname
+        x <- effectname
         df_ind[row,1] <- paste(effectname, '(Indirect)')
 
         if (length(sm$m) > 1) {
