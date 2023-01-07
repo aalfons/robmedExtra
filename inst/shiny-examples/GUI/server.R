@@ -664,21 +664,20 @@ export_table_MSWord <- function(test_model, ...) {
   UseMethod("export_table_MSWord")
 }
 
+# function for name object to avoid bugs in the ols_bootstrap_test and
+# robust_bootstrap_test which calls this function on name objects
 export_table_MSWord.name <- function(test_model, digits = 4,
                                      orientation = c("landscape", "portrait"),
                                      filename = NULL, p_values = T,
                                      ...) {
-  print("export msword.name")
   tryCatch({model <- get(x = test_model)},
            error = function(cond) {
              message(paste("No object with name", test_model))
-             return(NA)
+             return(NULL)
            }
   )
   return(export_table_MSWord(model, digits = digits, orientation = orientation,
                              filename = filename, p_values = p_values))
-
-
 }
 
 # Takes two test objects and merges them into 1 flextable, expanding over columns
@@ -698,17 +697,21 @@ merged_flextable <- function(test1, test2, digits = 4, p_values = T) {
     colnames(merged_df)[i] <- paste0(colnames(merged_df)[i], "\r")
   }
 
-
+  # Row index of the start of the indirect effects
   start_merge <- which(merged_df[,1] == "Indirect Effects")
 
+  # All indices of indirect effects over which we should merge
   indirect_range <- c(start_merge : nrow(df1))
 
   if (p_values) {
+    # Columns that should be merged
     j_range_left <- c(3:4)
     j_range_right <- c(7:8)
   } else {
     j_range_left <- c(3:5)
     j_range_right <- c(7:9)
+
+    # Set p-values to empty string
     merged_df[start_merge, c(5, 9)] <- ""
   }
 
@@ -719,10 +722,10 @@ merged_flextable <- function(test1, test2, digits = 4, p_values = T) {
     merged_ft <- merge_at(merged_ft, i = index, j = j_range_right)
   }
 
+  # Changing cosmetics
+
   merged_ft <- autofit(merged_ft)
   merged_ft <- flextable::align(merged_ft, align = "center", part = "all")
-
-  # Changing cosmetics
   merged_ft <- theme_booktabs(merged_ft, bold_header = TRUE)
   merged_ft <- bold(merged_ft, i = start_merge, bold = TRUE)
 
@@ -859,23 +862,22 @@ to_latex <- function(test_model, digits = 4, data = NULL, ...) {
   final_table_character <- paste(final_table_character, collapse = "\n")
 
 
-  # Adding multicolumn for column title of indirect effects
+  # Adding multicol for column title of confidence interval in indirect effects
   final_table_character <- gsub(pattern = "(\\(-[^)]*\\))",
                                 replacement = paste0("\\\\multicolumn{2}{c}{",
                                                      "\\1", "}"),
                                 x = final_table_character)
 
-  # Adding multicolumn for values of indirect effects
+  # Adding multicol to insert the confidence interval
   final_table_character <- gsub(pattern = "(Confidence Interval &  )",
                                 replacement = "\\\\multicolumn{2}{c}{Confidence Interval}",
                                 x = final_table_character)
 
-
+  # Remove trailing empty cell caused by 'merging' the two columns
   final_table_character <- gsub(pattern = "&  &",
                                 replacement = "&",
                                 x = final_table_character)
 
-  print(final_table_character)
   return(final_table_character)
 }
 
