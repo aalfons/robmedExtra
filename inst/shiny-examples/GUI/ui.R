@@ -207,9 +207,15 @@ shinyUI(fluidPage(
                mainPanel(
                  h2("Package Version"),
                  textOutput("robmedversion"),
-                 p("GUI version 0.1.0"),
+                 p("GUI version: 0.1.0"),
                  h2("Citation"),
-                 verbatimTextOutput("citation_text")
+                 p("To cite robmed in publications use:"),
+                 h3("APA"),
+                 actionButton("copy_citation_normal", "Copy APA"),
+                 verbatimTextOutput("citation_normal"),
+                 h3("BibTeX"),
+                 actionButton("copy_citation_bib", "Copy BibTeX"),
+                 verbatimTextOutput("citation_bib")
                )
              )
 

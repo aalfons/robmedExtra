@@ -28,6 +28,8 @@ shinyServer(function(input, output, session) {
       vals$used_data <- c()
 
 
+
+
       # Reactive expression to get data in dataframe
       get_data <- reactive({
         if (input$datatype == "R environment"){
@@ -395,7 +397,7 @@ shinyServer(function(input, output, session) {
     output$data_table <-  DT::renderDataTable({get_data()})
 
     output$robmedversion <- renderText({
-      paste("ROBMED Package version: ", toString(packageVersion("robmed")))})
+      paste("robmed Package version: ", toString(packageVersion("robmed")))})
 
     output$downloadbuttonplot <- renderUI({
       req(input$runRobust)
@@ -634,9 +636,31 @@ shinyServer(function(input, output, session) {
       }
     )
 
-    output$citation_text <- renderText({
-      toString(citation("robmed"))
+
+    # Setting citation text
+    vals$citation_normal <- paste(capture.output(citation("robmed"))[2:9],
+                                  collapse = "\n")
+    vals$citation_bib <- paste(capture.output(citation("robmed"))[10:20],
+                                  collapse = "\n")
+
+
+    output$citation_normal <- renderText({
+      return(vals$citation_normal)
     })
+
+    output$citation_bib <- renderText({
+      return(vals$citation_bib)
+    })
+
+    observeEvent(input$copy_citation_normal, {
+      clipr::write_clip(content = vals$citation_normal)
+    })
+
+    observeEvent(input$copy_citation_bib, {
+      clipr::write_clip(content = vals$citation_bib)
+    })
+
+
 
 
 #' Export result table to Word
@@ -964,6 +988,8 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
   ft <- flextable(df_stacked)
 
   start_merge <- which(df_stacked[,1] == "Indirect Effects")
+
+  # Row indices where the table should have a horizontal line
   path_values <- c(tables_paths[[2]] - 1, start_merge, start_merge - 1)
 
   # Merge the third and fourth column for the indirect effects to create one
@@ -989,7 +1015,10 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
                        colwidths = c(5))
   ft <- hline(ft, i = path_values, border = NULL, part = "body")
 
+
   for (row in c(1:(start_merge - 1))) {
+    # Adding subscript to the effect's letter
+
     orig_text <- df_stacked[row,1]
     text_list <- strsplit(orig_text, " ")[[1]]
 
@@ -1004,13 +1033,26 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
       number = paste0(letter_number[2:length(letter_number)], collapse = "")
     }
 
-    new_text <- as_paragraph(as_chunk(effect), as_chunk(" ("),
+    effect_arrow <- sub(pattern = "->", replacement = "\U2192", x = effect)
+
+    new_text <- as_paragraph(as_chunk(effect_arrow), as_chunk(" ("),
                              as_chunk(letter),
                              as_sub(number),
                              as_chunk(")"))
 
+    # Subscript has been added, now change the arrow
     ft <- flextable::compose(ft, i = row, j = 1, value = new_text)
   }
+
+  # Adding arrows for the indirect effects as well:
+  for (row in c((start_merge + 1):nrow(df_stacked))) {
+    original_text <- df_stacked[row, 1]
+    new_text <- sub(pattern = "->", replacement = "\U2192", x = original_text)
+    new_text <- as_paragraph(as_chunk(new_text))
+    ft <- flextable::compose(ft, i = row, j = 1, value = new_text)
+  }
+
+
 
   ft <- autofit(ft)
 
