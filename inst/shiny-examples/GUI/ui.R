@@ -53,9 +53,10 @@ shinyUI(fluidPage(
                ),
                mainPanel(
                  h2("Notation"),
-                 p("X: Independent variable"),
-                 p("M: Mediating variable"),
                  p("Y: Dependent variable"),
+                 p("X: Independent variable"),
+                 p("M: Mediator"),
+
                  h2("Simple mediation model"),
                  p("The mediation model in its simplest form looks as follows:"),
                  img(src = "mediation-simple.png", height = 120, width = 260),
@@ -97,7 +98,7 @@ shinyUI(fluidPage(
                )
              )
             ),
-      tabPanel("ROBMED",
+      tabPanel("robmed",
                sidebarLayout(
                  sidebarPanel(uiOutput('ui_runbutton_robmed'),
                               h2("Options"),
@@ -206,6 +207,7 @@ shinyUI(fluidPage(
                mainPanel(
                  h2("Package Version"),
                  textOutput("robmedversion"),
+                 p("GUI version 0.1.0"),
                  h2("Citation"),
                  verbatimTextOutput("citation_text")
                )
