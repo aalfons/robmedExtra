@@ -463,7 +463,7 @@ shinyServer(function(input, output, session) {
     output$ui_model_type <- renderUI({
       if (length(input$Mediators) > 1) {
       selectInput("Modeltype", "Multiple mediator model:",
-                  choices = c("", 'parallel', 'serial'), selected = NULL)
+                  choices = c('parallel', 'serial'), selected = "parallel")
       }
     })
 
