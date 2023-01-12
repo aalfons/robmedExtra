@@ -1227,6 +1227,7 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
         # n for 1 up to 3. The order of mediators remains the same but can skip
         # a value.
 
+      # indirect_effects will contain the different permutations of mediators
 
       indirect_effects <- list()
 
@@ -1253,12 +1254,9 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
                              x = effectname)
         }
 
-        x <- effectname
         df_ind[row,1] <- paste(effectname, '(Indirect)')
 
         if (length(sm$m) > 1) {
-            # TODO Add case of three mediators. This code is for only two.
-
             df_ind[row, 2] <- test_model$indirect[effectname][[1]]
 
             lower <- round(test_model$ci[effectname, 1], digits)
@@ -1346,6 +1344,8 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
   dim_ind <- dim(df_ind_rounded)
   dim_dir <- dim(df_rounded)
 
+  # Copying data from matrix with 4 columns to one with 5 columns to get the
+  # same dimensions for direct and indirect effects
   df_ind_merge <- as.data.frame(matrix(NA, nrow = dim_ind[1], ncol = dim_ind[2]))
   df_ind_merge[,1:3] <- df_ind_rounded[,1:3]
   df_ind_merge[,5] <- df_ind_rounded[,4]
