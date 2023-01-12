@@ -576,13 +576,12 @@ shinyServer(function(input, output, session) {
 
     })
 
-    latex_ols <- reactive({
+    latex_ols <- eventReactive(input$show_latex, {
       to_latex(ols_bootstrap_test())
     })
 
-    latex_robust <- reactive({
+    latex_robust <- eventReactive(input$show_latex, {
       to_latex(robust_bootstrap_test())
-
     })
 
     # Copy to clipboard buttons for latex
@@ -609,20 +608,26 @@ shinyServer(function(input, output, session) {
       }
     })
 
+    output$text_latex_robust <- renderText({latex_robust()})
+    output$text_latex_ols <- renderText({latex_ols()})
+
     # Reacts to display latex button
-    observeEvent(input$show_latex, {
-      output$text_latex_ols <- renderText(latex_ols())
-      output$text_latex_robust <- renderText(latex_robust())
+    observeEvent(latex_ols(), {
+      # Display copy button only if the corresponding test object exists
 
-      # Display download button only if the corresponding test object exists
-      if (isTruthy(robust_bootstrap_test())) {
-        output$button_latex_robust <- renderUI({actionButton("copy_latex_robust",
-                                                   "Copy ROBMED table")})
-      }
-
-      if (isTruthy(ols_bootstrap_test())) {
+      if (isTruthy(latex_ols())) {
         output$button_latex_ols <- renderUI({actionButton("copy_latex_ols",
                                                           "Copy OLS table")})
+      }
+    })
+
+    # Reacts to display latex button
+    observeEvent(latex_robust(), {
+      # Display copy button only if the corresponding test object exists
+
+      if (isTruthy(latex_robust())) {
+        output$button_latex_robust <- renderUI({actionButton("copy_latex_robust",
+                                                             "Copy robmed table")})
       }
     })
 
