@@ -24,7 +24,7 @@ shinyServer(function(input, output, session) {
       # Initializing the to be generated script
       vals$script <- c()
 
-      # A list of dataframes used from the existing environment
+      # A list of dataframes used from the existing environment for the script
       vals$used_data <- c()
 
 
@@ -85,7 +85,7 @@ shinyServer(function(input, output, session) {
       vals$script <- c(vals$script, "",
                          "# Perform robust bootstrap test ROBMED")
 
-      # takes care of entering the data in the script
+      # Save the name and dimension of the dataframe in the list of dataframes
       if(input$datatype == "R environment") {
         vals$used_data <- c(vals$used_data,
                             paste0(df_name(),"(",
@@ -111,7 +111,7 @@ shinyServer(function(input, output, session) {
                                   R = input$boot_samplesROBMED,
                                   control = as.name("ctrl")
                                   )
-      # Command may not be used
+      # Command for setting seed (may not be used)
       command_seed <- call("set.seed", input$seedROBMED)
 
 
@@ -119,7 +119,7 @@ shinyServer(function(input, output, session) {
         command_robust_test$covariates <- input$Covariates
       }
 
-      # Check if mediation model is specified
+      # Check if mediation model is specified.
       # might not be specified in case of simple model
 
       if (!is.null(input$Modeltype)) {
@@ -234,7 +234,7 @@ shinyServer(function(input, output, session) {
 
             if (input$plot_units == "cm") {
 
-              # Convert to inch for pdf
+              # Convert to inch for pdf which only takes inch
               command_plot <- call("pdf",file = file,
                                    width = input$width_plot/2.54,
                                    height = input$height_plot/2.54)
@@ -243,6 +243,7 @@ shinyServer(function(input, output, session) {
                                    height = input$height_plot)
             }
           }
+
           command_plot1 <- call("summary", as.name("robust_boot"))
           command_plot2 <- call("$", command_plot1, as.name("plot"))
           command_assign_plot <- call("<-", as.name("diagnostic_plot"),
@@ -351,8 +352,8 @@ shinyServer(function(input, output, session) {
     })
 
     output$selectControls <- renderUI({
-
       isolate(self <- input$Covariates)
+
       choices <- colnames(get_data())
       selectInput(inputId="Covariates",
                   label = p("Covariate(s)",
@@ -367,6 +368,7 @@ shinyServer(function(input, output, session) {
         if (!any(as.logical(lapply(.GlobalEnv, is.data.frame)))){
           helpText("There are no data frames in your R environment.")
         } else {
+          # There is at least one dataframe in the environment
           mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
           selectInput("dfname", "DataFrame from R environment",
                       choices = mydataframes, multiple = FALSE)
@@ -382,6 +384,9 @@ shinyServer(function(input, output, session) {
     output$rdatafile_dataframes <- renderUI({
       if (input$datatype == "RData file") {
         req(input$rdatafile)
+        # new env is made global so that it can be accessed when loading
+        # dataframe elsewhere
+
         new_env <<- new.env()
         load(input$rdatafile$datapath, new_env)
 
@@ -422,7 +427,7 @@ shinyServer(function(input, output, session) {
     })
 
     # Two below observers are used to maintain equal seeds for both OLS and
-    # ROBMED tabs
+    # robmed tabs
     observe({
       updateNumericInput(session, "seedOLS", value = input$seedROBMED)
       })
@@ -509,6 +514,7 @@ shinyServer(function(input, output, session) {
         mediation_list <- list()
 
         if (isTruthy(input$models_tables)) {
+          # If the checkbox for selecting models exists check which models to do
           contains_robust <- "ROBMED" %in% input$models_tables
           contains_ols <- "OLS" %in% input$models_tables
         } else {
@@ -516,6 +522,7 @@ shinyServer(function(input, output, session) {
           contains_ols <- TRUE
         }
 
+        # IF model included, check whether it has been run and include name
         if (contains_robust) {
           if(isTruthy(input$runRobust)) {
             mediation_list$robust <- as.name("robust_boot")
@@ -578,6 +585,7 @@ shinyServer(function(input, output, session) {
 
     })
 
+    # Copy to clipboard buttons for latex
     observeEvent(input$copy_latex_robust, {
       clipr::write_clip(content = latex_robust())
     })
@@ -586,6 +594,7 @@ shinyServer(function(input, output, session) {
       clipr::write_clip(content = latex_ols())
     })
 
+    # Observers to show 'display latex' button if the model actually exists
     observe({
       if (isTruthy(robust_bootstrap_test())) {
         output$checkbox_latex_table <- renderUI({actionButton("show_latex",
@@ -638,7 +647,7 @@ shinyServer(function(input, output, session) {
 
 
     # Setting citation text
-    vals$citation_normal <- paste(capture.output(citation("robmed"))[2:9],
+    vals$citation_normal <- paste(capture.output(citation("robmed"))[3:9],
                                   collapse = "\n")
     vals$citation_bib <- paste(capture.output(citation("robmed"))[10:20],
                                   collapse = "\n")
