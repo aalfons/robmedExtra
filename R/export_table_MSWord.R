@@ -19,7 +19,7 @@
 #' @return An object of class \code{"\link{rdocx}"}, containing a table of the
 #' results of the provided objects.
 #'
-#' @imporFrom officer read_docx body_end_section_landscape body_add_break
+#' @importFrom officer read_docx body_end_section_landscape body_add_break
 #'
 #' @importFrom flextable flextable width add_header_row body_add_flextable align
 #' set_flextable_defaults hline padding add_footer_lines
