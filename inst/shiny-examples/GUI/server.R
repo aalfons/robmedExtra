@@ -27,22 +27,19 @@ shinyServer(function(input, output, session) {
       # A list of dataframes used from the existing environment for the script
       vals$used_data <- c()
 
-
-
-
       # Reactive expression to get data in dataframe
       get_data <- reactive({
         if (input$datatype == "R environment"){
             if (is.null(input$dfname)) {
               final_df <- data.frame()
             } else {
-              final_df <- as.data.frame(get(input$dfname, .GlobalEnv))
+              final_df <- as.data.frame(get(df_name(), envir = .GlobalEnv))
             }
           } else if (input$datatype == "RData file") {
             if (is.null(input$rdata_dfname)) {
               final_df <- data.frame()
             } else {
-              final_df <- as.data.frame(get(input$rdata_dfname, envir = new_env))
+              final_df <- as.data.frame(get(df_name()))
             }
           }
 
@@ -82,70 +79,80 @@ shinyServer(function(input, output, session) {
           "Please select a type of mediation model in the MODEL tab."))
         }
 
-      vals$script <- c(vals$script, "",
-                         "# Perform robust bootstrap test ROBMED")
+        vals$script <- c(vals$script, "",
+                           "# Perform robust bootstrap test")
 
-      # Save the name and dimension of the dataframe in the list of dataframes
-      if(input$datatype == "R environment") {
-        vals$used_data <- c(vals$used_data,
-                            paste0(df_name(),"(",
-                                   paste(dim(get_data()), collapse = ","),
-                                   ")")
-                            )
-      } else {
-        vals$script <- c(vals$script, paste0("load(",input$rdatafile$name, ")"))
-      }
+        # Save the name and dimension of the dataframe in the list of dataframes
+        if(input$datatype == "R environment") {
+          vals$used_data <- c(vals$used_data,
+                              paste0(df_name(),"(",
+                                     paste(dim(get_data()), collapse = ","),
+                                     ")")
+                              )
+        } else {
+          # write the line that loads the rdatafile in the script
+          vals$script <- c(vals$script, paste0("load(",input$rdatafile$name, ")"))
+        }
 
-      # Command to create the control that sets options
-      command_control <- call("reg_control", efficiency = input$MM_eff,
-                              max_iterations = input$max_iter)
+        # Command to create the control that sets options
+        command_control <- call("reg_control", efficiency = input$MM_eff,
+                                max_iterations = input$max_iter)
 
-      # Command to create the test_mediation object
-      command_robust_test <- call("test_mediation",
-                                  as.name(df_name()),
-                                  x = input$Explanatory,
-                                  y = input$Response,
-                                  m = input$Mediators,
-                                  robust = TRUE,
-                                  level = input$ConfidenceOLS,
-                                  R = input$boot_samplesROBMED,
-                                  control = as.name("ctrl")
-                                  )
-      # Command for setting seed (may not be used)
-      command_seed <- call("set.seed", input$seedROBMED)
+        # call to assign the dataframe to a name object
+        command_df_name <- call("<-", as.name(df_name()), get_data())
+
+        # Command to create the test_mediation object
+        command_robust_test <- call("test_mediation",
+                                    object = as.name(df_name()),
+                                    x = input$Explanatory,
+                                    y = input$Response,
+                                    m = input$Mediators,
+                                    robust = TRUE,
+                                    level = input$ConfidenceOLS,
+                                    R = input$boot_samplesROBMED,
+                                    control = as.name("ctrl")
+                                    )
+        # Command for setting seed (may not be used)
+        command_seed <- call("set.seed", input$seedROBMED)
 
 
-      if (!is.null(input$Covariates)) {
-        command_robust_test$covariates <- input$Covariates
-      }
+        if (!is.null(input$Covariates)) {
+          command_robust_test$covariates <- input$Covariates
+        }
 
-      # Check if mediation model is specified.
-      # might not be specified in case of simple model
+        # Check if mediation model is specified.
+        # might not be specified in case of simple model
 
-      if (!is.null(input$Modeltype)) {
-        command_robust_test$model <- input$Modeltype
-      }
+        if (!is.null(input$Modeltype)) {
+          command_robust_test$model <- input$Modeltype
+        }
 
-      if (!is.na(input$seedROBMED)) {
-        eval(command_seed)
-        vals$script <- c(vals$script, as.character(as.expression(command_seed)))
-      }
+        if (!is.na(input$seedROBMED)) {
+          eval(command_seed)
+          vals$script <- c(vals$script, as.character(as.expression(command_seed)))
+        }
 
-      # Chaining together the commands and assigning the resulting object to a
-      # name object
-      command_complete <- call("<-", as.name("robust_boot"), command_robust_test)
-      command_control_complete <- call("<-",
-                                       as.name("ctrl"),
-                                       command_control)
+        # Chaining together the commands and assigning the resulting object to a
+        # name object called robust_boot
+        command_complete <- call("<-", as.name("robust_boot"), command_robust_test)
 
-      # Adding all to script
-      vals$script <- c(vals$script,
-                       as.character(as.expression(command_control_complete)),
-                       as.character(as.expression(command_complete)),
-                       "summary(robust_boot)")
+        # assigning the control object to the name ctrl
+        command_control_complete <- call("<-", as.name("ctrl"), command_control)
 
-      eval(command_control_complete)
-      eval(command_complete)
+        # Adding all to script
+        vals$script <- c(vals$script,
+                         as.character(as.expression(command_control_complete)),
+                         as.character(as.expression(command_complete)),
+                         "summary(robust_boot)")
+
+        # evaluate the command to assign the dataframe to a name
+        #eval(command_df_name)
+        # Evaluating the command to assign the control variable to the name "ctrl"
+        eval(command_control_complete)
+
+        # Evaluating to create the test_mediation object with all the necessary
+        # input variables as defined before
+        eval(command_complete)
       })
 
       ols_bootstrap_test <- eventReactive(input$runOLS, {
@@ -166,7 +173,7 @@ shinyServer(function(input, output, session) {
                                )
 
          } else {
-           vals$script <- c(vals$script, paste0("load(",df_name(), ")"))
+           vals$script <- c(vals$script, paste0("load(", df_name(), ")"))
          }
 
          command_seed <- call("set.seed", input$seedOLS)
@@ -387,12 +394,16 @@ shinyServer(function(input, output, session) {
         # new env is made global so that it can be accessed when loading
         # dataframe elsewhere
 
-        new_env <<- new.env()
-        load(input$rdatafile$datapath, new_env)
+        # TODO: Incorporate using a different environment to safely use the names
+        # of the loaded dataframes in case of clashes.
+        # for now commented out to debug
+
+
+        load(input$rdatafile$datapath)
 
         # Select names of all dataframes in the environment after loading the
         # selected RData file
-        dataframes <- names(which(unlist(eapply(new_env,is.data.frame))))
+        dataframes <- names(which(unlist(eapply(.GlobalEnv, is.data.frame))))
 
         selectInput("rdata_dfname", "DataFrame",
                     choices = dataframes)
@@ -456,7 +467,7 @@ shinyServer(function(input, output, session) {
         output_data <- paste0(output_data, "\n",
                              paste("# Example: if rdata file is called rdata",
                              "# and the name of the dataframe is data the right command is:",
-                             "# 'data <- load(~/rdata.RData)'", sep = "\n"))
+                             "# 'load(~/rdata.RData)'", sep = "\n"))
         # Top of the script
         output_top <- paste0("# Script generated by robmedExtra on ", Sys.Date(),
         "\n\n", "# load package", "\n", 'library("robmed")')
@@ -522,7 +533,7 @@ shinyServer(function(input, output, session) {
           contains_ols <- TRUE
         }
 
-        # IF model included, check whether it has been run and include name
+        # If a model is included, check whether it has been run and include name
         if (contains_robust) {
           if(isTruthy(input$runRobust)) {
             mediation_list$robust <- as.name("robust_boot")
@@ -535,15 +546,26 @@ shinyServer(function(input, output, session) {
           }
         }
 
+
+        # mediation_list now contains the name(s) of the method that have been run
+
+        # when evaluated this call assigns the list to the name models
         command_model_list <- call("<-", as.name("models"), mediation_list)
+
+        # call to create the word table, will not be evaluated directly but
+        # is included in the next call
         command_doc <- call("export_table_MSWord",
                             test_model = as.name("models"),
                             orientation = input$table_orientation,
                             p_values = as.logical(input$include_pval))
 
+        # creates the word table and assigns this to the name document
         assign_doc <- call("<-", as.name("document"), command_doc)
+
+        # prints the object called document in the file
         print_doc <- call("print", as.name("document"), file)
 
+        # reflect the actions in the generated script
         vals$script <- c(vals$script,
                          "",
                          "# Saving tables in Word doc",
@@ -551,6 +573,7 @@ shinyServer(function(input, output, session) {
                          as.character(as.expression(assign_doc)),
                          as.character(as.expression(print_doc)))
 
+        # evaluate the calls in order to actually produce the output
         eval(command_model_list)
         eval(assign_doc)
         eval(print_doc)
