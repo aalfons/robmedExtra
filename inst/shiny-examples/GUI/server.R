@@ -536,25 +536,20 @@ shinyServer(function(input, output, session) {
         # If a model is included, check whether it has been run and include name
         if (contains_robust) {
           if(isTruthy(input$runRobust)) {
-            # assign actual object to the name
-            robust_boot <- ols_bootstrap_test()
-
-            mediation_list$robust <- robust_boot
+            robust_boot <<- robust_bootstrap_test()
+            mediation_list$robust <- as.name("robust_boot")
           }
-
         }
 
         if (contains_ols) {
           if(isTruthy(input$runOLS)) {
-            # assign actual object to the name
-            ols_boot <- ols_bootstrap_test()
+            ols_boot <<- ols_bootstrap_test()
+            mediation_list$ols <- as.name("ols_boot")
 
-            mediation_list$ols <- ols_boot
           }
         }
 
         # mediation_list now contains the name(s) of the method that have been run
-
         # when evaluated this call assigns the list to the name models
         command_model_list <- call("<-", as.name("models"), mediation_list)
 
@@ -582,6 +577,11 @@ shinyServer(function(input, output, session) {
         # evaluate the calls in order to actually produce the output
         eval(command_model_list)
         eval(assign_doc)
+
+        # Clear the ols_boot and robust_bootstrap variables from the global env
+        rm(list = as.character(mediation_list), envir = .GlobalEnv)
+
+        #Print the document to the proper file location
         eval(print_doc)
       }
     )
