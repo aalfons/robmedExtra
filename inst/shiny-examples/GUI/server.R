@@ -376,7 +376,7 @@ shinyServer(function(input, output, session) {
           helpText("There are no data frames in your R environment.")
         } else {
           # There is at least one dataframe in the environment
-          mydataframes <- names(which(unlist(eapply(.GlobalEnv,is.data.frame))))
+          mydataframes <- names(which(unlist(eapply(.GlobalEnv, is.data.frame))))
           selectInput("dfname", "DataFrame from R environment",
                       choices = mydataframes, multiple = FALSE)
         }
@@ -536,16 +536,22 @@ shinyServer(function(input, output, session) {
         # If a model is included, check whether it has been run and include name
         if (contains_robust) {
           if(isTruthy(input$runRobust)) {
-            mediation_list$robust <- as.name("robust_boot")
+            # assign actual object to the name
+            robust_boot <- ols_bootstrap_test()
+
+            mediation_list$robust <- robust_boot
           }
+
         }
 
         if (contains_ols) {
           if(isTruthy(input$runOLS)) {
-            mediation_list$ols <- as.name("ols_boot")
+            # assign actual object to the name
+            ols_boot <- ols_bootstrap_test()
+
+            mediation_list$ols <- ols_boot
           }
         }
-
 
         # mediation_list now contains the name(s) of the method that have been run
 
