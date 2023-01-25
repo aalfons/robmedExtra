@@ -27,8 +27,12 @@ shinyServer(function(input, output, session) {
       # A list of dataframes used from the existing environment for the script
       vals$used_data <- c()
 
+      alt_env <<- new.env()
+
       # Reactive expression to get data in dataframe
       get_data <- reactive({
+        print("GET DATA")
+
         if (input$datatype == "R environment"){
             if (is.null(input$dfname)) {
               final_df <- data.frame()
@@ -37,9 +41,12 @@ shinyServer(function(input, output, session) {
             }
           } else if (input$datatype == "RData file") {
             if (is.null(input$rdata_dfname)) {
+              # return an empty dataframe
               final_df <- data.frame()
             } else {
-              final_df <- as.data.frame(get(df_name()))
+              # Find the correct dataframe in the environment where it has been
+              # loaded
+              final_df <- as.data.frame(get(df_name(), envir = alt_env))
             }
           }
 
@@ -398,15 +405,15 @@ shinyServer(function(input, output, session) {
         # of the loaded dataframes in case of clashes.
         # for now commented out to debug
 
-
-        load(input$rdatafile$datapath)
+        load(input$rdatafile$datapath, envir = alt_env)
 
         # Select names of all dataframes in the environment after loading the
         # selected RData file
-        dataframes <- names(which(unlist(eapply(.GlobalEnv, is.data.frame))))
+        dataframe_names <- names(which(unlist(eapply(env = alt_env,
+                                                FUN = is.data.frame))))
 
         selectInput("rdata_dfname", "DataFrame",
-                    choices = dataframes)
+                    choices = dataframe_names)
       }
     })
 
