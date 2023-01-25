@@ -27,7 +27,15 @@ shinyServer(function(input, output, session) {
       # A list of dataframes used from the existing environment for the script
       vals$used_data <- c()
 
-      alt_env <<- new.env()
+      # Assigning alternative environment for safely loading RData files
+      alt_env <- new.env()
+
+      # Locally initialize robust_boot, ols_boot which will be updated later
+      # using <<- . This initialization ensures that the variables are not
+      # written to the user's Global Environment
+      ols_boot <- NULL
+      robust_boot <- NULL
+
 
       # Reactive expression to get data in dataframe
       get_data <- reactive({
@@ -257,7 +265,7 @@ shinyServer(function(input, output, session) {
                                    height = input$height_plot)
             }
           }
-
+          robust_boot <- robust_bootstrap_test()
           command_plot1 <- call("summary", as.name("robust_boot"))
           command_plot2 <- call("$", command_plot1, as.name("plot"))
           command_assign_plot <- call("<-", as.name("diagnostic_plot"),
@@ -398,13 +406,8 @@ shinyServer(function(input, output, session) {
     output$rdatafile_dataframes <- renderUI({
       if (input$datatype == "RData file") {
         req(input$rdatafile)
-        # new env is made global so that it can be accessed when loading
-        # dataframe elsewhere
 
-        # TODO: Incorporate using a different environment to safely use the names
-        # of the loaded dataframes in case of clashes.
-        # for now commented out to debug
-
+        # loading the RData file into the alternative environment
         load(input$rdatafile$datapath, envir = alt_env)
 
         # Select names of all dataframes in the environment after loading the
@@ -552,7 +555,6 @@ shinyServer(function(input, output, session) {
           if(isTruthy(input$runOLS)) {
             ols_boot <<- ols_bootstrap_test()
             mediation_list$ols <- as.name("ols_boot")
-
           }
         }
 
@@ -584,9 +586,6 @@ shinyServer(function(input, output, session) {
         # evaluate the calls in order to actually produce the output
         eval(command_model_list)
         eval(assign_doc)
-
-        # Clear the ols_boot and robust_bootstrap variables from the global env
-        rm(list = as.character(mediation_list), envir = .GlobalEnv)
 
         #Print the document to the proper file location
         eval(print_doc)
@@ -623,6 +622,15 @@ shinyServer(function(input, output, session) {
     # Copy to clipboard buttons for latex
     observeEvent(input$copy_latex_robust, {
       clipr::write_clip(content = latex_robust())
+
+      # Add the action to the script
+      command_latex_robust <- call("to_latex", robust_bootstrap_test())
+      vals$script <- c(vals$script, "",
+                       "# Print LaTeX code for table robust bootstrap test",
+                       deparse(command_latex_robust,
+                               control = c("niceNames", "useSource")))
+
+      eval(command_latex_robust)
     })
 
     observeEvent(input$copy_latex_ols, {
