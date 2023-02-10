@@ -545,7 +545,6 @@ shinyServer(function(input, output, session) {
         # If a model is included, check whether it has been run and include name
         if (contains_robust) {
           if(isTruthy(input$runRobust)) {
-            print("robust")
             robust_boot <<- robust_bootstrap_test()
             mediation_list$robust <- as.name("robust_boot")
           }
@@ -553,7 +552,6 @@ shinyServer(function(input, output, session) {
 
         if (contains_ols) {
           if(isTruthy(input$runOLS)) {
-            print("ols")
             ols_boot <<- ols_bootstrap_test()
             mediation_list$ols <- as.name("ols_boot")
           }
