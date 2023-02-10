@@ -1114,7 +1114,7 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
 # on name objects
 to_flextable.name <- function(test_model, digits = 4,
                               p_values = T, ...) {
-  tryCatch({model <- get(x = test_model, .GlobalEnv)},
+  tryCatch({model <- get(x = test_model)},
            error = function(cond) {
              message(paste("No object with name", test_model))
              return(NA)
