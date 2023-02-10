@@ -33,14 +33,13 @@ shinyServer(function(input, output, session) {
       # Locally initialize robust_boot, ols_boot which will be updated later
       # using <<- . This initialization ensures that the variables are not
       # written to the user's Global Environment
+
       ols_boot <- NULL
       robust_boot <- NULL
 
 
       # Reactive expression to get data in dataframe
       get_data <- reactive({
-        print("GET DATA")
-
         if (input$datatype == "R environment"){
             if (is.null(input$dfname)) {
               final_df <- data.frame()
@@ -240,7 +239,7 @@ shinyServer(function(input, output, session) {
           } else if (input$plot_format == "pdf") {
             ext <- "pdf"
           }
-          paste(Sys.Date(),"_",df_name(),"_","diagnostic_plot.", ext, sep = '')
+          paste0(Sys.Date(),"_",df_name(),"_","diagnostic_plot.", ext)
         },
         content = function(file) {
           # Gives popup with 'loading' while downloading
@@ -260,7 +259,7 @@ shinyServer(function(input, output, session) {
               command_plot <- call("pdf",file = file,
                                    width = input$width_plot/2.54,
                                    height = input$height_plot/2.54)
-            } else if (input$plot_units == 'in') {
+            } else if (input$plot_units == "in") {
               command_plot <- call("pdf", file = file, width = input$width_plot,
                                    height = input$height_plot)
             }
@@ -546,6 +545,7 @@ shinyServer(function(input, output, session) {
         # If a model is included, check whether it has been run and include name
         if (contains_robust) {
           if(isTruthy(input$runRobust)) {
+            print("robust")
             robust_boot <<- robust_bootstrap_test()
             mediation_list$robust <- as.name("robust_boot")
           }
@@ -553,6 +553,7 @@ shinyServer(function(input, output, session) {
 
         if (contains_ols) {
           if(isTruthy(input$runOLS)) {
+            print("ols")
             ols_boot <<- ols_bootstrap_test()
             mediation_list$ols <- as.name("ols_boot")
           }
@@ -593,6 +594,8 @@ shinyServer(function(input, output, session) {
     )
 
     #UI to select which models to include in the table
+    # TODO: Replace ROBMED capitalized with robmed
+
     output$ui_checkbox_table <- renderUI({
       if (isTruthy(robust_bootstrap_test()) && isTruthy(ols_bootstrap_test())) {
         checkboxGroupInput(inputId = "models_tables",
@@ -770,7 +773,8 @@ export_table_MSWord.name <- function(test_model, digits = 4,
                                      ...) {
   tryCatch({model <- get(x = test_model)},
            error = function(cond) {
-             message(paste("No object with name", test_model))
+             message(paste("Error in export_table_MSWord.name",
+                           "No object with name", test_model))
              return(NULL)
            }
   )
@@ -832,18 +836,6 @@ merged_flextable <- function(test1, test2, digits = 4, p_values = T) {
                               values = c("",get_method_robmed(test1),
                                          get_method_robmed(test2)),
                        colwidths = c(1,4,4))
-
-  footer_text_left <- paste('Sample size = ', nrow(df1),
-                       '. Number of bootstrap samples = ', test1$R , ".\n",
-                       "†p < .1. *p < .05. **p < .01. ***p < .001.")
-
-  footer_text_right <- paste('Sample size = ', nrow(df2),
-                            '. Number of bootstrap samples = ', test2$R , ".\n",
-                            "†p < .1. *p < .05. **p < .01. ***p < .001.")
-
-  merged_ft <- add_footer_row(merged_ft,
-                              values = c(footer_text_left, footer_text_right),
-                              colwidths = c(4, 5))
 
   merged_ft <- hline(merged_ft, border = NULL, part = "body")
   merged_ft <- flextable::align(merged_ft, part = "body", align = "center")
@@ -955,7 +947,8 @@ to_latex <- function(test_model, digits = 4, data = NULL, ...) {
 
   final_table_character <- capture.output(print(full_table, booktabs = T,
                                                 hline.after = (-1:nrow(dataset)),
-                                                include.rownames = F, type = "latex"))
+                                                include.rownames = F,
+                                                type = "latex"))
 
   final_table_character <- paste(final_table_character, collapse = "\n")
 
@@ -1069,8 +1062,9 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
   ft <- flextable::align(ft, align = "center", part = "all")
   ft <- flextable::align(ft, align = "left", j = 1, part = "all")
   ft <- flextable::bold(ft, i = start_merge, bold = T)
-  ft <- flextable::add_header_row(ft, top = TRUE, values = c(get_method_robmed(test_model)),
-                       colwidths = c(5))
+  ft <- flextable::add_header_row(ft, top = TRUE,
+                                  values = c(get_method_robmed(test_model)),
+                                  colwidths = c(5))
   ft <- hline(ft, i = path_values, border = NULL, part = "body")
 
 
@@ -1098,7 +1092,7 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
                              as_sub(number),
                              as_chunk(")"))
 
-    # Subscript has been added, now change the arrow
+    # Add text with subscript
     ft <- flextable::compose(ft, i = row, j = 1, value = new_text)
   }
 
@@ -1106,11 +1100,11 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
   for (row in c((start_merge + 1):nrow(df_stacked))) {
     original_text <- df_stacked[row, 1]
     new_text <- sub(pattern = "->", replacement = "\U2192", x = original_text)
+
+    # Set character in chunk so that it can be put into flextable
     new_text <- as_paragraph(as_chunk(new_text))
     ft <- flextable::compose(ft, i = row, j = 1, value = new_text)
   }
-
-
 
   ft <- autofit(ft)
 
@@ -1122,7 +1116,7 @@ to_flextable.test_mediation <- function(test_model, digits = 4, p_values = T) {
 # on name objects
 to_flextable.name <- function(test_model, digits = 4,
                               p_values = T, ...) {
-  tryCatch({model <- get(x = test_model)},
+  tryCatch({model <- get(x = test_model, .GlobalEnv)},
            error = function(cond) {
              message(paste("No object with name", test_model))
              return(NA)
@@ -1281,13 +1275,17 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
       indirect_effects <- list()
 
       if (length(sm$m) >= 1) {
+        # add 1 to the list
         indirect_effects <- append(indirect_effects, list(1))
       }
       if (length(sm$m) >= 2) {
+        # add 2 and possible permutations of 1 and 2
         indirect_effects <- append(indirect_effects, list(c(2)))
         indirect_effects <- append(indirect_effects, list(c(1:2)))
       }
       if (length(sm$m) == 3) {
+        # add 3 and possible choices from 1,2,3 where the numbers are ordered
+
         indirect_effects <- append(indirect_effects, list(c(3)))
         indirect_effects <- append(indirect_effects, list(c(1,3)))
         indirect_effects <- append(indirect_effects, list(c(2:3)))
@@ -1295,7 +1293,8 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
       }
 
       for (effect in indirect_effects) {
-        effectname <- paste(reg, paste0(sm$m[effect], collapse = "->"), sep = "->")
+        effectname <- paste(reg, paste0(sm$m[effect], collapse = "->"),
+                            sep = "->")
 
         if (length(sm$x) == 1) {
           effectname <- gsub(pattern = paste0(reg,"->"),
@@ -1303,7 +1302,7 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
                              x = effectname)
         }
 
-        df_ind[row,1] <- paste(effectname, '(Indirect)')
+        df_ind[row,1] <- paste(effectname, "(Indirect)")
 
         if (length(sm$m) > 1) {
             df_ind[row, 2] <- test_model$indirect[effectname][[1]]
@@ -1381,8 +1380,10 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
   }
 
   # Create the table from the dataframes and round columns
-  df_rounded <- data.frame(lapply(df_dir, function(y) if(is.numeric(y)) round(y, digits) else y))
-  df_ind_rounded <- data.frame(lapply(df_ind, function(y) if(is.numeric(y)) round(y, digits) else y))
+  df_rounded <- data.frame(lapply(df_dir, function(y) {
+    if(is.numeric(y)) round(y, digits) else y}))
+  df_ind_rounded <- data.frame(lapply(df_ind, function(y) {
+    if(is.numeric(y)) round(y, digits) else y}))
 
   colnames(df_ind_rounded) <- c("Indirect Effects", "Estimate",
                                 "Confidence Interval", "p-value")
@@ -1406,7 +1407,8 @@ prep_data_table <- function(test_model, digits = 4, p_values = T) {
 
   # Set colnames equal so that rbind can be applied
   colnames(df_dir_merge) <- colnames(df_ind_merge)
-  df_dir_merge <- data.frame(apply(df_dir_merge, FUN = as.character, MARGIN = 2))
+  df_dir_merge <- data.frame(apply(df_dir_merge, FUN = as.character,
+                                   MARGIN = 2))
 
   df_stacked <- rbind(df_dir_merge, df_ind_merge)
   colnames(df_stacked) <- c("Direct Effects", "Estimate", "Std. Error",
@@ -1419,7 +1421,7 @@ get_method_robmed <- function(test_model) {
   # TODO implement this function to return the proper method type for different
   # methods included in robmed based on robust, method, and family attributes
   if (test_model$fit$robust %in% c("MM", TRUE)) {
-    return("ROBMED")
+    return("robmed")
   } else {
     return("OLS Bootstrap")
   }

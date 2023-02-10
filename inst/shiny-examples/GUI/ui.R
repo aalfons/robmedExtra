@@ -44,12 +44,12 @@ shinyUI(fluidPage(
     tabPanel("Model",
              sidebarLayout(
                sidebarPanel(
-                 uiOutput('selectUI'),
-                 uiOutput('selectResponse'),
-                 uiOutput('selectExplanatory'),
-                 uiOutput('selectMediator'),
-                 uiOutput('selectControls'),
-                 uiOutput('ui_model_type')
+                 uiOutput("selectUI"),
+                 uiOutput("selectResponse"),
+                 uiOutput("selectExplanatory"),
+                 uiOutput("selectMediator"),
+                 uiOutput("selectControls"),
+                 uiOutput("ui_model_type")
                ),
                mainPanel(
                  h2("Notation"),
@@ -144,10 +144,10 @@ shinyUI(fluidPage(
                  sliderInput("ConfidenceOLS", "Confidence level",
                              min = 0, max = 1, value = 0.95),
                  numericInput('boot_samplesOLS',
-                              label = 'Number of bootstrap samples',
+                              label = "Number of bootstrap samples",
                               value = 5000),
                  h2("Random Number Generator"),
-                 numericInput('seedOLS', label = 'Seed', value = NULL),
+                 numericInput("seedOLS", label = 'Seed', value = NULL),
                  textInput(inputId = 'rng_version_ols', label = 'Version',
                            value = as.character(getRversion())
                            )
