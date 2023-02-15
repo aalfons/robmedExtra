@@ -1,6 +1,10 @@
 # robmedExtra: Extra Functionality for (Robust) Mediation Analysis
 
-This companion package extends package [`robmed`](https://github.com/aalfons/robmed) in various ways.  Most notably, it provides a graphical user interface for the robust bootstrap test ROBMED ([Alfons, Ates & Groenen, 2022a](https://doi.org/10.1177/1094428121999096)) to make the method more accessible to less proficient `R` users, as well as a function to export the results as a Microsoft Word table. Furthermore, the package contains a shiny app to compare various bootstrap procedures for mediation analysis on simulated data.
+This companion package extends package [`robmed`](https://github.com/aalfons/robmed) in various ways.  Most notably, it provides:
+
+- A graphical user interface (GUI) for the robust bootstrap test ROBMED ([Alfons, Ates & Groenen, 2022a](https://doi.org/10.1177/1094428121999096)) to make the method more accessible to less proficient `R` users, implemented as a `shiny` app. The GUI allows to easily export results for reporting, including a replication file in the form of an `R` script.
+- Functions to export the results from mediation analysis as a Microsoft Word table or `LaTeX` table.
+- A `shiny` app to compare various bootstrap procedures for mediation analysis on simulated data.
 
 To cite the robust bootstrap test ROBMED, please use:
 
@@ -26,7 +30,7 @@ The latest (possibly unstable) development version in this repository can be ins
 
 ```
 install.packages("devtools")
-devtools::install_github("aalfons/robmedShiny")
+devtools::install_github("aalfons/robmedExtra")
 ```
 
 If you already have package `devtools` installed, you can skip the first line.
@@ -34,7 +38,7 @@ If you already have package `devtools` installed, you can skip the first line.
 
 ## Report issues and request features
 
-If you experience any bugs or issues or if you have any suggestions for additional features, please submit an issue via the [*Issues*](https://github.com/aalfons/robmedShiny/issues) tab of this repository.  Please have a look at existing issues first to see if your problem or feature request has already been discussed.
+If you experience any bugs or issues or if you have any suggestions for additional features, please submit an issue via the [*Issues*](https://github.com/aalfons/robmedExtra/issues) tab of this repository.  Please have a look at existing issues first to see if your problem or feature request has already been discussed.
 
 
 ## Contribute to the package
