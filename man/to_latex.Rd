@@ -21,3 +21,13 @@ the results of the test_mediation object.
 Generates LaTeX code that displays a table containing results of mediation
 analyis.
 }
+\examples{
+data("BSG2014")
+
+boot_robust <- test_mediation(TeamCommitment ~
+                                m(TaskConflict) +
+                                  ValueDiversity,
+                              data = BSG2014)
+to_latex(boot_robust)
+
+}

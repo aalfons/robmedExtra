@@ -4,7 +4,7 @@
 \alias{to_flextable}
 \title{Create flextable from mediation test}
 \usage{
-to_flextable(test_model, ...)
+to_flextable(object, ...)
 }
 \arguments{
 \item{test_model}{an object inheriting from class

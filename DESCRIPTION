@@ -14,7 +14,8 @@ Imports:
     graphics,
     officer,
     stats,
-    vroom
+    vroom,
+    xtable
 Description: This companion package extends package 'robmed' (Alfons, Ates & Groenen, 2022b; <doi:10.18637/jss.v103.i13>) in various ways.  Most notably, it provides a graphical user interface for the robust bootstrap test ROBMED (Alfons, Ates & Groenen, 2022a; <doi:10.1177/1094428121999096>) to make the method more accessible to less proficient R users, as well as a function to export the results as a Microsoft Word table. Furthermore, the package contains a shiny app to compare various bootstrap procedures for mediation analysis on simulated data.
 License: GPL (>= 3)
 URL: https://github.com/aalfons/robmedExtra
@@ -38,4 +39,4 @@ Author:
     Aurore Archimbaud [aut] (<https://orcid.org/0000-0002-6511-9091>) 
 Maintainer: Andreas Alfons <alfons@ese.eur.nl>
 Encoding: UTF-8
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3

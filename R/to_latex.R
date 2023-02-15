@@ -11,7 +11,7 @@
 #' @return A character object containing the latex code that produces a table of
 #' the results of the test_mediation object.
 #'
-#' @example
+#' @examples
 #' data("BSG2014")
 #'
 #' boot_robust <- test_mediation(TeamCommitment ~
