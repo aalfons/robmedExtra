@@ -4,8 +4,9 @@
 # ------------------------------------
 
 
-## internal functions to extract effects from regression summaries
-
+## internal functions to extract effects from results and summaries of
+## mediation analysis
+## TODO: code to construct labels is rather ugly
 
 # extract effect(s) for a path for one independent variable
 .extract_a <- function(x, fit) {
@@ -143,4 +144,100 @@ extract_total <- function(object) {
   rownames(total) <- paste0(label_x, "->Y (", label_total, ")")
   # return effect(s)
   total
+}
+
+# extract indirect effect(s) from bootstrap methods: information needs to be
+# collected from different components of an object of class "test_mediation",
+# in the same way as in the corresponding print() method
+extract_indirect <- function(object) {
+  # initializations
+  p_x <- length(object$fit$x)
+  p_m <- length(object$fit$m)
+  model <- object$fit$model
+  have_simple <- is.null(model) || model == "simple"
+  # extract effect(s)
+  if (inherits(object, "boot_test_mediation")) {
+    indirect <- cbind(Data = object$fit$indirect, Boot = object$indirect,
+                      if (have_simple) t(object$ci) else object$ci)
+  } else {
+    indirect <- cbind(object$fit$indirect, object$se,
+                      object$statistic, object$p_value)
+    cn <- switch(object$alternative, twosided = "Pr(>|z|)",
+                 less = "Pr(<z)", greater = "Pr(>z)")
+    colnames(indirect) <- c("Estimate", "Std. Error", "z value", cn)
+  }
+  # construct labels
+  if (have_simple) {
+    # simple mediation model
+    label_x <- "X"
+    label_m <- "M"
+    label_indirect <- "ab"
+  } else if (model == "parallel") {
+    # parallel mediators
+    seq_m <- seq_len(p_m)
+    if (p_x == 1) {
+      # one independent variable
+      label_x <- rep("X", times = p_m + 1L)
+      label_m <- c("...", paste0("M", seq_m))
+      label_indirect <- c("total", paste0("a", seq_m, "b", seq_m))
+    } else {
+      # multiple independent variables
+      seq_x <- seq_len(p_x)
+      label_x <- rep(paste0("X", seq_x), each = p_m + 1L)
+      label_m <- rep(c("...", paste0("M", seq_m)), times = p_x)
+      label_indirect <- sapply(
+        seq_x, function(j, label) sprintf(label, j),
+        label = c("total", paste0("a", seq_m, "%db", seq_m))
+      )
+    }
+  } else if (model == "serial") {
+    # serial mediators
+    if (p_x == 1) {
+      # one independent variable
+      if (p_m == 2L) {
+        label_x <- rep("X", times = 4L)
+        label_m <- c("...", "M1", "M2", "M1->M2")
+        label_indirect <- c("total", "a1b1", "a2b2", "a1d21b2")
+      } else {
+        label_x <- rep("X", times = 8L)
+        label_m <- c("...", "M1", "M2", "M3", "M1->M2",
+                     "M1->M3", "M2->M3", "M1->M2->M3")
+        label_indirect <- c("total", "a1b1", "a2b2", "a3b3", "a1d21b2",
+                            "a1d31b3", "a2d32b3", "a1d21d32b3")
+      }
+    } else {
+      # multiple independent variables
+      seq_x <- seq_len(p_x)
+      if (p_m == 2L) {
+        label_x <- rep(paste0("X", seq_x), each = 4L)
+        label_m <- rep(c("...", "M1", "M2", "M1->M2"), times = p_x)
+        label_indirect <- sapply(
+          seq_x, function(j, label) sprintf(label, j),
+          label = c("total", "a1%db1", "a2%db2", "a1%dd21b2")
+        )
+      } else {
+        label_x <- rep(paste0("X", seq_x), each = 8L)
+        label_m <- rep(c("...", "M1", "M2", "M3", "M1->M2",
+                         "M1->M3", "M2->M3", "M1->M2->M3"),
+                       times = p_x)
+        label_indirect <- sapply(
+          seq_x, function(j, label) sprintf(label, j),
+          label = c("total", "a1%db1", "a2%db2", "a3%db3", "a1%dd21b2",
+                    "a1%dd31b3", "a2%dd32b3", "a1%dd21d32b3")
+        )
+      }
+    }
+  } else {
+    # single mediator but multiple independent variables
+    seq_x <- seq_len(p_x)
+    label_x <- paste0("X", seq_x)
+    label_m <- "M"
+    label_indirect <- paste0("ab", seq_x)
+  }
+
+  # add labels
+  rownames(indirect) <- paste0(label_x, "->", label_m, "->Y (",
+                               label_indirect, ")")
+  # return effect(s)
+  indirect
 }
