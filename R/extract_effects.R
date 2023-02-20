@@ -6,20 +6,95 @@
 
 # convert object containing results from mediation analysis to list of tables
 # for total, direct, and indirect effects
-to_mediation_tables <- function(object, ...) {
+get_mediation_tables <- function(object, type = c("boot", "data"),
+                                digits = 3L, ...) {
+  # initializations
+  have_boot <- inherits(object, "boot_test_mediation")
+  if (have_boot) {
+    type <- match.arg(type)
+    level <- object$level
+  } else {
+    type <- "data"
+    level <- NULL
+  }
   # compute summary
-  summary <- summary(object, ...)
-  # extract data frames containing effect summaries
+  summary <- summary(object, type = type, plot = FALSE)
+  # extract matrices containing effect summaries
   df_total <- extract_total(summary)
-  df_a <- extract_a(summary)
-  df_d <- extract_d(summary)
-  df_b <- extract_b(summary)
-  df_direct <- extract_direct(summary)
+  df_direct <- rbind(extract_a(summary),
+                     extract_d(summary),
+                     extract_b(summary),
+                     extract_direct(summary))
   df_indirect <- extract_indirect(object)
+  # convert matrices to data frames
+  df_total <- to_effect_table(df_total, type = type, digits = digits,
+                              label = "Total Effect")
+  df_direct <- to_effect_table(df_direct, type = type, digits = digits,
+                               label = "Direct Effect")
+  df_indirect <- to_indirect_table(df_indirect, level = level, digits = digits)
   # return list of tables
-  list(total = df_total,
-       direct = rbind(df_a, df_d, df_b, df_direct),
-       indirect = df_indirect)
+  list(total = df_total, direct = df_direct, indirect = df_indirect)
+}
+
+
+# internal function to convert matrix of effect summaries to data frame
+to_effect_table <- function(object, type = "boot", digits = 3L,
+                            label = "Effect") {
+  # make sure label is in plural if we have multiple effects in the table
+  plural <- if (nrow(object) > 1) "s" else ""
+  label <- paste0(label, plural)
+  # extract relevant information
+  if (type == "boot") {
+    keep <- colnames(object) != "Data"
+    object <- object[, keep, drop = FALSE]
+    statistic_label <- "z Statistic"
+  } else statistic_label <- "t Statistic"
+  # format numbers
+  object <- formatC(object, digits = digits, format = "f")
+  object <- gsub("NA", "  ", object, fixed = TRUE)
+  # convert to data frame and fix names
+  df <- data.frame(rownames(object), object, check.names = FALSE,
+                   fix.empty.names = FALSE, stringsAsFactors = FALSE)
+  names(df) <- c(label, "Estimate", "Std. Error", statistic_label, "p Value")
+  row.names(df) <- NULL
+  # return data frame
+  df
+}
+
+# internal function to convert matrix of indirect effect summary to data frame
+to_indirect_table <- function(object, level = 0.95, digits = 3L) {
+  # initializations
+  have_boot <- !is.null(level)
+  plural <- if (nrow(object) > 1) "s" else ""
+  label <- paste0("Indirect Effect", plural)
+  # extract relevant information
+  if (have_boot) {
+    keep <- colnames(object) != "Data"
+    object <- object[, keep, drop = FALSE]
+  }
+  # format numbers
+  object <- formatC(object, digits = digits, format = "f")
+  # construct data frame and fix column names
+  if (have_boot) {
+    # format confidence intervals and construct column name
+    ci <- paste0("(", object[, "Lower"], ", ", object[, "Upper"], ")")
+    ci_label <- paste0(format(100 * level, trim = TRUE),
+                       "% Confidence Interval")
+    # construct data frame
+    df <- data.frame(rownames(object), object[, 1L, drop = FALSE], ci,
+                     check.names = FALSE, fix.empty.names = FALSE,
+                     stringsAsFactors = FALSE)
+    # fix column names
+    names(df) <- c(label, "Estimate", ci_label)
+  } else {
+    # convert to data frame and fix names
+    df <- data.frame(rownames(object), object, check.names = FALSE,
+                     fix.empty.names = FALSE, stringsAsFactors = FALSE)
+    names(df) <- c(label, "Estimate", "Std. Error", "z Statistic", "p Value")
+  }
+  # fix row names and return data frame
+  row.names(df) <- NULL
+  df
 }
 
 
