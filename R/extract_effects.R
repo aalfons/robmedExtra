@@ -4,27 +4,35 @@
 # ------------------------------------
 
 
-## internal functions to extract effects from results and summaries of
-## mediation analysis
-## TODO: code to construct labels is rather ugly
-
-# extract effect(s) for a path for one independent variable
-.extract_a <- function(x, fit) {
-  if (inherits(fit, "list")) {
-    # multiple mediators
-    coef_list <- lapply(fit, function(current_fit) {
-      coef(current_fit)[x, , drop = FALSE]
-    })
-    do.call(rbind, coef_list)
-  } else {
-    # only one mediator
-    coef(fit)[x, , drop = FALSE]
-  }
+# convert object containing results from mediation analysis to list of tables
+# for total, direct, and indirect effects
+to_mediation_tables <- function(object, ...) {
+  # compute summary
+  summary <- summary(object, ...)
+  # extract data frames containing effect summaries
+  df_total <- extract_total(summary)
+  df_a <- extract_a(summary)
+  df_d <- extract_d(summary)
+  df_b <- extract_b(summary)
+  df_direct <- extract_direct(summary)
+  df_indirect <- extract_indirect(object)
+  # return list of tables
+  list(total = df_total,
+       direct = rbind(df_a, df_d, df_b, df_direct),
+       indirect = df_indirect)
 }
 
-# extract effect(s) for a path
-extract_a <- function(x, m, fit) {
+
+## internal functions to extract effects from results and summaries of
+## mediation analysis (code to construct labels is rather ugly)
+
+# extract effect(s) for a path from summary object
+extract_a <- function(object) {
   # initializations
+  fit <- object$summary$fit_mx
+  object <- object$object
+  x <- object$fit$x
+  m <- object$fit$m
   p_x <- length(x)
   p_m <- length(m)
   # extract effect(s) for each independent variable
@@ -66,9 +74,53 @@ extract_a <- function(x, m, fit) {
   a
 }
 
-# extract effect(s) for b path
-extract_b <- function(m, fit) {
+# extract effect(s) for a path for one independent variable
+.extract_a <- function(x, fit) {
+  if (inherits(fit, "list")) {
+    # multiple mediators
+    coef_list <- lapply(fit, function(current_fit) {
+      coef(current_fit)[x, , drop = FALSE]
+    })
+    do.call(rbind, coef_list)
+  } else {
+    # only one mediator
+    coef(fit)[x, , drop = FALSE]
+  }
+}
+
+# extract effect(s) for d path (if existing) from summary object
+extract_d <- function(object) {
   # initializations
+  fit_list <- object$summary$fit_mx
+  object <- object$object
+  m <- object$fit$m
+  p_m <- length(m)
+  model <- object$fit$model
+  have_serial <- !is.null(model) && model == "serial"
+  # currently only implemented for two or three hypothesized mediators
+  if (have_serial) {
+    # only implemented for two or three serial mediators
+    if (p_m == 2L) {
+      # two serial mediators
+      d <- coef(fit_list[[m[2L]]])[m[1L], , drop = FALSE]
+      rownames(d) <- "M1->M2 (d21)"
+    } else if (p_m == 3L) {
+      # three serial mediators
+      d <- rbind(coef(fit_list[[m[2L]]])[m[1L], , drop = FALSE],
+                 coef(fit_list[[m[3L]]])[m[1L:2L], ])
+      rownames(d) <- c("M1->M2 (d21)", "M1->M3 (d31)", "M2->M3 (d32)")
+    }
+  } else d <- NULL
+  # return effect(s)
+  d
+}
+
+# extract effect(s) for b path from summary object
+extract_b <- function(object) {
+  # initializations
+  fit <- object$summary$fit_ymx
+  object <- object$object
+  m <- object$fit$m
   p_m <- length(m)
   # extract effect(s)
   b <- coef(fit)[m, , drop = FALSE]
@@ -87,27 +139,8 @@ extract_b <- function(m, fit) {
   b
 }
 
-# extract effect(s) for d path
-extract_d <- function(m, fit_list) {
-  # initializations
-  p_m <- length(m)
-  # currently only implemented for two or three hypothesized mediators
-  if (p_m == 2L) {
-    # two serial mediators
-    d <- coef(fit_list[[m[2L]]])[m[1L], , drop = FALSE]
-    rownames(d) <- "M1->M2 (d21)"
-  } else if (p_m == 3L) {
-    # three serial mediators
-    d <- rbind(coef(fit_list[[m[2L]]])[m[1L], , drop = FALSE],
-               coef(fit_list[[m[3L]]])[m[1L:2L], ])
-    rownames(d) <- c("M1->M2 (d21)", "M1->M3 (d31)", "M2->M3 (d32)")
-  } else d <- NULL
-  # return effect(s)
-  d
-}
-
-# extract direct effect(s): this is easier since they are stored in a specific
-# component of the summary object
+# extract direct effect(s) of X on Y: this is easier since they are stored
+# in a specific component of the summary object
 extract_direct <- function(object) {
   # extract effect(s)
   direct <- object$summary$direct
@@ -126,8 +159,8 @@ extract_direct <- function(object) {
   direct
 }
 
-# extract total effect(s): this is easier since they are stored in a specific
-# component of the summary object
+# extract total effect(s) of X on Y: this is easier since they are stored
+# in a specific component of the summary object
 extract_total <- function(object) {
   # extract effect(s)
   total <- object$summary$total
@@ -146,9 +179,9 @@ extract_total <- function(object) {
   total
 }
 
-# extract indirect effect(s) from bootstrap methods: information needs to be
-# collected from different components of an object of class "test_mediation",
-# in the same way as in the corresponding print() method
+# extract indirect effect(s) of X on Y: information needs to be collected from
+# different components of an object of class "test_mediation", in the same way
+# as in the corresponding print() method
 extract_indirect <- function(object) {
   # initializations
   p_x <- length(object$fit$x)
