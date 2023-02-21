@@ -8,7 +8,7 @@
 ## for total, direct, indirect effects, and additional information: this does
 ## the heavy lifting for to_flextable() and to_latex()
 get_mediation_tables <- function(object, type = c("boot", "data"),
-                                digits = 3L, ...) {
+                                digits = 3L, p_value = FALSE, ...) {
   # initializations
   have_boot <- inherits(object, "boot_test_mediation")
   if (have_boot) {
@@ -27,12 +27,16 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
                      extract_b(summary),
                      extract_direct(summary))
   df_indirect <- extract_indirect(object)
+  if (have_boot && p_value) {
+    p_value_indirect <- p_value(object, parm = "indirect", digits = digits)
+  } else p_value_indirect <- NULL
   # convert matrices to data frames
-  df_total <- to_effect_table(df_total, type = type, digits = digits,
+  df_total <- to_effect_table(df_total, digits = digits, type = type,
                               label = "Total Effect")
-  df_direct <- to_effect_table(df_direct, type = type, digits = digits,
+  df_direct <- to_effect_table(df_direct, digits = digits, type = type,
                                label = "Direct Effect")
-  df_indirect <- to_indirect_table(df_indirect, level = level, digits = digits)
+  df_indirect <- to_indirect_table(df_indirect, digits = digits, level = level,
+                                   p_value = p_value_indirect)
   # add notes on variables, sample size, and number of bootstrap replicates
   x <- object$fit$x
   p_x <- length(x)
@@ -327,7 +331,7 @@ extract_indirect <- function(object) {
 
 
 ## convert matrix of effect summaries to data frame
-to_effect_table <- function(object, type = "boot", digits = 3L,
+to_effect_table <- function(object, digits = 3L, type = "boot",
                             label = "Effect") {
   # make sure label is in plural if we have multiple effects in the table
   plural <- if (nrow(object) > 1) "s" else ""
@@ -351,9 +355,11 @@ to_effect_table <- function(object, type = "boot", digits = 3L,
 }
 
 ## convert matrix of indirect effect summary to data frame
-to_indirect_table <- function(object, level = 0.95, digits = 3L) {
+to_indirect_table <- function(object, digits = 3L, level = 0.95,
+                              p_value = NULL) {
   # initializations
   have_boot <- !is.null(level)
+  have_p_value <- !is.null(p_value)
   plural <- if (nrow(object) > 1) "s" else ""
   label <- paste0("Indirect Effect", plural)
   # extract relevant information
@@ -375,6 +381,7 @@ to_indirect_table <- function(object, level = 0.95, digits = 3L) {
                      stringsAsFactors = FALSE)
     # fix column names
     names(df) <- c(label, "Estimate", ci_label)
+    if (have_p_value) df <- cbind(df, "p Value" = p_value)
   } else {
     # convert to data frame and fix column names
     df <- data.frame(rownames(object), object, check.names = FALSE,
