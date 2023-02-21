@@ -27,6 +27,7 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
                      extract_b(summary),
                      extract_direct(summary))
   df_indirect <- extract_indirect(object)
+  # if requested, compute p values of bootstrap tests for indirect effects
   if (have_boot && p_value) {
     p_value_indirect <- p_value(object, parm = "indirect", digits = digits)
   } else p_value_indirect <- NULL
@@ -37,33 +38,14 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
                                label = "Direct Effect")
   df_indirect <- to_indirect_table(df_indirect, digits = digits, level = level,
                                    p_value = p_value_indirect)
-  # add notes on variables, sample size, and number of bootstrap replicates
-  x <- object$fit$x
-  p_x <- length(x)
-  m <- object$fit$m
-  p_m <- length(m)
-  y <- object$fit$y
-  covariates <- object$fit$covariates
-  if (length(covariates) == 0L) suffix <- ""
-  else {
-    suffix <- paste0("; control variables: ",
-                     paste(covariates, collapse = ", "))
-  }
-  independent <- paste0(x, " (X", if (p_x > 1L) seq_len(p_x), ")")
-  mediators <- paste0(m, " (M", if (p_m > 1L) seq_len(p_m), ")")
-  variable_info <- paste0("Independent variable", if (p_x > 1L) "s", ": ",
-                          paste(independent, collapse = ", "), "; ",
-                          "hypothesized mediator", if (p_m > 1L) "s", ": ",
-                          paste(mediators, collapse = ", "), "; ",
-                          "dependent variable: ", y, " (Y)",
-                          suffix, ".")
-  sample_info <- sprintf("Sample size = %d.", summary$summary$n)
-  boot_info <- if (have_boot) {
-    sprintf("Number of bootstrap replicates = %d.", object$R)
-  }
+  # construct note on variables, sample size, and number of bootstrap samples
+  variable_info <- do.call(get_variable_info,
+                           summary$summary[c("x", "m", "y", "covariates")])
+  sample_info <- get_sample_info(summary$summary$n)
+  boot_info <- if (have_boot) get_boot_info(object$R)
   # return list of tables
   list(total = df_total, direct = df_direct, indirect = df_indirect,
-       notes = c(variable_info, sample_info, boot_info))
+       note = c(variable_info, sample_info, boot_info))
 }
 
 
@@ -405,4 +387,45 @@ convert_column_names <- function(object) {
   cn[substr(cn, 1L, 3L) == "Pr("] <- "p Value"
   # return column names
   cn
+}
+
+
+## internal functions to get information for table caption
+
+get_variable_info <- function(x, m, y, covariates = character()) {
+  # initializations
+  p_x <- length(x)
+  p_m <- length(m)
+  sep <- if (p_x == 1L && p_m == 1L) ", " else "; "
+  # construct text string with information on variables
+  if (length(covariates) == 0L) covariate_info <- ""
+  else {
+    covariate_info <- paste0(sep, "control variables: ",
+                             paste(covariates, collapse = ", "))
+  }
+  independent <- paste0(x, " (X", if (p_x > 1L) seq_len(p_x), ")")
+  mediators <- paste0(m, " (M", if (p_m > 1L) seq_len(p_m), ")")
+  paste0("Independent variable", if (p_x > 1L) "s", ": ",
+         paste(independent, collapse = ", "), sep,
+         "hypothesized mediator", if (p_m > 1L) "s", ": ",
+         paste(mediators, collapse = ", "), sep,
+         "dependent variable: ", y, " (Y)",
+         covariate_info, ".")
+}
+
+# get_sample_info <- function(n, R = NULL) {
+#   # construct text string with information on bootstrap samples
+#   if (is.null(R)) boot_info <- ""
+#   else {
+#     boot_info <- paste(", and the number of bootstrap samples is",
+#                        formatC(R, big.mark = ","))
+#   }
+#   # combine with information on sample size
+#   paste0("The sample size is n=", n, boot_info, ".")
+# }
+
+get_sample_info <- function(n) sprintf("Sample size = %d.", n)
+
+get_boot_info <- function(R) {
+  paste0("Number of bootstrap samples = ", formatC(R, big.mark = ","), ".")
 }
