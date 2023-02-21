@@ -63,87 +63,33 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
 }
 
 
-## internal function to convert matrix of effect summaries to data frame
-to_effect_table <- function(object, type = "boot", digits = 3L,
-                            label = "Effect") {
-  # make sure label is in plural if we have multiple effects in the table
-  plural <- if (nrow(object) > 1) "s" else ""
-  label <- paste0(label, plural)
-  # extract relevant information
-  if (type == "boot") {
-    keep <- colnames(object) != "Data"
-    object <- object[, keep, drop = FALSE]
-    statistic_label <- "z Statistic"
-  } else statistic_label <- "t Statistic"
-  # format numbers
-  object <- formatC(object, digits = digits, format = "f")
-  object <- gsub("NA", "  ", object, fixed = TRUE)
-  # convert to data frame and fix names
-  df <- data.frame(rownames(object), object, check.names = FALSE,
-                   fix.empty.names = FALSE, stringsAsFactors = FALSE)
-  names(df) <- c(label, "Estimate", "Std. Error", statistic_label, "p Value")
-  row.names(df) <- NULL
-  # return data frame
-  df
-}
-
-## internal function to convert matrix of indirect effect summary to data frame
-to_indirect_table <- function(object, level = 0.95, digits = 3L) {
-  # initializations
-  have_boot <- !is.null(level)
-  plural <- if (nrow(object) > 1) "s" else ""
-  label <- paste0("Indirect Effect", plural)
-  # extract relevant information
-  if (have_boot) {
-    keep <- colnames(object) != "Data"
-    object <- object[, keep, drop = FALSE]
-  }
-  # format numbers
-  object <- formatC(object, digits = digits, format = "f")
-  # construct data frame and fix column names
-  if (have_boot) {
-    # format confidence intervals and construct column name
-    ci <- paste0("(", object[, "Lower"], ", ", object[, "Upper"], ")")
-    ci_label <- paste0(format(100 * level, trim = TRUE),
-                       "% Confidence Interval")
-    # construct data frame
-    df <- data.frame(rownames(object), object[, 1L, drop = FALSE], ci,
-                     check.names = FALSE, fix.empty.names = FALSE,
-                     stringsAsFactors = FALSE)
-    # fix column names
-    names(df) <- c(label, "Estimate", ci_label)
-  } else {
-    # convert to data frame and fix names
-    df <- data.frame(rownames(object), object, check.names = FALSE,
-                     fix.empty.names = FALSE, stringsAsFactors = FALSE)
-    names(df) <- c(label, "Estimate", "Std. Error", "z Statistic", "p Value")
-  }
-  # fix row names and return data frame
-  row.names(df) <- NULL
-  df
-}
-
-
 ## internal functions to extract effects from results and summaries of
 ## mediation analysis (code to construct labels is rather ugly)
 
 # extract effect(s) for a path from summary object
 extract_a <- function(object) {
   # initializations
-  fit <- object$summary$fit_mx
+  summary <- object$summary
   object <- object$object
   x <- object$fit$x
   m <- object$fit$m
   p_x <- length(x)
   p_m <- length(m)
   # extract effect(s) for each independent variable
-  if (p_x == 1L) {
-    # only one independent variable
-    a <- .extract_a(x, fit)
+  if (inherits(summary, "summary_reg_fit_mediation")) {
+    # mediation model fitted via regressions
+    if (p_x == 1L) {
+      # only one independent variable
+      a <- .extract_a(x, summary$fit_mx)
+    } else {
+      # multiple independent variables
+      a_list <- lapply(x, .extract_a, summary$fit_mx)
+      a <- do.call(rbind, a_list)
+    }
   } else {
-    # multiple independent variables
-    a_list <- lapply(x, .extract_a, fit)
-    a <- do.call(rbind, a_list)
+    # if the mediation model is fitted via the covariance matrix, we already
+    # have the relevant information in a component of the summary object
+    a <- summary$a
   }
   # construct labels
   seq_x <- seq_len(p_x)
@@ -219,13 +165,14 @@ extract_d <- function(object) {
 # extract effect(s) for b path from summary object
 extract_b <- function(object) {
   # initializations
-  fit <- object$summary$fit_ymx
+  summary <- object$summary
   object <- object$object
   m <- object$fit$m
   p_m <- length(m)
   # extract effect(s)
-  b <- coef(fit)[m, , drop = FALSE]
-  rownames(b) <- NULL
+  if (inherits(summary, "summary_reg_fit_mediation")) {
+    b <- coef(summary$fit_ymx)[m, , drop = FALSE]
+  } else b <- summary$b
   # add labels
   if (p_m == 1L) {
     label_m <- "M"
@@ -289,6 +236,9 @@ extract_indirect <- function(object) {
   p_m <- length(object$fit$m)
   model <- object$fit$model
   have_simple <- is.null(model) || model == "simple"
+  contrast <- object$fit$contrast
+  if (is.null(contrast)) contrast <- FALSE
+  if (contrast) stop("pairwise contrasts of indirect effects not yet supported")
   # extract effect(s)
   if (inherits(object, "boot_test_mediation")) {
     indirect <- cbind(Data = object$fit$indirect, Boot = object$indirect,
@@ -368,10 +318,84 @@ extract_indirect <- function(object) {
     label_m <- "M"
     label_indirect <- paste0("ab", seq_x)
   }
-
   # add labels
   rownames(indirect) <- paste0(label_x, "->", label_m, "->Y (",
                                label_indirect, ")")
   # return effect(s)
   indirect
+}
+
+
+## convert matrix of effect summaries to data frame
+to_effect_table <- function(object, type = "boot", digits = 3L,
+                            label = "Effect") {
+  # make sure label is in plural if we have multiple effects in the table
+  plural <- if (nrow(object) > 1) "s" else ""
+  label <- paste0(label, plural)
+  # extract relevant information
+  if (type == "boot") {
+    # use bootstrap estimates and  corresponding z tests
+    keep <- colnames(object) != "Data"
+    object <- object[, keep, drop = FALSE]
+  }
+  # format numbers and replace missing values
+  object <- formatC(object, digits = digits, format = "f")
+  object <- gsub("NA", "  ", object, fixed = TRUE)
+  # convert to data frame and fix names
+  df <- data.frame(rownames(object), object, check.names = FALSE,
+                   fix.empty.names = FALSE, stringsAsFactors = FALSE)
+  names(df) <- c(label, convert_column_names(object))
+  row.names(df) <- NULL
+  # return data frame
+  df
+}
+
+## convert matrix of indirect effect summary to data frame
+to_indirect_table <- function(object, level = 0.95, digits = 3L) {
+  # initializations
+  have_boot <- !is.null(level)
+  plural <- if (nrow(object) > 1) "s" else ""
+  label <- paste0("Indirect Effect", plural)
+  # extract relevant information
+  if (have_boot) {
+    keep <- colnames(object) != "Data"
+    object <- object[, keep, drop = FALSE]
+  }
+  # format numbers
+  object <- formatC(object, digits = digits, format = "f")
+  # construct data frame and fix column names
+  if (have_boot) {
+    # format confidence intervals and construct column name
+    ci <- paste0("(", object[, "Lower"], ", ", object[, "Upper"], ")")
+    ci_label <- paste0(format(100 * level, trim = TRUE),
+                       "% Confidence Interval")
+    # construct data frame
+    df <- data.frame(rownames(object), object[, "Boot", drop = FALSE], ci,
+                     check.names = FALSE, fix.empty.names = FALSE,
+                     stringsAsFactors = FALSE)
+    # fix column names
+    names(df) <- c(label, "Estimate", ci_label)
+  } else {
+    # convert to data frame and fix column names
+    df <- data.frame(rownames(object), object, check.names = FALSE,
+                     fix.empty.names = FALSE, stringsAsFactors = FALSE)
+    names(df) <- c(label, convert_column_names(object))
+  }
+  # fix row names and return data frame
+  row.names(df) <- NULL
+  df
+}
+
+
+## convert column names from R style to nicer names for tables
+convert_column_names <- function(object) {
+  # extract column names
+  cn <- colnames(object)
+  # convert R-style names to nicer ones
+  cn[cn == "Boot"] <- "Estimate"
+  cn[cn == "z value"] <- "z Statistic"
+  cn[cn == "t value"] <- "t Statistic"
+  cn[substr(cn, 1L, 3L) == "Pr("] <- "p Value"
+  # return column names
+  cn
 }
