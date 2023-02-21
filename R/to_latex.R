@@ -1,51 +1,74 @@
-#' Generate LaTeX code for table
-#'
-#' Generates LaTeX code that displays a table containing results of mediation
-#' analyis.
-#'
-#' @param test_model an object inheriting from class
-#' \code{"\link{test_mediation}"} or a list of objects of that class.
-#' @param digits a positive integer, which determines the number of decimals
-#' that should be displayed in the table. The default is to display 4 decimals.
-#'
-#' @return A character object containing the latex code that produces a table of
-#' the results of the test_mediation object.
-#'
-#' @examples
-#' data("BSG2014")
-#'
-#' boot_robust <- test_mediation(TeamCommitment ~
-#'                                 m(TaskConflict) +
-#'                                   ValueDiversity,
-#'                               data = BSG2014)
-#' to_latex(boot_robust)
-#'
-#' @importFrom xtable xtable print.xtable
-#'
-#' @export
-to_latex <- function(test_model, digits = 4) {
-  table <- to_flextable(test_model = test_model, digits = digits)
-  dataset <- table$body$data
-  indirect_start <- which(dataset[,1] == "Indirect Effects")
+# ------------------------------------
+# Author: Andreas Alfons
+#         Erasmus University Rotterdam
 
-  full_table <- xtable(dataset, align = "llcccc")
-  capture.output(final_table_character <- print(full_table, booktabs = T,
-                                                hline.after = (-1:nrow(dataset)),
-                                                include.rownames = F, type = "latex"))
 
-  final_table_character <- gsub(pattern = "(\\(-[^)]*\\))",
-                                replacement = paste0("\\\\multicolumn{2}{c}{",
-                                                     "\\1", "}"),
-                                x = final_table_character)
-
-  final_table_character <- gsub(pattern = "(Confidence Interval &  )",
-                                replacement = "\\\\multicolumn{2}{c}{Confidence Interval}",
-                                x = final_table_character)
-
-  final_table_character <- gsub(pattern = "&  &",
-                                replacement = "&",
-                                x = final_table_character)
-
-  cat(final_table_character, sep = "\n")
-  return(final_table_character)
+to_latex <- function(object, type = c("boot", "data"), digits = 3L,
+                     p_value = FALSE, align = "lrrrr", align_ci = "c",
+                     ...) {
+  # call workhorse function to format tables
+  tables <- get_mediation_tables(object, type = type, digits = digits,
+                                 p_value = p_value)
+  # add alignment specification and set class
+  tables$align <- align
+  tables$align_ci <- align_ci
+  class(tables) <- "latex_tables"
+  # return object for LaTeX tables
+  tables
 }
+
+
+print.latex_tables <- function(x, ...) {
+  # initialize LaTeX table
+  cat("\\begin{center}\n")
+  cat("\\begin{tabular}{", x$align, "}\n", sep = "")
+  cat("\\hline\\noalign{\\smallskip}\n")
+  # write table header for total effects
+  cat(paste(names(x$total), collapse = " & "), "\\\\ \n")
+  cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # write table body for total effects
+  total <- lapply(x$total, fix_cells)
+  lines <- paste(do.call(paste_amp, total), "\\\\ \n")
+  cat(lines, sep = "")
+  cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # write table header for direct effects
+  cat(paste(names(x$direct), collapse = " & "), "\\\\ \n")
+  cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # write table body for direct effects
+  direct <- lapply(x$direct, fix_cells)
+  lines <- paste(do.call(paste_amp, direct), "\\\\ \n")
+  cat(lines, sep = "")
+  cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # some preparations for table of indirect effects
+  indirect <- lapply(x$indirect, fix_cells)
+  cn <- names(indirect)
+  have_p_value <- "p Value" %in% cn
+  which_ci <- grep("Confidence Interval", cn, fixed = TRUE)
+  # write table header for indirect effects
+  cn[which_ci] <- paste0("\\multicolumn{",
+                         if (have_p_value) 2 else 3, "}{",
+                         x$align_ci, "}{",
+                         gsub("%", "\\%", cn[which_ci], fixed = TRUE),
+                         "}")
+  cat(paste(cn, collapse = " & "), "\\\\ \n")
+  cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # write table body for indirect effects
+  indirect[[which_ci]] <- paste0("\\multicolumn{",
+                                 if (have_p_value) 2 else 3, "}{",
+                                 x$align_ci, "}{", indirect[[which_ci]], "}")
+  lines <- paste(do.call(paste_amp, indirect), "\\\\ \n")
+  cat(lines, sep = "")
+  # finalize LaTeX table
+  cat("\\noalign{\\smallskip}\\hline\n")
+  cat("\\end{tabular}\n")
+  cat("\\end{center}\n")
+  # add note
+  cat("\\emph{Note}.", x$note)
+}
+
+# internal functions
+fix_cells <- function(x) {
+  x <-gsub("->", " \\rightarrow ", x, fixed = TRUE)
+  paste0("$", x, "$")
+}
+paste_amp <- function(..., sep = " & ") paste(..., sep = sep)

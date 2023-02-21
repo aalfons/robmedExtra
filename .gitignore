@@ -45,3 +45,7 @@ src/*.dll
 
 # MacOS system files
 *DS_Store
+
+# temporary files from latex test file
+dev/*.log
+dev/*.synctex.gz

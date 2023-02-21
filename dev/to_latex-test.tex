@@ -1,0 +1,71 @@
+\documentclass{article}
+
+% additional packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\hypersetup{colorlinks, citecolor=black, linkcolor=black, urlcolor=blue}
+% \usepackage{listings}
+\usepackage[round]{natbib}
+% \usepackage[onehalfspacing]{setspace}
+% \usepackage[doublespacing]{setspace}
+
+% new commands
+\newcommand{\boldtitle}[1]{\title{\textbf{\boldmath{#1}}}}
+\newcommand{\keywords}[1]{\medskip \par \noindent \textbf{Keywords}\quad #1}
+\newcommand{\mat}[1]{\boldsymbol{#1}}   % matrix
+\newcommand{\vect}[1]{\boldsymbol{#1}}  % vector
+\newcommand{\obs}[1]{\mathbf{#1}}		    % observation
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pkg}[1]{\texttt{#1}}
+\newcommand{\proglang}[1]{\textsf{#1}}
+
+
+\begin{document}
+
+
+% % knitr options
+% <<setup, include=FALSE, cache=FALSE>>=
+% library("knitr")
+% opts_chunk$set(fig.path="figures/figure-", fig.align="center")
+% options(prompt="R> ", continue="+  ", width=72, useFancyQuotes=FALSE)
+% @
+
+
+\begin{table}[h!]
+\caption{Results from mediation analysis for a simple mediation model.}
+% ----------
+\begin{center}
+\begin{tabular}{lrrrr}
+\hline\noalign{\smallskip}
+Total Effect & Estimate & Std. Error & z Statistic & p Value \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow Y (c')$ & $-0.043$ & $0.187$ & $-0.230$ & $0.818$ \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Direct Effects & Estimate & Std. Error & z Statistic & p Value \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M (a)$ & $0.321$ & $0.107$ & $2.996$ & $0.003$ \\
+$M \rightarrow Y (b)$ & $-0.337$ & $0.178$ & $-1.896$ & $0.058$ \\
+$X \rightarrow Y (c)$ & $0.064$ & $0.186$ & $0.344$ & $0.731$ \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Indirect Effect & Estimate & \multicolumn{3}{c}{95\% Confidence Interval} \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M \rightarrow Y (ab)$ & $-0.107$ & \multicolumn{3}{c}{$(-0.294, -0.009)$} \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\emph{Note}. Independent variable: ValueDiversity (X), hypothesized mediator: TaskConflict (M), dependent variable: TeamCommitment (Y). Sample size = 89. Number of bootstrap samples = 5,000.
+% ----------
+\end{table}
+
+
+% ----------
+% references
+% ----------
+
+% \bibliographystyle{plainnat}
+% \bibliography{bibfile}   % name the BibTeX data base
+
+\end{document}

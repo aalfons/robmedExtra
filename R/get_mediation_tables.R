@@ -8,7 +8,7 @@
 ## for total, direct, indirect effects, and additional information: this does
 ## the heavy lifting for to_flextable() and to_latex()
 get_mediation_tables <- function(object, type = c("boot", "data"),
-                                digits = 3L, p_value = FALSE, ...) {
+                                 digits = 3L, p_value = FALSE, ...) {
   # initializations
   have_boot <- inherits(object, "boot_test_mediation")
   if (have_boot) {
