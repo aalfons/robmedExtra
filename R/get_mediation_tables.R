@@ -4,8 +4,9 @@
 # ------------------------------------
 
 
-# convert object containing results from mediation analysis to list of tables
-# for total, direct, and indirect effects
+## convert object containing results from mediation analysis to list of tables
+## for total, direct, indirect effects, and additional information: this does
+## the heavy lifting for to_flextable() and to_latex()
 get_mediation_tables <- function(object, type = c("boot", "data"),
                                 digits = 3L, ...) {
   # initializations
@@ -32,12 +33,37 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
   df_direct <- to_effect_table(df_direct, type = type, digits = digits,
                                label = "Direct Effect")
   df_indirect <- to_indirect_table(df_indirect, level = level, digits = digits)
+  # add notes on variables, sample size, and number of bootstrap replicates
+  x <- object$fit$x
+  p_x <- length(x)
+  m <- object$fit$m
+  p_m <- length(m)
+  y <- object$fit$y
+  covariates <- object$fit$covariates
+  if (length(covariates) == 0L) suffix <- ""
+  else {
+    suffix <- paste0("; control variables: ",
+                     paste(covariates, collapse = ", "))
+  }
+  independent <- paste0(x, " (X", if (p_x > 1L) seq_len(p_x), ")")
+  mediators <- paste0(m, " (M", if (p_m > 1L) seq_len(p_m), ")")
+  variable_info <- paste0("Independent variable", if (p_x > 1L) "s", ": ",
+                          paste(independent, collapse = ", "), "; ",
+                          "hypothesized mediator", if (p_m > 1L) "s", ": ",
+                          paste(mediators, collapse = ", "), "; ",
+                          "dependent variable: ", y, " (Y)",
+                          suffix, ".")
+  sample_info <- sprintf("Sample size = %d.", summary$summary$n)
+  boot_info <- if (have_boot) {
+    sprintf("Number of bootstrap replicates = %d.", object$R)
+  }
   # return list of tables
-  list(total = df_total, direct = df_direct, indirect = df_indirect)
+  list(total = df_total, direct = df_direct, indirect = df_indirect,
+       notes = c(variable_info, sample_info, boot_info))
 }
 
 
-# internal function to convert matrix of effect summaries to data frame
+## internal function to convert matrix of effect summaries to data frame
 to_effect_table <- function(object, type = "boot", digits = 3L,
                             label = "Effect") {
   # make sure label is in plural if we have multiple effects in the table
@@ -61,7 +87,7 @@ to_effect_table <- function(object, type = "boot", digits = 3L,
   df
 }
 
-# internal function to convert matrix of indirect effect summary to data frame
+## internal function to convert matrix of indirect effect summary to data frame
 to_indirect_table <- function(object, level = 0.95, digits = 3L) {
   # initializations
   have_boot <- !is.null(level)
