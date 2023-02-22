@@ -1,26 +1,22 @@
-# ------------------------------------
+# ************************************
 # Author: Andreas Alfons
 #         Erasmus University Rotterdam
-# ------------------------------------
+# ************************************
 
 
-## convert object containing results from mediation analysis to list of tables
-## for total, direct, indirect effects, and additional information: this does
-## the heavy lifting for to_flextable() and to_latex()
+# Convert summary of results from mediation analysis to list of tables -----
+
+## convert summary of results from mediation analysis to list of tables for
+## total, direct, indirect effects, and additional information: this does the
+## heavy lifting for to_flextable() and to_latex()
+## object ... object of class "summary_test_mediation"
 #' @importFrom robmed p_value
-get_mediation_tables <- function(object, type = c("boot", "data"),
-                                 digits = 3L, p_value = FALSE, ...) {
+get_mediation_tables <- function(object, digits = 3L, p_value = FALSE, ...) {
   # initializations
+  summary <- object$summary
+  object <- object$object
   have_boot <- inherits(object, "boot_test_mediation")
-  if (have_boot) {
-    type <- match.arg(type)
-    level <- object$level
-  } else {
-    type <- "data"
-    level <- NULL
-  }
-  # compute summary
-  summary <- summary(object, type = type, plot = FALSE)
+  level <- if (have_boot) object$level
   # extract matrices containing effect summaries
   df_total <- extract_total(summary)
   df_direct <- rbind(extract_a(summary),
@@ -34,16 +30,16 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
                                         digits = digits)
   } else p_value_indirect <- NULL
   # convert matrices to data frames
-  df_total <- to_effect_table(df_total, digits = digits, type = type,
+  df_total <- to_effect_table(df_total, digits = digits,
                               label = "Total Effect")
-  df_direct <- to_effect_table(df_direct, digits = digits, type = type,
+  df_direct <- to_effect_table(df_direct, digits = digits,
                                label = "Direct Effect")
   df_indirect <- to_indirect_table(df_indirect, digits = digits, level = level,
                                    p_value = p_value_indirect)
   # construct note on variables, sample size, and number of bootstrap samples
   variable_info <- do.call(get_variable_info,
-                           summary$summary[c("x", "m", "y", "covariates")])
-  sample_info <- get_sample_info(summary$summary$n)
+                           summary[c("x", "m", "y", "covariates")])
+  sample_info <- get_sample_info(summary$n)
   boot_info <- if (have_boot) get_boot_info(object$R)
   # return list of tables
   list(total = df_total, direct = df_direct, indirect = df_indirect,
@@ -51,19 +47,18 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
 }
 
 
-## internal functions to extract effects from results and summaries of
-## mediation analysis (code to construct labels is rather ugly)
+# Extract effects from results and summaries of mediation analysis -----
+# (code to construct labels is rather ugly)
 
-## extract effect(s) for a path from summary object
-extract_a <- function(object) {
+# extract effect summaries for a path
+# summary ... 'summary' component of object of class "summary_test_mediation"
+extract_a <- function(summary) {
   # initializations
-  summary <- object$summary
-  object <- object$object
-  x <- object$fit$x
-  m <- object$fit$m
+  x <- summary$x
+  m <- summary$m
   p_x <- length(x)
   p_m <- length(m)
-  # extract effect(s) for each independent variable
+  # extract effect summaries for each independent variable
   if (inherits(summary, "summary_reg_fit_mediation")) {
     # mediation model fitted via regressions
     if (p_x == 1L) {
@@ -79,6 +74,8 @@ extract_a <- function(object) {
     # have the relevant information in a component of the summary object
     a <- summary$a
   }
+  # for bootstrapped effect summaries, keep only bootstrap point estimate
+  a <- keep_estimate(a)
   # construct labels
   seq_x <- seq_len(p_x)
   seq_m <- seq_len(p_m)
@@ -109,14 +106,12 @@ extract_a <- function(object) {
   a
 }
 
-## extract effect(s) for a path for one independent variable
+## extract effect summaries for a path for one independent variable
 #' @importFrom stats coef
 .extract_a <- function(x, fit) {
   if (inherits(fit, "list")) {
     # multiple mediators
-    coef_list <- lapply(fit, function(current_fit) {
-      coef(current_fit)[x, , drop = FALSE]
-    })
+    coef_list <- lapply(fit, function(current) coef(current)[x, , drop = FALSE])
     do.call(rbind, coef_list)
   } else {
     # only one mediator
@@ -124,18 +119,19 @@ extract_a <- function(object) {
   }
 }
 
-## extract effect(s) for d path (if existing) from summary object
+## extract effect summaries for d path (if existing) from summary object
+## summary ... 'summary' component of object of class "summary_test_mediation"
 #' @importFrom stats coef
-extract_d <- function(object) {
+extract_d <- function(summary) {
   # initializations
-  fit_list <- object$summary$fit_mx
-  object <- object$object
-  m <- object$fit$m
-  p_m <- length(m)
-  model <- object$fit$model
+  model <- summary$model
   have_serial <- !is.null(model) && model == "serial"
   # currently only implemented for two or three hypothesized mediators
   if (have_serial) {
+    # further initializations
+    m <- summary$m
+    p_m <- length(m)
+    fit_list <- summary$fit_mx
     # only implemented for two or three serial mediators
     if (p_m == 2L) {
       # two serial mediators
@@ -148,22 +144,23 @@ extract_d <- function(object) {
       rownames(d) <- c("M1->M2 (d21)", "M1->M3 (d31)", "M2->M3 (d32)")
     }
   } else d <- NULL
-  # return effect(s)
-  d
+  # for bootstrapped effect summaries, keep only bootstrap point estimate
+  keep_estimate(d)
 }
 
-## extract effect(s) for b path from summary object
+## extract effect summaries for b path from summary object
+## summary ... 'summary' component of object of class "summary_test_mediation"
 #' @importFrom stats coef
-extract_b <- function(object) {
+extract_b <- function(summary) {
   # initializations
-  summary <- object$summary
-  object <- object$object
-  m <- object$fit$m
+  m <- summary$m
   p_m <- length(m)
-  # extract effect(s)
+  # extract effect summaries
   if (inherits(summary, "summary_reg_fit_mediation")) {
     b <- coef(summary$fit_ymx)[m, , drop = FALSE]
   } else b <- summary$b
+  # for bootstrapped effect summaries, keep only bootstrap point estimate
+  b <- keep_estimate(b)
   # add labels
   if (p_m == 1L) {
     label_m <- "M"
@@ -174,15 +171,16 @@ extract_b <- function(object) {
     label_b <- paste0("b", seq_m)
   }
   rownames(b) <- paste0(label_m, "->Y (", label_b, ")")
-  # return effect(s)
+  # return effect summaries
   b
 }
 
-## extract direct effect(s) of X on Y: this is easier since they are stored
-## in a specific component of the summary object
-extract_direct <- function(object) {
-  # extract effect(s)
-  direct <- object$summary$direct
+# extract summaries of direct effects of X on Y: this is easier since they are
+# stored in a specific component of the summary object
+# summary ... 'summary' component of object of class "summary_test_mediation"
+extract_direct <- function(summary) {
+  # extract effect summaries: keep only bootstrap point estimate where relevant
+  direct <- keep_estimate(summary$direct)
   p_x <- nrow(direct)
   # add labels
   if (p_x == 1L) {
@@ -194,15 +192,16 @@ extract_direct <- function(object) {
     label_direct <- paste0("c", seq_x)
   }
   rownames(direct) <- paste0(label_x, "->Y (", label_direct, ")")
-  # return effect(s)
+  # return effect summaries
   direct
 }
 
-## extract total effect(s) of X on Y: this is easier since they are stored
-## in a specific component of the summary object
-extract_total <- function(object) {
-  # extract effect(s)
-  total <- object$summary$total
+# extract summaries of total effects of X on Y: this is easier since they are
+# stored in a specific component of the summary object
+# summary ... 'summary' component of object of class "summary_test_mediation"
+extract_total <- function(summary) {
+  # extract effect summaries: keep only bootstrap point estimate where relevant
+  total <- keep_estimate(summary$total)
   p_x <- nrow(total)
   # add labels
   if (p_x == 1L) {
@@ -214,13 +213,13 @@ extract_total <- function(object) {
     label_total <- paste0("c'", seq_x)
   }
   rownames(total) <- paste0(label_x, "->Y (", label_total, ")")
-  # return effect(s)
+  # return effect summaries
   total
 }
 
-## extract indirect effect(s) of X on Y: information needs to be collected from
-## different components of an object of class "test_mediation", in the same way
-## as in the corresponding print() method
+# extract summaries of indirect effects of X on Y: information needs to be
+# collected from different components of an object of class "test_mediation",
+# in a similar way as in the corresponding print() method
 extract_indirect <- function(object) {
   # initializations
   p_x <- length(object$fit$x)
@@ -230,9 +229,9 @@ extract_indirect <- function(object) {
   contrast <- object$fit$contrast
   if (is.null(contrast)) contrast <- FALSE
   if (contrast) stop("pairwise contrasts of indirect effects not yet supported")
-  # extract effect(s)
+  # extract effect summaries
   if (inherits(object, "boot_test_mediation")) {
-    indirect <- cbind(Data = object$fit$indirect, Boot = object$indirect,
+    indirect <- cbind(Estimate = object$indirect,
                       if (have_simple) t(object$ci) else object$ci)
   } else {
     indirect <- cbind(object$fit$indirect, object$se,
@@ -312,48 +311,58 @@ extract_indirect <- function(object) {
   # add labels
   rownames(indirect) <- paste0(label_x, "->", label_m, "->Y (",
                                label_indirect, ")")
-  # return effect(s)
+  # return effect summaries
   indirect
 }
 
-
-## convert matrix of effect summaries to data frame
-to_effect_table <- function(object, digits = 3L, type = "boot",
-                            label = "Effect") {
-  # make sure label is in plural if we have multiple effects in the table
-  plural <- if (nrow(object) > 1) "s" else ""
-  label <- paste0(label, plural)
-  # extract relevant information
-  if (type == "boot") {
-    # use bootstrap estimates and  corresponding z tests
-    keep <- colnames(object) != "Data"
-    object <- object[, keep, drop = FALSE]
+# keep only the relevant point estimate from matrix of effect summaries
+keep_estimate <- function(coef_mat) {
+  # initializations
+  cn <- colnames(coef_mat)
+  have_boot <- all(c("Data", "Boot") %in% cn)
+  # if we have bootstrapped effect summaries, keep only the bootstrap estimate
+  if (have_boot) {
+    keep <- cn != "Data"
+    coef_mat <- coef_mat[, keep, drop = FALSE]
+    rename <- colnames(coef_mat) == "Boot"
+    colnames(coef_mat)[rename] <- "Estimate"
   }
+  # return effect summaries
+  coef_mat
+}
+
+
+# Convert to table of effect summaries -----
+
+
+# convert summaries of total and direct effects
+to_effect_table <- function(object, ...) UseMethod("to_effect_table")
+
+# default method converts matrix of effect summaries to formatted data frame
+to_effect_table.default <- function(object, digits = 3L, label = "Effect") {
   # format numbers and replace missing values
   object <- formatC(object, digits = digits, format = "f")
   object <- gsub("NA", "  ", object, fixed = TRUE)
   # convert to data frame and fix names
   df <- data.frame(rownames(object), object, check.names = FALSE,
                    fix.empty.names = FALSE, stringsAsFactors = FALSE)
-  names(df) <- c(label, convert_column_names(object))
+  names(df) <- get_table_names(label, object)
   row.names(df) <- NULL
   # return data frame
   df
 }
 
-## convert matrix of indirect effect summary to data frame
+
+# convert summaries of indirect effects
+to_indirect_table <- function(object, ...) UseMethod("to_indirect_table")
+
+# default method converts matrix of effect summaries to formatted data frame
 to_indirect_table <- function(object, digits = 3L, level = 0.95,
                               p_value = NULL) {
   # initializations
   have_boot <- !is.null(level)
   have_p_value <- !is.null(p_value)
-  plural <- if (nrow(object) > 1) "s" else ""
-  label <- paste0("Indirect Effect", plural)
-  # extract relevant information
-  if (have_boot) {
-    keep <- colnames(object) != "Data"
-    object <- object[, keep, drop = FALSE]
-  }
+  label <- "Indirect Effect"
   # format numbers
   object <- formatC(object, digits = digits, format = "f")
   # construct data frame and fix column names
@@ -362,18 +371,18 @@ to_indirect_table <- function(object, digits = 3L, level = 0.95,
     ci <- paste0("(", object[, "Lower"], ", ", object[, "Upper"], ")")
     ci_label <- paste0(format(100 * level, trim = TRUE),
                        "% Confidence Interval")
-    # construct data frame
-    df <- data.frame(rownames(object), object[, "Boot", drop = FALSE], ci,
+    # construct data frame and fix column names
+    df <- data.frame(rownames(object), object[, "Estimate"], ci,
                      check.names = FALSE, fix.empty.names = FALSE,
                      stringsAsFactors = FALSE)
-    # fix column names
     names(df) <- c(label, "Estimate", ci_label)
+    # add p values if supplied
     if (have_p_value) df <- cbind(df, "p Value" = p_value)
   } else {
     # convert to data frame and fix column names
     df <- data.frame(rownames(object), object, check.names = FALSE,
                      fix.empty.names = FALSE, stringsAsFactors = FALSE)
-    names(df) <- c(label, convert_column_names(object))
+    names(df) <- get_table_names(label, object)
   }
   # fix row names and return data frame
   row.names(df) <- NULL
@@ -381,35 +390,37 @@ to_indirect_table <- function(object, digits = 3L, level = 0.95,
 }
 
 
-## convert column names from R style to nicer names for tables
-convert_column_names <- function(object) {
+# convert column names from R style to nicer names and add label for effects
+get_table_names <- function(label, object) {
   # extract column names
   cn <- colnames(object)
   # convert R-style names to nicer ones
-  cn[cn == "Boot"] <- "Estimate"
   cn[cn == "z value"] <- "z Statistic"
   cn[cn == "t value"] <- "t Statistic"
   cn[substr(cn, 1L, 3L) == "Pr("] <- "p Value"
   # return column names
-  cn
+  c(label, cn)
 }
 
 
-## internal functions to get information for table caption
+## Constructs notes for table -----
 
+# construct note on variables
 get_variable_info <- function(x, m, y, covariates = character()) {
   # initializations
   p_x <- length(x)
   p_m <- length(m)
   sep <- if (p_x == 1L && p_m == 1L) ", " else "; "
-  # construct text string with information on variables
+  # construct text string with information on control variables
   if (length(covariates) == 0L) covariate_info <- ""
   else {
     covariate_info <- paste0(sep, "control variables: ",
                              paste(covariates, collapse = ", "))
   }
+  # construct text strings that list independent variables and mediators
   independent <- paste0(x, " (X", if (p_x > 1L) seq_len(p_x), ")")
   mediators <- paste0(m, " (M", if (p_m > 1L) seq_len(p_m), ")")
+  # construct text string with information on variables
   paste0("Independent variable", if (p_x > 1L) "s", ": ",
          paste(independent, collapse = ", "), sep,
          "hypothesized mediator", if (p_m > 1L) "s", ": ",
@@ -418,19 +429,12 @@ get_variable_info <- function(x, m, y, covariates = character()) {
          covariate_info, ".")
 }
 
-# get_sample_info <- function(n, R = NULL) {
-#   # construct text string with information on bootstrap samples
-#   if (is.null(R)) boot_info <- ""
-#   else {
-#     boot_info <- paste(", and the number of bootstrap samples is",
-#                        formatC(R, big.mark = ","))
-#   }
-#   # combine with information on sample size
-#   paste0("The sample size is n=", n, boot_info, ".")
-# }
+# construct note on sample size
+get_sample_info <- function(n) {
+  sprintf("Sample size = %d.", n)
+}
 
-get_sample_info <- function(n) sprintf("Sample size = %d.", n)
-
+# construct note on number of bootstrap samples
 get_boot_info <- function(R) {
   paste0("Number of bootstrap samples = ", formatC(R, big.mark = ","), ".")
 }
