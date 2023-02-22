@@ -47,5 +47,6 @@ src/*.dll
 *DS_Store
 
 # temporary files from latex test file
+dev/*-concordance.tex
 dev/*.log
 dev/*.synctex.gz

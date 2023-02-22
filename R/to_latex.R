@@ -1,8 +1,9 @@
 # ------------------------------------
 # Author: Andreas Alfons
 #         Erasmus University Rotterdam
+# ------------------------------------
 
-
+#' @export
 to_latex <- function(object, type = c("boot", "data"), digits = 3L,
                      p_value = FALSE, align = "lrrrr", align_ci = "c",
                      ...) {
@@ -17,7 +18,7 @@ to_latex <- function(object, type = c("boot", "data"), digits = 3L,
   tables
 }
 
-
+#' @export
 print.latex_tables <- function(x, ...) {
   # initialize LaTeX table
   cat("\\begin{center}\n")

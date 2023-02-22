@@ -1,0 +1,64 @@
+\documentclass{article}
+
+% additional packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\hypersetup{colorlinks, citecolor=black, linkcolor=black, urlcolor=blue}
+% \usepackage{listings}
+\usepackage[round]{natbib}
+% \usepackage[onehalfspacing]{setspace}
+% \usepackage[doublespacing]{setspace}
+
+% new commands
+\newcommand{\boldtitle}[1]{\title{\textbf{\boldmath{#1}}}}
+\newcommand{\keywords}[1]{\medskip \par \noindent \textbf{Keywords}\quad #1}
+\newcommand{\mat}[1]{\boldsymbol{#1}}   % matrix
+\newcommand{\vect}[1]{\boldsymbol{#1}}  % vector
+\newcommand{\obs}[1]{\mathbf{#1}}		    % observation
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pkg}[1]{\texttt{#1}}
+\newcommand{\proglang}[1]{\textsf{#1}}
+
+
+\begin{document}
+
+
+% knitr options
+<<setup, include=FALSE, cache=FALSE>>=
+library("knitr")
+opts_chunk$set(fig.path="figures/figure-", fig.align="center")
+options(prompt="R> ", continue="+  ", width=72, useFancyQuotes=FALSE)
+@
+
+<<include=FALSE>>=
+# load package and data
+library("robmedExtra")
+data("BSG2014")
+# seed to be used for the random number generator
+seed <- 20211117
+# compute mediation analysis
+boot_simple <- test_mediation(BSG2014,
+                              x = "ValueDiversity",
+                              y = "TeamCommitment",
+                              m = "TaskConflict")
+@
+
+\begin{table}[h!]
+\caption{Results from mediation analysis for a simple mediation model, using the robust bootstrap test ROBMED.}
+<<echo=FALSE, results="asis">>=
+to_latex(boot_simple)
+@
+\end{table}
+
+
+% ----------
+% references
+% ----------
+
+% \bibliographystyle{plainnat}
+% \bibliography{bibfile}   % name the BibTeX data base
+
+\end{document}

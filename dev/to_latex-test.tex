@@ -1,4 +1,54 @@
-\documentclass{article}
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{xcolor}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
 
 % additional packages
 \usepackage{amsmath}
@@ -21,43 +71,37 @@
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\pkg}[1]{\texttt{#1}}
 \newcommand{\proglang}[1]{\textsf{#1}}
-
-
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 
 
-% % knitr options
-% <<setup, include=FALSE, cache=FALSE>>=
-% library("knitr")
-% opts_chunk$set(fig.path="figures/figure-", fig.align="center")
-% options(prompt="R> ", continue="+  ", width=72, useFancyQuotes=FALSE)
-% @
+% knitr options
+
+
 
 
 \begin{table}[h!]
-\caption{Results from mediation analysis for a simple mediation model.}
-% ----------
+\caption{Results from mediation analysis for a simple mediation model, using the robust bootstrap test ROBMED.}
 \begin{center}
 \begin{tabular}{lrrrr}
 \hline\noalign{\smallskip}
-Total Effect & Estimate & Std. Error & z Statistic & p Value \\
+Total Effect & Estimate & Std. Error & z Statistic & p Value \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-$X \rightarrow Y (c')$ & $-0.043$ & $0.187$ & $-0.230$ & $0.818$ \\
+$X \rightarrow Y (c')$ & $-0.049$ & $0.187$ & $-0.265$ & $0.791$ \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-Direct Effects & Estimate & Std. Error & z Statistic & p Value \\
+Direct Effects & Estimate & Std. Error & z Statistic & p Value \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-$X \rightarrow M (a)$ & $0.321$ & $0.107$ & $2.996$ & $0.003$ \\
-$M \rightarrow Y (b)$ & $-0.337$ & $0.178$ & $-1.896$ & $0.058$ \\
-$X \rightarrow Y (c)$ & $0.064$ & $0.186$ & $0.344$ & $0.731$ \\
+$X \rightarrow M (a)$ & $0.321$ & $0.105$ & $3.056$ & $0.002$ \\ 
+$M \rightarrow Y (b)$ & $-0.339$ & $0.180$ & $-1.886$ & $0.059$ \\ 
+$X \rightarrow Y (c)$ & $0.059$ & $0.188$ & $0.313$ & $0.754$ \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-Indirect Effect & Estimate & \multicolumn{3}{c}{95\% Confidence Interval} \\
+Indirect Effect & Estimate & \multicolumn{3}{c}{95\% Confidence Interval} \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-$X \rightarrow M \rightarrow Y (ab)$ & $-0.107$ & \multicolumn{3}{c}{$(-0.294, -0.009)$} \\
+$X \rightarrow M \rightarrow Y (ab)$ & $-0.108$ & \multicolumn{3}{c}{$(-0.294, -0.010)$} \\ 
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
 \emph{Note}. Independent variable: ValueDiversity (X), hypothesized mediator: TaskConflict (M), dependent variable: TeamCommitment (Y). Sample size = 89. Number of bootstrap samples = 5,000.
-% ----------
 \end{table}
 
 

@@ -7,6 +7,7 @@
 ## convert object containing results from mediation analysis to list of tables
 ## for total, direct, indirect effects, and additional information: this does
 ## the heavy lifting for to_flextable() and to_latex()
+#' @importFrom robmed p_value
 get_mediation_tables <- function(object, type = c("boot", "data"),
                                  digits = 3L, p_value = FALSE, ...) {
   # initializations
@@ -29,7 +30,8 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
   df_indirect <- extract_indirect(object)
   # if requested, compute p values of bootstrap tests for indirect effects
   if (have_boot && p_value) {
-    p_value_indirect <- p_value(object, parm = "indirect", digits = digits)
+    p_value_indirect <- robmed::p_value(object, parm = "indirect",
+                                        digits = digits)
   } else p_value_indirect <- NULL
   # convert matrices to data frames
   df_total <- to_effect_table(df_total, digits = digits, type = type,
@@ -52,7 +54,7 @@ get_mediation_tables <- function(object, type = c("boot", "data"),
 ## internal functions to extract effects from results and summaries of
 ## mediation analysis (code to construct labels is rather ugly)
 
-# extract effect(s) for a path from summary object
+## extract effect(s) for a path from summary object
 extract_a <- function(object) {
   # initializations
   summary <- object$summary
@@ -107,7 +109,8 @@ extract_a <- function(object) {
   a
 }
 
-# extract effect(s) for a path for one independent variable
+## extract effect(s) for a path for one independent variable
+#' @importFrom stats coef
 .extract_a <- function(x, fit) {
   if (inherits(fit, "list")) {
     # multiple mediators
@@ -121,7 +124,8 @@ extract_a <- function(object) {
   }
 }
 
-# extract effect(s) for d path (if existing) from summary object
+## extract effect(s) for d path (if existing) from summary object
+#' @importFrom stats coef
 extract_d <- function(object) {
   # initializations
   fit_list <- object$summary$fit_mx
@@ -148,7 +152,8 @@ extract_d <- function(object) {
   d
 }
 
-# extract effect(s) for b path from summary object
+## extract effect(s) for b path from summary object
+#' @importFrom stats coef
 extract_b <- function(object) {
   # initializations
   summary <- object$summary
@@ -173,8 +178,8 @@ extract_b <- function(object) {
   b
 }
 
-# extract direct effect(s) of X on Y: this is easier since they are stored
-# in a specific component of the summary object
+## extract direct effect(s) of X on Y: this is easier since they are stored
+## in a specific component of the summary object
 extract_direct <- function(object) {
   # extract effect(s)
   direct <- object$summary$direct
@@ -193,8 +198,8 @@ extract_direct <- function(object) {
   direct
 }
 
-# extract total effect(s) of X on Y: this is easier since they are stored
-# in a specific component of the summary object
+## extract total effect(s) of X on Y: this is easier since they are stored
+## in a specific component of the summary object
 extract_total <- function(object) {
   # extract effect(s)
   total <- object$summary$total
@@ -213,9 +218,9 @@ extract_total <- function(object) {
   total
 }
 
-# extract indirect effect(s) of X on Y: information needs to be collected from
-# different components of an object of class "test_mediation", in the same way
-# as in the corresponding print() method
+## extract indirect effect(s) of X on Y: information needs to be collected from
+## different components of an object of class "test_mediation", in the same way
+## as in the corresponding print() method
 extract_indirect <- function(object) {
   # initializations
   p_x <- length(object$fit$x)
