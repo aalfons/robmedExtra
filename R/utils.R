@@ -11,7 +11,7 @@
 ## heavy lifting for to_flextable() and to_latex()
 ## object ... object of class "summary_test_mediation"
 #' @importFrom robmed p_value
-get_mediation_tables <- function(object, digits = 3L, p_value = FALSE, ...) {
+get_mediation_tables <- function(object, p_value = FALSE, digits = 3L, ...) {
   # initializations
   summary <- object$summary
   object <- object$object
@@ -352,13 +352,28 @@ to_effect_table.default <- function(object, digits = 3L, label = "Effect") {
   df
 }
 
+# further prepare the formatted data frame for LaTeX or convert to flextable
+to_effect_table.data.frame <- function(object,
+                                       which = c("latex", "flextable")) {
+  if (which == "latex") {
+    # format the table header for LaTeX
+    names(object) <- format_latex_header(object)
+    # format the table body for LaTeX (returns a list, not a data frame)
+    object <- lapply(object, format_latex_column)
+  } else {
+    # TODO: convert data frame to flextable
+  }
+  # return prepared or converted object
+  object
+}
+
 
 # convert summaries of indirect effects
 to_indirect_table <- function(object, ...) UseMethod("to_indirect_table")
 
 # default method converts matrix of effect summaries to formatted data frame
-to_indirect_table <- function(object, digits = 3L, level = 0.95,
-                              p_value = NULL) {
+to_indirect_table.default <- function(object, digits = 3L, level = 0.95,
+                                      p_value = NULL) {
   # initializations
   have_boot <- !is.null(level)
   have_p_value <- !is.null(p_value)
@@ -389,6 +404,27 @@ to_indirect_table <- function(object, digits = 3L, level = 0.95,
   df
 }
 
+# further prepare the formatted data frame for LaTeX or convert to flextable
+to_indirect_table.data.frame <- function(object,
+                                         which = c("latex", "flextable"),
+                                         width = 3L, align = "c") {
+  if (which == "latex") {
+    # initializations
+    # first perform the same formatting as for total and direct effects
+    object <- to_effect_table(object, which = which)
+    # wrap confidence interval in \multicolumn statement
+    multicolumn <- "\\multicolumn{%d}{%s}{%s}"
+    cn <- names(object)
+    pos_ci <- grep("Confidence Interval", cn, fixed = TRUE)
+    names(object)[pos_ci] <- sprintf(multicolumn, width, align, cn[pos_ci])
+    object[[pos_ci]] <- sprintf(multicolumn, width, align, object[[pos_ci]])
+  } else {
+    # TODO: convert data frame to flextable
+  }
+  # return prepared or converted object
+  object
+}
+
 
 # convert column names from R style to nicer names and add label for effects
 get_table_names <- function(label, object) {
@@ -400,6 +436,29 @@ get_table_names <- function(label, object) {
   cn[substr(cn, 1L, 3L) == "Pr("] <- "p Value"
   # return column names
   c(label, cn)
+}
+
+# format the table header for LaTeX
+format_latex_header <- function(object) {
+  # extract column names
+  cn <- names(object)
+  # format for LaTeX
+  cn <- gsub("^(([ztp]) )", "$\\2$ ", cn, fixed = FALSE)
+  cn <- gsub("%", "\\%", cn, fixed = TRUE)
+  # return formatted column names
+  cn
+}
+
+# format a column of a table for LaTeX
+format_latex_column <- function(column) {
+  column <- gsub("->", " \\rightarrow ", column, fixed = TRUE)
+  column <- gsub("...", " \\ldots ", column, fixed = TRUE)
+  column <- gsub("total", "\\mathrm{total}", column, fixed = TRUE)
+  paste0("$", column, "$")
+}
+
+format_latex_note <- function(note) {
+  gsub("\\(([XMY])\\)", "($\\1$)", note, fixed = FALSE)
 }
 
 

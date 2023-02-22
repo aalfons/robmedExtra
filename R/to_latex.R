@@ -4,15 +4,25 @@
 # ------------------------------------
 
 #' @export
-to_latex <- function(object, type = c("boot", "data"), digits = 3L,
-                     p_value = FALSE, align = "lrrrr", align_ci = "c",
-                     ...) {
+to_latex <- function(object, ...) UseMethod("to_latex")
+
+#' @export
+to_latex.test_mediation <- function(object, type = c("boot", "data"), ...) {
+  # compute summary
+  summary <- summary(object, type = type, plot = FALSE)
+  # call method for summary
+  to_latex(summary, ...)
+}
+
+#' @export
+to_latex.summary_test_mediation <- function(object, p_value = FALSE,
+                                            digits = 3L,
+                                            align = c("lrrrr", "c"),
+                                            ...) {
   # call workhorse function to format tables
-  tables <- get_mediation_tables(object, type = type, digits = digits,
-                                 p_value = p_value)
+  tables <- get_mediation_tables(object, p_value = p_value, digits = digits)
   # add alignment specification and set class
   tables$align <- align
-  tables$align_ci <- align_ci
   class(tables) <- "latex_tables"
   # return object for LaTeX tables
   tables
@@ -20,56 +30,48 @@ to_latex <- function(object, type = c("boot", "data"), digits = 3L,
 
 #' @export
 print.latex_tables <- function(x, ...) {
-  # initialize LaTeX table
+  ## initializations
+  direct <- x$direct
+  indirect <- x$indirect
+  width <- ncol(direct) - ncol(indirect) + 1L
+  ## initialize LaTeX table
   cat("\\begin{center}\n")
-  cat("\\begin{tabular}{", x$align, "}\n", sep = "")
+  cat("\\begin{tabular}{", x$align[1L], "}\n", sep = "")
   cat("\\hline\\noalign{\\smallskip}\n")
-  # write table header for total effects
-  cat(paste(names(x$total), collapse = " & "), "\\\\ \n")
+  ## write table for total effects
+  total <- to_effect_table(x$total, which = "latex")
+  # write table header
+  cat(paste(names(total), collapse = " & "), "\\\\ \n")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
-  # write table body for total effects
-  total <- lapply(x$total, fix_cells)
+  # write table body
   lines <- paste(do.call(paste_amp, total), "\\\\ \n")
   cat(lines, sep = "")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
-  # write table header for direct effects
-  cat(paste(names(x$direct), collapse = " & "), "\\\\ \n")
+  ## write table for direct effects
+  direct <- to_effect_table(direct, which = "latex")
+  # write table header
+  cat(paste(names(direct), collapse = " & "), "\\\\ \n")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
-  # write table body for direct effects
-  direct <- lapply(x$direct, fix_cells)
+  # write table body
   lines <- paste(do.call(paste_amp, direct), "\\\\ \n")
   cat(lines, sep = "")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
-  # some preparations for table of indirect effects
-  indirect <- lapply(x$indirect, fix_cells)
-  cn <- names(indirect)
-  have_p_value <- "p Value" %in% cn
-  which_ci <- grep("Confidence Interval", cn, fixed = TRUE)
-  # write table header for indirect effects
-  cn[which_ci] <- paste0("\\multicolumn{",
-                         if (have_p_value) 2 else 3, "}{",
-                         x$align_ci, "}{",
-                         gsub("%", "\\%", cn[which_ci], fixed = TRUE),
-                         "}")
-  cat(paste(cn, collapse = " & "), "\\\\ \n")
+  ## write table for indirect effects
+  indirect <- to_indirect_table(indirect, which = "latex", width = width,
+                                align = x$align[2L])
+  # write table header
+  cat(paste(names(indirect), collapse = " & "), "\\\\ \n")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
-  # write table body for indirect effects
-  indirect[[which_ci]] <- paste0("\\multicolumn{",
-                                 if (have_p_value) 2 else 3, "}{",
-                                 x$align_ci, "}{", indirect[[which_ci]], "}")
+  # write table body
   lines <- paste(do.call(paste_amp, indirect), "\\\\ \n")
   cat(lines, sep = "")
-  # finalize LaTeX table
+  ## finalize LaTeX table
   cat("\\noalign{\\smallskip}\\hline\n")
   cat("\\end{tabular}\n")
   cat("\\end{center}\n")
-  # add note
-  cat("\\emph{Note}.", x$note)
+  ## add note
+  cat("\\emph{Note}.", format_latex_note(x$note))
 }
 
 # internal functions
-fix_cells <- function(x) {
-  x <-gsub("->", " \\rightarrow ", x, fixed = TRUE)
-  paste0("$", x, "$")
-}
 paste_amp <- function(..., sep = " & ") paste(..., sep = sep)

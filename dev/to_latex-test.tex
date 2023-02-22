@@ -50,27 +50,8 @@
 
 \usepackage{alltt}
 
-% additional packages
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{amsthm}
+% % additional packages
 \usepackage[a4paper]{geometry}
-\usepackage{hyperref}
-\hypersetup{colorlinks, citecolor=black, linkcolor=black, urlcolor=blue}
-% \usepackage{listings}
-\usepackage[round]{natbib}
-% \usepackage[onehalfspacing]{setspace}
-% \usepackage[doublespacing]{setspace}
-
-% new commands
-\newcommand{\boldtitle}[1]{\title{\textbf{\boldmath{#1}}}}
-\newcommand{\keywords}[1]{\medskip \par \noindent \textbf{Keywords}\quad #1}
-\newcommand{\mat}[1]{\boldsymbol{#1}}   % matrix
-\newcommand{\vect}[1]{\boldsymbol{#1}}  % vector
-\newcommand{\obs}[1]{\mathbf{#1}}		    % observation
-\newcommand{\code}[1]{\texttt{#1}}
-\newcommand{\pkg}[1]{\texttt{#1}}
-\newcommand{\proglang}[1]{\textsf{#1}}
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 
@@ -80,28 +61,65 @@
 
 
 
+
+
+
+
 \begin{table}[h!]
 \caption{Results from mediation analysis for a simple mediation model, using the robust bootstrap test ROBMED.}
 \begin{center}
 \begin{tabular}{lrrrr}
 \hline\noalign{\smallskip}
-Total Effect & Estimate & Std. Error & z Statistic & p Value \\ 
+Total Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-$X \rightarrow Y (c')$ & $-0.049$ & $0.187$ & $-0.265$ & $0.791$ \\ 
+$X \rightarrow Y (c')$ & $-0.043$ & $0.187$ & $-0.230$ & $0.818$ \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-Direct Effects & Estimate & Std. Error & z Statistic & p Value \\ 
+Direct Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-$X \rightarrow M (a)$ & $0.321$ & $0.105$ & $3.056$ & $0.002$ \\ 
-$M \rightarrow Y (b)$ & $-0.339$ & $0.180$ & $-1.886$ & $0.059$ \\ 
-$X \rightarrow Y (c)$ & $0.059$ & $0.188$ & $0.313$ & $0.754$ \\ 
+$X \rightarrow M (a)$ & $0.321$ & $0.107$ & $2.996$ & $0.003$ \\ 
+$M \rightarrow Y (b)$ & $-0.337$ & $0.178$ & $-1.896$ & $0.058$ \\ 
+$X \rightarrow Y (c)$ & $0.064$ & $0.186$ & $0.344$ & $0.731$ \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
 Indirect Effect & Estimate & \multicolumn{3}{c}{95\% Confidence Interval} \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
-$X \rightarrow M \rightarrow Y (ab)$ & $-0.108$ & \multicolumn{3}{c}{$(-0.294, -0.010)$} \\ 
+$X \rightarrow M \rightarrow Y (ab)$ & $-0.107$ & \multicolumn{3}{c}{$(-0.294, -0.009)$} \\ 
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
-\emph{Note}. Independent variable: ValueDiversity (X), hypothesized mediator: TaskConflict (M), dependent variable: TeamCommitment (Y). Sample size = 89. Number of bootstrap samples = 5,000.
+\emph{Note}. Independent variable: ValueDiversity ($X$), hypothesized mediator: TaskConflict ($M$), dependent variable: TeamCommitment ($Y$). Sample size = 89. Number of bootstrap samples = 5,000.
+\end{table}
+
+
+
+
+\begin{table}[h!]
+\caption{Results from mediation analysis for a serial multiple mediator model, using the robust bootstrap test ROBMED.}
+\begin{center}
+\begin{tabular}{lrrrr}
+\hline\noalign{\smallskip}
+Total Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow Y (c')$ & $-0.043$ & $3.288$ & $-0.013$ & $0.990$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Direct Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M1 (a1)$ & $0.321$ & $0.107$ & $2.994$ & $0.003$ \\ 
+$X \rightarrow M2 (a2)$ & $0.063$ & $0.187$ & $0.338$ & $0.736$ \\ 
+$M1 \rightarrow M2 (d21)$ & $-0.337$ & $0.178$ & $-1.898$ & $0.058$ \\ 
+$M1 \rightarrow Y (b1)$ & $0.188$ & $2.791$ & $0.067$ & $0.946$ \\ 
+$M2 \rightarrow Y (b2)$ & $9.500$ & $4.591$ & $2.069$ & $0.039$ \\ 
+$X \rightarrow Y (c)$ & $0.419$ & $3.061$ & $0.137$ & $0.891$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Indirect Effect & Estimate & \multicolumn{3}{c}{95\% Confidence Interval} \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow  \ldots  \rightarrow Y (\mathrm{total})$ & $-0.462$ & \multicolumn{3}{c}{$(-6.859, 2.876)$} \\ 
+$X \rightarrow M1 \rightarrow Y (a1b1)$ & $0.073$ & \multicolumn{3}{c}{$(-1.668, 2.246)$} \\ 
+$X \rightarrow M2 \rightarrow Y (a2b2)$ & $0.452$ & \multicolumn{3}{c}{$(-3.130, 5.131)$} \\ 
+$X \rightarrow M1 \rightarrow M2 \rightarrow Y (a1d21b2)$ & $-0.986$ & \multicolumn{3}{c}{$(-3.909, -0.068)$} \\ 
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\emph{Note}. Independent variable: ValueDiversity ($X$); hypothesized mediators: TaskConflict (M1), TeamCommitment (M2); dependent variable: TeamScore ($Y$). Sample size = 89. Number of bootstrap samples = 5,000.
 \end{table}
 
 
