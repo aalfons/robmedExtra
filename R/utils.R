@@ -358,8 +358,9 @@ to_effect_table.data.frame <- function(object,
   if (which == "latex") {
     # format the table header for LaTeX
     names(object) <- format_latex_header(object)
-    # format the table body for LaTeX (returns a list, not a data frame)
-    object <- lapply(object, format_latex_column)
+    # format the table body for LaTeX
+    object[, 1L] <- format_latex_label(object[, 1L])
+    object[, -1L] <- lapply(object[, -1L], format_latex_column)
   } else {
     # TODO: convert data frame to flextable
   }
@@ -431,9 +432,8 @@ get_table_names <- function(label, object) {
   # extract column names
   cn <- colnames(object)
   # convert R-style names to nicer ones
-  cn[cn == "z value"] <- "z Statistic"
-  cn[cn == "t value"] <- "t Statistic"
-  cn[substr(cn, 1L, 3L) == "Pr("] <- "p Value"
+  cn <- gsub("value", "Statistic", cn, fixed = TRUE)
+  cn <- gsub("Pr\\(.*\\)", "p Value", cn, fixed = FALSE)
   # return column names
   c(label, cn)
 }
@@ -443,22 +443,41 @@ format_latex_header <- function(object) {
   # extract column names
   cn <- names(object)
   # format for LaTeX
-  cn <- gsub("^(([ztp]) )", "$\\2$ ", cn, fixed = FALSE)
+  cn <- gsub("^(([ptz]) )", "$\\2$ ", cn, fixed = FALSE)
   cn <- gsub("%", "\\%", cn, fixed = TRUE)
   # return formatted column names
   cn
 }
 
+# format the label column of a table for LaTeX
+format_latex_label <- function(label) {
+  # first call format_latex_column(), which puts cells in math mode
+  label <- format_latex_column(label)
+  # format arrows and ellipses nicely
+  label <- gsub("->", " \\rightarrow ", label, fixed = TRUE)
+  label <- gsub("...", " \\ldots ", label, fixed = TRUE)
+  # ensure that indices are formatted as subscripts
+  label <- gsub("([0-9]+)", "_{\\1}", label, fixed = FALSE)
+  # ensure that a space interrupts math mode so that the space is maintained
+  label <- gsub(" (", "$ $(", label, fixed = TRUE)
+  # ensure that label for total indirect effect is in text mode
+  label <- gsub("$(total)$", "(total)", label, fixed = TRUE)
+  # return label
+  label
+}
+
 # format a column of a table for LaTeX
 format_latex_column <- function(column) {
-  column <- gsub("->", " \\rightarrow ", column, fixed = TRUE)
-  column <- gsub("...", " \\ldots ", column, fixed = TRUE)
-  column <- gsub("total", "\\mathrm{total}", column, fixed = TRUE)
   paste0("$", column, "$")
 }
 
+# format the table note for LaTeX
 format_latex_note <- function(note) {
-  gsub("\\(([XMY])\\)", "($\\1$)", note, fixed = FALSE)
+  # ensure that symbols for variables (in parentheses) are in math mode
+  note <- gsub("\\(([MXY])\\)", "($\\1$)", note, fixed = FALSE)
+  note <- gsub("\\(([MXY])([0-9]+)\\)", "($\\1_{\\2}$)", note, fixed = FALSE)
+  # return note
+  note
 }
 
 

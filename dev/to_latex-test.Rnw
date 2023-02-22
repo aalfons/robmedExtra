@@ -61,6 +61,26 @@ to_latex(boot_serial)
 \end{table}
 
 
+<<include=FALSE>>=
+# set seed of the random number generator
+set.seed(seed)
+# perform mediation analysis
+boot_multiple <- test_mediation(BSG2014,
+                              x = c("SharedLeadership",
+                                    "AgeDiversity",
+                                    "GenderDiversity"),
+                              y = "TeamPerformance",
+                              m = "ProceduralJustice")
+@
+
+\begin{table}[h!]
+\caption{Results from mediation analysis for a model with multiple independent variables, using the robust bootstrap test ROBMED.}
+<<echo=FALSE, results="asis">>=
+to_latex(boot_multiple)
+@
+\end{table}
+
+
 % ----------
 % references
 % ----------

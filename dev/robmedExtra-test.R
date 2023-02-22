@@ -32,7 +32,7 @@ boot_serial <- test_mediation(TeamScore ~
                                 covariates(AgeDiversity),
                               data = BSG2014)
 summary(boot_serial)
-get_mediation_tables(summary(boot_serial))
+to_latex(boot_serial)
 
 
 ## parallel multiple mediators and control variables
@@ -46,7 +46,7 @@ boot_parallel <- test_mediation(TeamPerformance ~
                                   covariates(AgeDiversity, GenderDiversity),
                                 data = BSG2014)
 summary(boot_parallel)
-get_mediation_tables(summary(boot_parallel))
+to_latex(boot_parallel)
 
 
 ## parallel multiple mediators and control variables
@@ -60,7 +60,7 @@ boot_multiple <- test_mediation(TeamPerformance ~
                                   GenderDiversity,
                                 data = BSG2014)
 summary(boot_multiple)
-get_mediation_tables(summary(boot_multiple))
+to_latex(boot_multiple)
 
 
 # bootstrap test with covariance fit
@@ -70,7 +70,7 @@ cov_boot <- test_mediation(TeamCommitment ~
                            data = BSG2014,
                            method = "covariance")
 summary(cov_boot)
-get_mediation_tables(summary(cov_boot))
+to_latex(cov_boot)
 
 
 # sobel test with regression fit
@@ -80,7 +80,7 @@ reg_sobel <- test_mediation(TeamCommitment ~
                              data = BSG2014,
                              test = "sobel")
 summary(reg_sobel)
-get_mediation_tables(summary(reg_sobel))
+to_latex(reg_sobel)
 
 
 # sobel test with coavariance fit
@@ -91,4 +91,4 @@ cov_sobel <- test_mediation(TeamCommitment ~
                             test = "sobel",
                             method = "covariance")
 summary(cov_sobel)
-get_mediation_tables(summary(cov_sobel))
+to_latex(cov_sobel)
