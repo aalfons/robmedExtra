@@ -414,11 +414,13 @@ to_indirect_table.data.frame <- function(object,
     # first perform the same formatting as for total and direct effects
     object <- to_effect_table(object, which = which)
     # wrap confidence interval in \multicolumn statement
-    multicolumn <- "\\multicolumn{%d}{%s}{%s}"
     cn <- names(object)
     pos_ci <- grep("Confidence Interval", cn, fixed = TRUE)
-    names(object)[pos_ci] <- sprintf(multicolumn, width, align, cn[pos_ci])
-    object[[pos_ci]] <- sprintf(multicolumn, width, align, object[[pos_ci]])
+    if (length(pos_ci) == 1L) {
+      multicolumn <- "\\multicolumn{%d}{%s}{%s}"
+      names(object)[pos_ci] <- sprintf(multicolumn, width, align, cn[pos_ci])
+      object[[pos_ci]] <- sprintf(multicolumn, width, align, object[[pos_ci]])
+    }
   } else {
     # TODO: convert data frame to flextable
   }
