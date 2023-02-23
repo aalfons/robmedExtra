@@ -1,7 +1,10 @@
-# ------------------------------------
+# ************************************
 # Author: Andreas Alfons
 #         Erasmus University Rotterdam
-# ------------------------------------
+# ************************************
+
+
+# Convert results from mediation analysis to LaTeX table -----
 
 #' @export
 to_latex <- function(object, ...) UseMethod("to_latex")
@@ -73,5 +76,8 @@ print.latex_tables <- function(x, ...) {
   cat("\\emph{Note}.", format_latex_note(x$note))
 }
 
-# internal functions
+
+# internal functions -----
+
+# wrapper function for pasting columns of LaTeX table with column separator '&'
 paste_amp <- function(..., sep = " & ") paste(..., sep = sep)
