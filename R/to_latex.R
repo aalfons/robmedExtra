@@ -77,7 +77,7 @@ print.latex_tables <- function(x, ...) {
 }
 
 
-# internal functions -----
+# Internal functions -----
 
 # wrapper function for pasting columns of LaTeX table with column separator '&'
 paste_amp <- function(..., sep = " & ") paste(..., sep = sep)
