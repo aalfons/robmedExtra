@@ -50,7 +50,8 @@ boot_serial <- test_mediation(BSG2014,
                               x = "ValueDiversity",
                               y = "TeamScore",
                               m = c("TaskConflict", "TeamCommitment"),
-                              model = "serial")
+                              model = "serial",
+                              contrast = FALSE)
 @
 
 \begin{table}[h!]
@@ -71,7 +72,8 @@ boot_parallel <- test_mediation(BSG2014,
                                 m = c("ProceduralJustice",
                                       "InteractionalJustice"),
                                 covariates = c("AgeDiversity",
-                                               "GenderDiversity"))
+                                               "GenderDiversity"),
+                                contrast = FALSE)
 @
 
 \begin{table}[h!]
@@ -91,7 +93,8 @@ boot_multiple <- test_mediation(BSG2014,
                                     "AgeDiversity",
                                     "GenderDiversity"),
                               y = "TeamPerformance",
-                              m = "ProceduralJustice")
+                              m = "ProceduralJustice",
+                              contrast = FALSE)
 @
 
 \begin{table}[h!]
@@ -112,13 +115,34 @@ boot_mult_par <- test_mediation(BSG2014,
                                     "GenderDiversity"),
                               y = "TeamPerformance",
                               m = c("ProceduralJustice",
-                                    "InteractionalJustice"))
+                                    "InteractionalJustice"),
+                              contrast = FALSE)
 @
 
 \begin{table}[h!]
-\caption{Results from mediation analysis for a multiple parallel mediator model with multiple independent variables, using the robust bootstrap test ROBMED.}
+\caption{Results from mediation analysis for a parallel multiple mediator model with multiple independent variables, using the robust bootstrap test ROBMED.}
 <<echo=FALSE, results="asis">>=
 to_latex(boot_mult_par)
+@
+\end{table}
+
+
+<<include=FALSE>>=
+# set seed of the random number generator
+set.seed(seed)
+# perform mediation analysis
+boot_mult_ser <- test_mediation(BSG2014,
+                                x = c("ValueDiversity", "AgeDiversity"),
+                                y = "TeamScore",
+                                m = c("TaskConflict", "TeamCommitment"),
+                                model = "serial",
+                                contrast = FALSE)
+@
+
+\begin{table}[h!]
+\caption{Results from mediation analysis for a serial multiple mediator model with multiple independent variables, using the robust bootstrap test ROBMED.}
+<<echo=FALSE, results="asis">>=
+to_latex(boot_mult_ser)
 @
 \end{table}
 

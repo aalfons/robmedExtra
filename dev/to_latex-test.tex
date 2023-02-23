@@ -192,7 +192,7 @@ $X_{3} \rightarrow M \rightarrow Y$ $(ab_{3})$ & $0.221$ & \multicolumn{3}{c}{$(
 
 
 \begin{table}[h!]
-\caption{Results from mediation analysis for a multiple parallel mediator model with multiple independent variables, using the robust bootstrap test ROBMED.}
+\caption{Results from mediation analysis for a parallel multiple mediator model with multiple independent variables, using the robust bootstrap test ROBMED.}
 \begin{center}
 \begin{tabular}{lrrrr}
 \hline\noalign{\smallskip}
@@ -231,6 +231,47 @@ $X_{3} \rightarrow M_{2} \rightarrow Y$ $(a_{23}b_{2})$ & $0.178$ & \multicolumn
 \end{tabular}
 \end{center}
 \emph{Note}. Independent variables: SharedLeadership ($X_{1}$), AgeDiversity ($X_{2}$), GenderDiversity ($X_{3}$); hypothesized mediators: ProceduralJustice ($M_{1}$), InteractionalJustice ($M_{2}$); dependent variable: TeamPerformance ($Y$). Sample size = 89. Number of bootstrap samples = 5,000.
+\end{table}
+
+
+
+
+\begin{table}[h!]
+\caption{Results from mediation analysis for a serial multiple mediator model with multiple independent variables, using the robust bootstrap test ROBMED.}
+\begin{center}
+\begin{tabular}{lrrrr}
+\hline\noalign{\smallskip}
+Total Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X_{1} \rightarrow Y$ $(c'_{1})$ & $0.186$ & $3.310$ & $0.056$ & $0.955$ \\ 
+$X_{2} \rightarrow Y$ $(c'_{2})$ & $-0.163$ & $1.675$ & $-0.097$ & $0.922$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Direct Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X_{1} \rightarrow M_{1}$ $(a_{11})$ & $0.319$ & $0.110$ & $2.897$ & $0.004$ \\ 
+$X_{1} \rightarrow M_{2}$ $(a_{21})$ & $0.065$ & $0.188$ & $0.349$ & $0.727$ \\ 
+$X_{2} \rightarrow M_{1}$ $(a_{12})$ & $0.017$ & $0.046$ & $0.366$ & $0.714$ \\ 
+$X_{2} \rightarrow M_{2}$ $(a_{22})$ & $-0.032$ & $0.073$ & $-0.433$ & $0.665$ \\ 
+$M_{1} \rightarrow M_{2}$ $(d_{21})$ & $-0.336$ & $0.172$ & $-1.948$ & $0.051$ \\ 
+$M_{1} \rightarrow Y$ $(b_{1})$ & $0.222$ & $2.791$ & $0.080$ & $0.937$ \\ 
+$M_{2} \rightarrow Y$ $(b_{2})$ & $9.241$ & $4.646$ & $1.989$ & $0.047$ \\ 
+$X_{1} \rightarrow Y$ $(c_{1})$ & $0.601$ & $3.102$ & $0.194$ & $0.846$ \\ 
+$X_{2} \rightarrow Y$ $(c_{2})$ & $0.191$ & $1.231$ & $0.155$ & $0.876$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Indirect Effect & Estimate & \multicolumn{3}{c}{95\% Confidence Interval} \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X_{1} \rightarrow  \ldots  \rightarrow Y$ (total) & $-0.416$ & \multicolumn{3}{c}{$(-6.966, 2.834)$} \\ 
+$X_{1} \rightarrow M_{1} \rightarrow Y$ $(a_{11}b_{1})$ & $0.078$ & \multicolumn{3}{c}{$(-1.701, 2.142)$} \\ 
+$X_{1} \rightarrow M_{2} \rightarrow Y$ $(a_{21}b_{2})$ & $0.460$ & \multicolumn{3}{c}{$(-2.948, 5.143)$} \\ 
+$X_{1} \rightarrow M_{1} \rightarrow M_{2} \rightarrow Y$ $(a_{11}d_{21}b_{2})$ & $-0.953$ & \multicolumn{3}{c}{$(-3.875, -0.067)$} \\ 
+$X_{2} \rightarrow  \ldots  \rightarrow Y$ (total) & $-0.355$ & \multicolumn{3}{c}{$(-2.395, 0.993)$} \\ 
+$X_{2} \rightarrow M_{1} \rightarrow Y$ $(a_{12}b_{1})$ & $0.004$ & \multicolumn{3}{c}{$(-0.212, 0.371)$} \\ 
+$X_{2} \rightarrow M_{2} \rightarrow Y$ $(a_{22}b_{2})$ & $-0.302$ & \multicolumn{3}{c}{$(-2.077, 1.048)$} \\ 
+$X_{2} \rightarrow M_{1} \rightarrow M_{2} \rightarrow Y$ $(a_{12}d_{21}b_{2})$ & $-0.056$ & \multicolumn{3}{c}{$(-0.643, 0.154)$} \\ 
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\emph{Note}. Independent variables: ValueDiversity ($X_{1}$), AgeDiversity ($X_{2}$); hypothesized mediators: TaskConflict ($M_{1}$), TeamCommitment ($M_{2}$); dependent variable: TeamScore ($Y$). Sample size = 89. Number of bootstrap samples = 5,000.
 \end{table}
 
 

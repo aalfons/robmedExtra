@@ -58,7 +58,7 @@ summary(boot_multiple)
 to_latex(boot_multiple)
 
 
-## parallel multiple mediators and multiple independent variables
+## multiple independent variables and parallel multiple mediators
 # set seed of the random number generator
 set.seed(seed)
 # perform mediation analysis
@@ -71,6 +71,19 @@ boot_mult_par <- test_mediation(BSG2014,
                                       "InteractionalJustice"))
 summary(boot_mult_par)
 to_latex(boot_mult_par)
+
+
+## multiple independent variables and serial multiple mediators
+# set seed of the random number generator
+set.seed(seed)
+# perform mediation analysis
+boot_mult_ser <- test_mediation(BSG2014,
+                                x = c("ValueDiversity", "AgeDiversity"),
+                                y = "TeamScore",
+                                m = c("TaskConflict", "TeamCommitment"),
+                                model = "serial")
+summary(boot_mult_ser)
+to_latex(boot_mult_ser)
 
 
 ## bootstrap test with covariance fit

@@ -221,14 +221,14 @@ extract_total <- function(summary) {
 # collected from different components of an object of class "test_mediation",
 # in a similar way as in the corresponding print() method
 extract_indirect <- function(object) {
+
   # initializations
   p_x <- length(object$fit$x)
   p_m <- length(object$fit$m)
   model <- object$fit$model
   have_simple <- is.null(model) || model == "simple"
-  contrast <- object$fit$contrast
-  if (is.null(contrast)) contrast <- FALSE
-  if (contrast) stop("pairwise contrasts of indirect effects not yet supported")
+  contrast <- object$fit$contrast          # only implemented for regression fit
+  have_contrast <- is.character(contrast)  # but this always works
   # extract effect summaries
   if (inherits(object, "boot_test_mediation")) {
     indirect <- cbind(Estimate = object$indirect,
@@ -240,77 +240,111 @@ extract_indirect <- function(object) {
                  less = "Pr(<z)", greater = "Pr(>z)")
     colnames(indirect) <- c("Estimate", "Std. Error", "z value", cn)
   }
-  # construct labels
-  if (have_simple) {
-    # simple mediation model
-    label_x <- "X"
-    label_m <- "M"
-    label_indirect <- "ab"
-  } else if (model == "parallel") {
-    # parallel mediators
-    seq_m <- seq_len(p_m)
-    if (p_x == 1) {
-      # one independent variable
-      label_x <- rep("X", times = p_m + 1L)
-      label_m <- c("...", paste0("M", seq_m))
-      label_indirect <- c("total", paste0("a", seq_m, "b", seq_m))
-    } else {
-      # multiple independent variables
-      seq_x <- seq_len(p_x)
-      label_x <- rep(paste0("X", seq_x), each = p_m + 1L)
-      label_m <- rep(c("...", paste0("M", seq_m)), times = p_x)
-      label_indirect <- sapply(
-        seq_x, function(j, label) sprintf(label, j),
-        label = c("total", paste0("a", seq_m, "%db", seq_m))
-      )
-    }
-  } else if (model == "serial") {
-    # serial mediators
-    if (p_x == 1) {
-      # one independent variable
+
+  # construct and add labels
+  if (p_x > 1L && p_m > 1L) {
+
+    # multiple independent variables and multiple mediators: labels have to be
+    # constructed in a different manner due to possible contrasts
+
+    # initializations
+    seq_x <- seq_len(p_x)
+    # prepare labels for individual indirect paths
+    if (model == "serial") {
+      # serial mediators
       if (p_m == 2L) {
-        label_x <- rep("X", times = 4L)
+        label_x <- sapply(seq_x, function(j) rep(paste0("X", j), each = 4L))
         label_m <- c("...", "M1", "M2", "M1->M2")
-        label_indirect <- c("total", "a1b1", "a2b2", "a1d21b2")
-      } else {
-        label_x <- rep("X", times = 8L)
-        label_m <- c("...", "M1", "M2", "M3", "M1->M2",
-                     "M1->M3", "M2->M3", "M1->M2->M3")
-        label_indirect <- c("total", "a1b1", "a2b2", "a3b3", "a1d21b2",
-                            "a1d31b3", "a2d32b3", "a1d21d32b3")
-      }
-    } else {
-      # multiple independent variables
-      seq_x <- seq_len(p_x)
-      if (p_m == 2L) {
-        label_x <- rep(paste0("X", seq_x), each = 4L)
-        label_m <- rep(c("...", "M1", "M2", "M1->M2"), times = p_x)
         label_indirect <- sapply(
           seq_x, function(j, label) sprintf(label, j),
           label = c("total", "a1%db1", "a2%db2", "a1%dd21b2")
         )
       } else {
-        label_x <- rep(paste0("X", seq_x), each = 8L)
-        label_m <- rep(c("...", "M1", "M2", "M3", "M1->M2",
-                         "M1->M3", "M2->M3", "M1->M2->M3"),
-                       times = p_x)
+        label_x <- sapply(seq_x, function(j) rep(paste0("X", j), each = 8L))
+        label_m <- c("...", "M1", "M2", "M3", "M1->M2",
+                     "M1->M3", "M2->M3", "M1->M2->M3")
         label_indirect <- sapply(
           seq_x, function(j, label) sprintf(label, j),
           label = c("total", "a1%db1", "a2%db2", "a3%db3", "a1%dd21b2",
                     "a1%dd31b3", "a2%dd32b3", "a1%dd21d32b3")
         )
       }
+    } else {
+      # parallel mediators
+      seq_m <- seq_len(p_m)
+      label_x <- sapply(seq_x, function(j) rep(paste0("X", j), each = p_m+1L))
+      # label_m <- replicate(p_x, c("...", paste0("M", seq_m)))
+      label_m <- c("...", paste0("M", seq_m))
+      label_indirect <- sapply(
+        seq_x, function(j, label) sprintf(label, j),
+        label = c("total", paste0("a", seq_m, "%db", seq_m))
+      )
     }
+    # construct labels for indirect paths
+    label_path <- sapply(seq_x, function(j) {
+      paste0(label_x[, j], "->", label_m, "->Y (", label_indirect[, j], ")")
+    })
+    # if applicable, construct labels of contrasts
+    if (have_contrast) {
+      label_contrast <- apply(label_indirect[-1L, , drop = FALSE], 2L,
+                               get_contrast_labels, type = contrast)
+    } else label_contrast <- NULL
+    # add labels to indirect effects
+    rownames(indirect) <- c(rbind(label_path, label_contrast))
+
   } else {
-    # single mediator but multiple independent variables
-    seq_x <- seq_len(p_x)
-    label_x <- paste0("X", seq_x)
-    label_m <- "M"
-    label_indirect <- paste0("ab", seq_x)
+
+    # first indirect effects are reported, followed by contrasts
+    if (have_simple) {
+      # simple mediation model
+      label_x <- "X"
+      label_m <- "M"
+      label_indirect <- "ab"
+      label_contrast <- NULL
+    } else if (model == "multiple") {
+      # multiple independent variables but only one mediator
+      seq_x <- seq_len(p_x)
+      label_x <- paste0("X", seq_x)
+      label_m <- "M"
+      label_indirect <- paste0("ab", seq_x)
+      # if applicable, construct labels of contrasts
+      if (have_contrast) {
+        label_contrast <- get_contrast_labels(label_indirect, type = contrast)
+      } else label_contrast <- NULL
+    } else {
+      # multiple mediators but only one independent variable
+      if (model == "serial") {
+        # serial mediators
+        if (p_m == 2L) {
+          label_x <- rep("X", times = 4L)
+          label_m <- c("...", "M1", "M2", "M1->M2")
+          label_indirect <- c("total", "a1b1", "a2b2", "a1d21b2")
+        } else {
+          label_x <- rep("X", times = 8L)
+          label_m <- c("...", "M1", "M2", "M3", "M1->M2",
+                       "M1->M3", "M2->M3", "M1->M2->M3")
+          label_indirect <- c("total", "a1b1", "a2b2", "a3b3", "a1d21b2",
+                              "a1d31b3", "a2d32b3", "a1d21d32b3")
+        }
+      } else {
+        # parallel mediators
+        seq_m <- seq_len(p_m)
+        label_x <- rep("X", times = p_m + 1L)
+        label_m <- c("...", paste0("M", seq_m))
+        label_indirect <- c("total", paste0("a", seq_m, "b", seq_m))
+      }
+      # if applicable, construct labels of contrasts
+      if (have_contrast) {
+        label_contrast <- get_contrast_labels(label_indirect[-1L],
+                                              type = contrast)
+      } else label_contrast <- NULL
+    }
+    # add labels to indirect effects
+    label_path <- paste0(label_x, "->", label_m, "->Y (", label_indirect, ")")
+    rownames(indirect) <- c(label_path, label_contrast)
+
   }
-  # add labels
-  rownames(indirect) <- paste0(label_x, "->", label_m, "->Y (",
-                               label_indirect, ")")
+
   # return effect summaries
   indirect
 }
@@ -329,6 +363,24 @@ keep_estimate <- function(coef_mat) {
   }
   # return effect summaries
   coef_mat
+}
+
+## obtain labels on how contrasts of indirect effects are computed
+#' @importFrom utils combn
+get_contrast_labels <- function(labels, type = "estimates") {
+  # compute combinations of names
+  combinations <- combn(labels, 2, simplify = FALSE)
+  n_contrasts <- length(combinations)
+  # obtain information on contrasts
+  if (type == "estimates") {
+    fun <- function(labels) paste(labels, collapse = "-")
+  } else if (type == "absolute") {
+    fun <- function(labels) {
+      paste(paste0("|", labels, "|"), collapse = "-")
+    }
+  } else stop("type of contrasts not implemented")
+  # return contrast labels
+  sapply(combinations, fun)
 }
 
 
@@ -353,17 +405,16 @@ to_effect_table.default <- function(object, digits = 3L, label = "Effect") {
 }
 
 # further prepare the formatted data frame for LaTeX or convert to flextable
-to_effect_table.data.frame <- function(object,
-                                       which = c("latex", "flextable")) {
-  if (which == "latex") {
+to_effect_table.data.frame <- function(object, which = "flextable") {
+  if (which == "flextable") {
+    # TODO: convert data frame to flextable
+  } else if (which == "latex") {
     # format the table header for LaTeX
     names(object) <- format_latex_header(object)
     # format the table body for LaTeX
     object[, 1L] <- format_latex_label(object[, 1L])
     object[, -1L] <- lapply(object[, -1L], format_latex_column)
-  } else {
-    # TODO: convert data frame to flextable
-  }
+  } else stop("type of table not implemented")
   # return prepared or converted object
   object
 }
@@ -406,10 +457,11 @@ to_indirect_table.default <- function(object, digits = 3L, level = 0.95,
 }
 
 # further prepare the formatted data frame for LaTeX or convert to flextable
-to_indirect_table.data.frame <- function(object,
-                                         which = c("latex", "flextable"),
+to_indirect_table.data.frame <- function(object, which = "flextable",
                                          width = 3L, align = "c") {
-  if (which == "latex") {
+  if (which == "flextable") {
+    # TODO: convert data frame to flextable
+  } else if (which == "latex") {
     # initializations
     # first perform the same formatting as for total and direct effects
     object <- to_effect_table(object, which = which)
@@ -421,9 +473,7 @@ to_indirect_table.data.frame <- function(object,
       names(object)[pos_ci] <- sprintf(multicolumn, width, align, cn[pos_ci])
       object[[pos_ci]] <- sprintf(multicolumn, width, align, object[[pos_ci]])
     }
-  } else {
-    # TODO: convert data frame to flextable
-  }
+  } else stop("type of table not implemented")
   # return prepared or converted object
   object
 }
