@@ -14,6 +14,7 @@ boot_simple <- test_mediation(BSG2014,
                               m = "TaskConflict")
 summary(boot_simple)
 to_latex(boot_simple)
+to_flextable(boot_simple)
 
 
 ## serial multiple mediators
@@ -27,6 +28,7 @@ boot_serial <- test_mediation(BSG2014,
                               model = "serial")
 summary(boot_serial)
 to_latex(boot_serial)
+to_flextable(boot_serial)
 
 
 ## parallel multiple mediators and control variables

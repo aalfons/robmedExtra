@@ -26,13 +26,13 @@ to_latex.summary_test_mediation <- function(object, p_value = FALSE,
   tables <- get_mediation_tables(object, p_value = p_value, digits = digits)
   # add alignment specification and set class
   tables$align <- align
-  class(tables) <- "latex_tables"
+  class(tables) <- "mediation_latex_tables"
   # return object for LaTeX tables
   tables
 }
 
 #' @export
-print.latex_tables <- function(x, ...) {
+print.mediation_latex_tables <- function(x, ...) {
   ## initializations
   direct <- x$direct
   indirect <- x$indirect

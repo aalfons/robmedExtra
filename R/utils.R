@@ -404,10 +404,16 @@ to_effect_table.default <- function(object, digits = 3L, label = "Effect") {
   df
 }
 
-# further prepare the formatted data frame for LaTeX or convert to flextable
+## further prepare the formatted data frame for LaTeX or convert to flextable
+#' @importFrom flextable flextable
 to_effect_table.data.frame <- function(object, which = "flextable") {
   if (which == "flextable") {
     # TODO: convert data frame to flextable
+    # format the table body with nicer unicode symbols
+    object[, 1L] <- format_unicode_label(object[, 1L])
+    object[, -1L] <- lapply(object[, -1L], format_unicode_column)
+    # create flextable
+    object <- flextable(object)
   } else if (which == "latex") {
     # format the table header for LaTeX
     names(object) <- format_latex_header(object)
@@ -461,8 +467,9 @@ to_indirect_table.data.frame <- function(object, which = "flextable",
                                          width = 3L, align = "c") {
   if (which == "flextable") {
     # TODO: convert data frame to flextable
+    # first perform the same formatting as for total and direct effects
+    object <- to_effect_table(object, which = which)
   } else if (which == "latex") {
-    # initializations
     # first perform the same formatting as for total and direct effects
     object <- to_effect_table(object, which = which)
     # wrap confidence interval in \multicolumn statement
@@ -488,6 +495,20 @@ get_table_names <- function(label, object) {
   cn <- gsub("Pr\\(.*\\)", "p Value", cn, fixed = FALSE)
   # return column names
   c(label, cn)
+}
+
+# format the label column of a table using nicer unicode symbols
+format_unicode_label <- function(label) {
+  # format arrows and ellipses nicely
+  label <- gsub("->", "\U2192", label, fixed = TRUE)  # alternative: \U2B62
+  label <- gsub("...", "\U2026", label, fixed = TRUE)
+  # return label
+  label
+}
+
+# format a column of a table using nicer unicode symbols
+format_unicode_column <- function(column) {
+  gsub("-", "\U2212", column, fixed = TRUE)
 }
 
 # format the table header for LaTeX
