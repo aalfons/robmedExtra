@@ -14,7 +14,8 @@ boot_simple <- test_mediation(BSG2014,
                               m = "TaskConflict")
 summary(boot_simple)
 to_latex(boot_simple)
-to_flextable(boot_simple)
+foo <- to_flextable(boot_simple)
+to_docx(foo, file = "dev/test.docx")
 
 
 ## serial multiple mediators

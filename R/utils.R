@@ -391,7 +391,8 @@ get_contrast_labels <- function(labels, type = "estimates") {
 to_effect_table <- function(object, ...) UseMethod("to_effect_table")
 
 # default method converts matrix of effect summaries to formatted data frame
-to_effect_table.default <- function(object, digits = 3L, label = "Effect") {
+to_effect_table.default <- function(object, digits = 3L, label = "Effect",
+                                    ...) {
   # format numbers and replace missing values
   object <- formatC(object, digits = digits, format = "f")
   object <- gsub("NA", "  ", object, fixed = TRUE)
@@ -405,15 +406,20 @@ to_effect_table.default <- function(object, digits = 3L, label = "Effect") {
 }
 
 ## further prepare the formatted data frame for LaTeX or convert to flextable
-#' @importFrom flextable flextable
-to_effect_table.data.frame <- function(object, which = "flextable") {
+#' @importFrom flextable align qflextable valign
+to_effect_table.data.frame <- function(object, which = "flextable",
+                                       align = NULL, ...) {
   if (which == "flextable") {
-    # TODO: convert data frame to flextable
     # format the table body with nicer unicode symbols
     object[, 1L] <- format_unicode_label(object[, 1L])
     object[, -1L] <- lapply(object[, -1L], format_unicode_column)
     # create flextable
-    object <- flextable(object)
+    object <- flextable::qflextable(object)
+    # set column alignment
+    object <- flextable::valign(object, valign = "bottom", part = "header")
+    for (j in seq_along(align)) {
+      object <- flextable::align(object, j = j, align = align[j], part = "all")
+    }
   } else if (which == "latex") {
     # format the table header for LaTeX
     names(object) <- format_latex_header(object)
@@ -431,7 +437,7 @@ to_indirect_table <- function(object, ...) UseMethod("to_indirect_table")
 
 # default method converts matrix of effect summaries to formatted data frame
 to_indirect_table.default <- function(object, digits = 3L, level = 0.95,
-                                      p_value = NULL) {
+                                      p_value = NULL, ...) {
   # initializations
   have_boot <- !is.null(level)
   have_p_value <- !is.null(p_value)
@@ -464,11 +470,11 @@ to_indirect_table.default <- function(object, digits = 3L, level = 0.95,
 
 # further prepare the formatted data frame for LaTeX or convert to flextable
 to_indirect_table.data.frame <- function(object, which = "flextable",
-                                         width = 3L, align = "c") {
+                                         width, align, ...) {
   if (which == "flextable") {
     # TODO: convert data frame to flextable
     # first perform the same formatting as for total and direct effects
-    object <- to_effect_table(object, which = which)
+    object <- to_effect_table(object, which = which, align = align)
   } else if (which == "latex") {
     # first perform the same formatting as for total and direct effects
     object <- to_effect_table(object, which = which)

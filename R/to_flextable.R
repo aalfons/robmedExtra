@@ -19,18 +19,32 @@ to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
   to_flextable(summary, ...)
 }
 
+#' @importFrom flextable add_footer_lines align as_i
 #' @export
 to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
-                                                digits = 3L, ...) {
+                                                digits = 3L, align = NULL,
+                                                ...) {
+  # initializations
+  if (is.null(align)) {
+    align <- list(c("left", "right", "right", "right", "right"),
+                  c("left", "right", "center", if (p_value) "right"))
+  }
   # call workhorse function to format tables
   tables <- get_mediation_tables(object, p_value = p_value, digits = digits)
   # format tables for total and direct effects
-  tables$total <- to_effect_table(tables$total, which = "flextable")
-  tables$direct <- to_effect_table(tables$direct, which = "flextable")
+  tables$total <- to_effect_table(tables$total, which = "flextable",
+                                  align = align[[1]])
+  tables$direct <- to_effect_table(tables$direct, which = "flextable",
+                                   align = align[[1]])
   # format of tables for indirect effects and add table notes
-  indirect <- to_indirect_table(tables$indirect, which = "flextable")
+  indirect <- to_indirect_table(tables$indirect, which = "flextable",
+                                align = align[[2]])
   note <- paste(tables$note, collapse = " ")
-  indirect <- add_footer_lines(indirect, values = note)
+  indirect <- flextable::add_footer_lines(
+    indirect,
+    values = flextable::as_paragraph(flextable::as_i("Note."), " ", note)
+  )
+  indirect <- flextable::align(indirect, align = "justify", part = "footer")
   tables$indirect <- indirect
   # set class and return object containing flextables
   class(tables) <- "mediation_flextables"
