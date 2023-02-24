@@ -24,10 +24,14 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
                                                 digits = 3L, ...) {
   # call workhorse function to format tables
   tables <- get_mediation_tables(object, p_value = p_value, digits = digits)
-  # further formatting of tables
+  # format tables for total and direct effects
   tables$total <- to_effect_table(tables$total, which = "flextable")
   tables$direct <- to_effect_table(tables$direct, which = "flextable")
-  tables$indirect <- to_effect_table(tables$indirect, which = "flextable")
+  # format of tables for indirect effects and add table notes
+  indirect <- to_indirect_table(tables$indirect, which = "flextable")
+  note <- paste(tables$note, collapse = " ")
+  indirect <- add_footer_lines(indirect, values = note)
+  tables$indirect <- indirect
   # set class and return object containing flextables
   class(tables) <- "mediation_flextables"
   tables
