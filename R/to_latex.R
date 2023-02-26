@@ -73,7 +73,7 @@ print.mediation_latex_tables <- function(x, ...) {
   cat("\\end{tabular}\n")
   cat("\\end{center}\n")
   ## add note
-  cat("\\emph{Note}.", format_latex_note(x$note))
+  cat("\\emph{Note}.", format_latex_note(x$note), "\n")
 }
 
 
