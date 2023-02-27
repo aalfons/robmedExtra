@@ -50,6 +50,10 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   df[, -1L] <- lapply(df[, -1L], format_unicode_column)
   # construct flextable
   ft <- flextable::flextable(df)
+  # format headers
+  ft <- format_header(ft, values = names(df), i = NULL)
+  ft <- format_header(ft, values = direct_header, i = i_direct)
+  ft <- format_header(ft, values = indirect_header, i = i_indirect)
   # merge cells for confidence intervals
   if (p_extra > 0L) {
     i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
@@ -136,11 +140,39 @@ theme_mediation <- function(x, ...) {
   x <- flextable::valign(x, valign = "center", part = "body")
   x <- flextable::valign(x, valign = "center", part = "footer")
   # return flextable
-  fix_border_issues(x, part = "all")
+  flextable::fix_border_issues(x, part = "all")
 }
 
 
 # Internal functions -----
+
+# format header
+# object ... a flextable object
+# values ... character string giving the unformatted values of the header
+# i ........ integer giving the row of the flextable to format
+#' @importFrom flextable compose as_i as_paragraph
+format_header <- function(object, values, i = NULL) {
+  # initializations
+  part <- if (is.null(i)) "header" else "body"
+  # find columns to be formatted
+  to_format <- c(grep("Statistic", values, fixed = TRUE),
+                 grep("Value", values, fixed = TRUE))
+  # split corresponding values in header by space
+  value_list <- strsplit(values[to_format], split = " ", fixed = TRUE)
+  # loop over columns and format the corresponding cells
+  for (which in seq_along(value_list)) {
+    values <- value_list[[which]]
+    j <- to_format[which]
+    object <- compose(
+      object, i = i, j = j,
+      value = flextable::as_paragraph(flextable::as_i(values[1L]), " ",
+                                      values[2L]),
+      part = part
+    )
+  }
+  # return flextable with formatted row
+  object
+}
 
 # format a column of a table using nicer unicode symbols
 format_unicode_column <- function(column) {
