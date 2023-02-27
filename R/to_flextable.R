@@ -5,6 +5,9 @@
 # based on code by Vincent Drenth
 # ************************************
 
+
+# Convert results from mediation analysis to a flextable -----
+
 #' @export
 to_flextable <- function(object, ...) UseMethod("to_flextable")
 
@@ -42,15 +45,18 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   }
   names(indirect_header) <- names(indirect) <- names(df)
   df <- rbind(df, indirect_header, indirect)
-  # TODO: format the table body with nicer unicode symbols
+  # format the table body with nicer unicode symbols
+  df[, 1L] <- format_unicode_label(df[, 1L])
+  df[, -1L] <- lapply(df[, -1L], format_unicode_column)
   # construct flextable
   ft <- flextable::flextable(df)
   # merge cells for confidence intervals
   if (p_extra > 0L) {
     i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
-    j_ci <- grep("Confidence Interval", indirect_header, fixed = TRUE)
-    ft <- flextable::merge_h_range(ft, i = i_merge, j1 = j_ci,
-                                   j2 = j_ci + p_extra, part = "body")
+    j_ci_start <- grep("Confidence Interval", indirect_header, fixed = TRUE)
+    j_ci_end <- j_ci_start + p_extra
+    ft <- flextable::merge_h_range(ft, i = i_merge, j1 = j_ci_start,
+                                   j2 = j_ci_end, part = "body")
   }
   # make sure that columns fit nicely
   ft <- flextable::autofit(ft)
@@ -64,12 +70,15 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   ft$additional_header_rows <- c(direct = i_direct, indirect = i_indirect)
   # if applicable, add information on merged cells for confidence intervals
   if (p_extra > 0L) {
-    ft$merged <- list(i = i_merge, j = seq(from = j_ci, to = j_ci + p_extra))
+    ft$merge_h_range <- list(i = i_merge, j1 = j_ci_start, j2 = j_ci_end)
   }
   # set class and theme to return flextable
   class(ft) <- c("mediation_flextable", class(ft))
   theme_mediation(ft)
 }
+
+
+# Theme for formatting a flextable of results from mediation analysis -----
 
 #' @importFrom flextable align border_remove fix_border_issues
 #' get_flextable_defaults hline hline_bottom hline_top ncol_keys
@@ -118,8 +127,8 @@ theme_mediation <- function(x, ...) {
   }
   x <- flextable::align(x, align = "justify", part = "footer")
   # set horizontal alignment of merged cells
-  if (have_mediation && !is.null(x$merged)) {
-    x <- flextable::align(x, i = x$merged$i, j = x$merged$j[1L],
+  if (have_mediation && !is.null(x$merge_h_range)) {
+    x <- flextable::align(x, i = x$merge_h_range$i, j = x$merge_h_range$j1,
                           align = "center", part = "body")
   }
   # set vertical alignment
@@ -130,10 +139,19 @@ theme_mediation <- function(x, ...) {
   fix_border_issues(x, part = "all")
 }
 
-#' @export
-print.mediation_flextables <- function(x, ...) {
-  # create preview of flextables
-  print(x$total, ...)
-  print(x$direct, ...)
-  print(x$indirect, ...)
+
+# Internal functions -----
+
+# format a column of a table using nicer unicode symbols
+format_unicode_column <- function(column) {
+  gsub("-", "\U2212", column, fixed = TRUE)
+}
+
+# format the label column of a table using nicer unicode symbols
+format_unicode_label <- function(label) {
+  # format arrows and ellipses nicely
+  label <- gsub("->", "\U2192", label, fixed = TRUE)  # alternative: \U2B62
+  label <- gsub("...", "\U2026", label, fixed = TRUE)
+  # return label
+  label
 }

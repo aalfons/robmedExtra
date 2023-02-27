@@ -4,7 +4,7 @@
 # ************************************
 
 
-# Convert results from mediation analysis to LaTeX table -----
+# Convert results from mediation analysis to a LaTeX table -----
 
 #' @export
 to_latex <- function(object, ...) UseMethod("to_latex")

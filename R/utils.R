@@ -501,20 +501,6 @@ get_table_names <- function(label, object) {
   c(label, cn)
 }
 
-# format the label column of a table using nicer unicode symbols
-format_unicode_label <- function(label) {
-  # format arrows and ellipses nicely
-  label <- gsub("->", "\U2192", label, fixed = TRUE)  # alternative: \U2B62
-  label <- gsub("...", "\U2026", label, fixed = TRUE)
-  # return label
-  label
-}
-
-# format a column of a table using nicer unicode symbols
-format_unicode_column <- function(column) {
-  gsub("-", "\U2212", column, fixed = TRUE)
-}
-
 # format the table header for LaTeX
 format_latex_header <- function(object) {
   # extract column names
