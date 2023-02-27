@@ -54,6 +54,7 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   ft <- format_header(ft, values = names(df), i = NULL)
   ft <- format_header(ft, values = direct_header, i = i_direct)
   ft <- format_header(ft, values = indirect_header, i = i_indirect)
+  # TODO: ensure that indices are in subscripts and effect symbols are in italic
   # merge cells for confidence intervals
   if (p_extra > 0L) {
     i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
@@ -70,6 +71,7 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
     ft,
     values = flextable::as_paragraph(flextable::as_i("Note."), " ", note)
   )
+  # TODO: ensure that indices are in subscripts
   # add information on rows where direct and indirect effects start
   ft$additional_header_rows <- c(direct = i_direct, indirect = i_indirect)
   # if applicable, add information on merged cells for confidence intervals
@@ -146,10 +148,10 @@ theme_mediation <- function(x, ...) {
 
 # Internal functions -----
 
-# format header
-# object ... a flextable object
-# values ... character string giving the unformatted values of the header
-# i ........ integer giving the row of the flextable to format
+## format header
+## object ... a flextable object
+## values ... character string giving the unformatted values of the header
+## i ........ integer giving the row of the flextable to format
 #' @importFrom flextable compose as_i as_paragraph
 format_header <- function(object, values, i = NULL) {
   # initializations
@@ -165,8 +167,8 @@ format_header <- function(object, values, i = NULL) {
     j <- to_format[which]
     object <- compose(
       object, i = i, j = j,
-      value = flextable::as_paragraph(flextable::as_i(values[1L]), " ",
-                                      values[2L]),
+      value = flextable::as_paragraph(flextable::as_i(values[1L]),
+                                      " ", values[2L]),
       part = part
     )
   }
