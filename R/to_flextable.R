@@ -19,7 +19,7 @@ to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
   to_flextable(summary, ...)
 }
 
-#' @importFrom flextable add_footer_lines as_i flextable merge_h_range
+#' @importFrom flextable add_footer_lines flextable merge_h_range
 #' @export
 to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
                                                 digits = 3L, ...) {
@@ -34,14 +34,24 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   names(direct_header) <- names(direct) <- names(df)
   df <- rbind(df, direct_header, direct)
   # add header and body for indirect effects
-  indirect <- tables$indirect
   i_indirect <- nrow(df) + 1L
-  p_extra <- ncol(df) - ncol(indirect)
+  indirect <- tables$indirect
+  indirect_header <- names(indirect)
+  p_indirect <- ncol(indirect)
+  p_extra <- ncol(df) - p_indirect
   if (p_extra > 0L) {
     n_indirect <- nrow(indirect)
-    indirect_header <- c(names(indirect), rep.int("", p_extra))
+    extra_header <- rep.int("", p_extra)
     extra <- replicate(p_extra, rep.int("", n_indirect), simplify = FALSE)
-    indirect <- cbind(indirect, extra)
+    if (p_value) {
+      indirect_header <- c(indirect_header[-p_indirect], extra_header,
+                           indirect_header[p_indirect])
+      indirect <- cbind(indirect[, -p_indirect, drop = FALSE], extra,
+                        indirect[, p_indirect, drop = FALSE])
+    } else {
+      indirect_header <- c(indirect_header, extra_header)
+      indirect <- cbind(indirect, extra)
+    }
   }
   names(indirect_header) <- names(indirect) <- names(df)
   df <- rbind(df, indirect_header, indirect)
@@ -67,12 +77,13 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   # make sure that columns fit nicely
   ft <- flextable::autofit(ft)
   # add table note
-  note <- paste(tables$note, collapse = " ")
+  note_list <- get_table_note(x = tables$x, m = tables$m, y = tables$y,
+                              covariates = tables$covariates, n = tables$n,
+                              R = tables$R, which = "flextable")
   ft <- flextable::add_footer_lines(
     ft,
-    values = flextable::as_paragraph(flextable::as_i("Note."), " ", note)
+    values = flextable::as_paragraph(list_values = note_list)
   )
-  # TODO: ensure that indices are in subscripts
   # add information on rows where direct and indirect effects start
   ft$additional_header_rows <- c(direct = i_direct, indirect = i_indirect)
   # if applicable, add information on merged cells for confidence intervals
@@ -102,8 +113,6 @@ theme_mediation <- function(x, ...) {
   defaults <- flextable::get_flextable_defaults()
   std_border <- officer::fp_border(color = defaults$border.color,
                                    style = "solid", width = 1L)
-  big_border <- officer::fp_border(color = defaults$border.color,
-                                   style = "solid", width = 2L)
   # get relevant table dimensions
   n_header <- flextable::nrow_part(x, part <- "header")
   n_body <- flextable::nrow_part(x, part <- "body")
@@ -111,18 +120,18 @@ theme_mediation <- function(x, ...) {
   # set borders
   x <- flextable::border_remove(x)
   if (n_header > 0L) {
-    x <- flextable::hline_top(x, border = big_border, part = "header")
-    x <- flextable::hline_bottom(x, border = big_border, part = "header")
+    x <- flextable::hline_top(x, border = std_border, part = "header")
+    x <- flextable::hline_bottom(x, border = std_border, part = "header")
   }
   if (n_body > 0L) {
     if (n_header == 0L) {
-      x <- flextable::hline_top(x, border = big_border, part = "body")
+      x <- flextable::hline_top(x, border = std_border, part = "body")
     }
-    x <- flextable::hline_bottom(x, border = big_border, part = "body")
+    x <- flextable::hline_bottom(x, border = std_border, part = "body")
     # set borders for additional header rows
     if (have_mediation) {
       i_hline <- rbind(x$additional_header_rows - 1L, x$additional_header_rows)
-      x <- flextable::hline(x, i = i_hline, border = big_border, part = "body")
+      x <- flextable::hline(x, i = i_hline, border = std_border, part = "body")
     }
   }
   # set horizontal alignment

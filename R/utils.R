@@ -36,14 +36,13 @@ get_mediation_tables <- function(object, p_value = FALSE, digits = 3L, ...) {
                                label = "Direct Effect")
   df_indirect <- to_indirect_table(df_indirect, digits = digits, level = level,
                                    p_value = p_value_indirect)
-  # construct note on variables, sample size, and number of bootstrap samples
-  variable_info <- do.call(get_variable_info,
-                           summary[c("x", "m", "y", "covariates")])
-  sample_info <- get_sample_info(summary$n)
-  boot_info <- if (have_boot) get_boot_info(object$R)
+  # construct list of tables
+  tables <- list(total = df_total, direct = df_direct, indirect = df_indirect)
+  # add information on variables, sample size, and number of bootstrap samples
+  tables <- c(tables, summary[c("x", "m", "y", "covariates", "n")],
+              if (have_boot) object["R"])
   # return list of tables
-  list(total = df_total, direct = df_direct, indirect = df_indirect,
-       note = c(variable_info, sample_info, boot_info))
+  tables
 }
 
 
@@ -534,48 +533,105 @@ format_latex_column <- function(column) {
   paste0("$", column, "$")
 }
 
-# format the table note for LaTeX
-format_latex_note <- function(note) {
-  # ensure that symbols for variables (in parentheses) are in math mode
-  note <- gsub("\\(([MXY])\\)", "($\\1$)", note, fixed = FALSE)
-  note <- gsub("\\(([MXY])([0-9]+)\\)", "($\\1_{\\2}$)", note, fixed = FALSE)
-  # return note
-  note
-}
+# # format the table note for LaTeX
+# format_latex_note <- function(note) {
+#   # ensure that symbols for variables (in parentheses) are in math mode
+#   note <- gsub("\\(([MXY])\\)", "($\\1$)", note, fixed = FALSE)
+#   note <- gsub("\\(([MXY])([0-9]+)\\)", "($\\1_{\\2}$)", note, fixed = FALSE)
+#   # return note
+#   note
+# }
 
 
-## Constructs notes for table -----
+## Construct table note -----
 
-# construct note on variables
-get_variable_info <- function(x, m, y, covariates = character()) {
+#' @importFrom flextable as_i as_sub get_flextable_defaults
+get_table_note <- function(x, m, y, covariates, n, R = NULL,
+                           which = "flextable") {
   # initializations
+  text_note <- "Note"
+  if (which == "flextable") {
+    big_mark <- flextable::get_flextable_defaults()$big.mark
+  } else big_mark <- ","
+  # construct note for sample size
+  sample_info <- paste0(" Sample size = ",
+                        formatC(n, big.mark = big_mark), ".")
+  # if applicable, construct note for number of bootstrap samples
+  if (is.null(R)) boot_info <- ""
+  else {
+    boot_info <- paste0(" Number of bootstrap samples = ",
+                        formatC(R, big.mark = big_mark), ".")
+  }
+  # initializations for note on variables
   p_x <- length(x)
   p_m <- length(m)
+  # define various text chunks for information on variables
   sep <- if (p_x == 1L && p_m == 1L) ", " else "; "
+  text_x <- sprintf("Independent variable%s: ", if (p_x > 1L) "s" else "")
+  label_x <- "X"
+  seq_x <- if (p_x > 1L) seq_len(p_x)
+  text_m <- sprintf("%shypothesized mediator%s: ", sep,
+                    if (p_m > 1L) "s" else "")
+  label_m <- "M"
+  seq_m <- if (p_m > 1L) seq_len(p_m)
+  text_y <- sprintf("%sdependent variable: ", sep)
+  label_y <- "Y"
   # construct text string with information on control variables
   if (length(covariates) == 0L) covariate_info <- ""
   else {
     covariate_info <- paste0(sep, "control variables: ",
                              paste(covariates, collapse = ", "))
   }
-  # construct text strings that list independent variables and mediators
-  independent <- paste0(x, " (X", if (p_x > 1L) seq_len(p_x), ")")
-  mediators <- paste0(m, " (M", if (p_m > 1L) seq_len(p_m), ")")
-  # construct text string with information on variables
-  paste0("Independent variable", if (p_x > 1L) "s", ": ",
-         paste(independent, collapse = ", "), sep,
-         "hypothesized mediator", if (p_m > 1L) "s", ": ",
-         paste(mediators, collapse = ", "), sep,
-         "dependent variable: ", y, " (Y)",
-         covariate_info, ".")
-}
-
-# construct note on sample size
-get_sample_info <- function(n) {
-  sprintf("Sample size = %d.", n)
-}
-
-# construct note on number of bootstrap samples
-get_boot_info <- function(R) {
-  paste0("Number of bootstrap samples = ", formatC(R, big.mark = ","), ".")
+  # construct text chunks for note on variables
+  if (which == "flextable") {
+    # construct first chunk for note
+    first_chunk <- flextable::as_i(text_note)
+    prefix_x <- paste(".", text_x)
+    # independent variables
+    if (p_x > 1L) {
+      tmp <- mapply(function(current_x, j) {
+        list(paste0(if (j == 1L) prefix_x else "), ", current_x, " (", label_x),
+             flextable::as_sub(j))
+      }, current_x = x, j = seq_len(p_x), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      independent_chunks <- do.call(c, tmp)
+      prefix_m <- paste0(")", text_m)
+    } else {
+      independent_chunks <- NULL
+      prefix_m <- paste0(prefix_x, x, " (", label_x, ")", text_m)
+    }
+    # hypothesized mediators
+    if (p_m > 1L) {
+      tmp <- mapply(function(current_m, j) {
+        list(paste0(if (j == 1L) prefix_m else "), ", current_m, " (", label_m),
+             flextable::as_sub(j))
+      }, current_m = m, j = seq_len(p_m), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      mediator_chunks <- do.call(c, tmp)
+      prefix_y <- paste0(")", text_y)
+    } else {
+      mediator_chunks <- NULL
+      prefix_y <- paste0(prefix_m, m, " (", label_m, ")", text_y)
+    }
+    # construct list of last chunk for note
+    last_chunk <- paste0(prefix_y, y, " (Y)", covariate_info, ".",
+                         sample_info, boot_info)
+    # put everything together
+    note <- c(list(first_chunk), independent_chunks,
+              mediator_chunks, list(last_chunk))
+  } else if (which == "latex") {
+    # construct text strings that list independent variables and mediators
+    independent <- paste0(x, " ($", label_x,
+                          if (p_x > 1L) paste0("_{", seq_len(p_x), "}"),
+                          "$)")
+    mediators <- paste0(m, " ($", label_m,
+                        if (p_m > 1L) paste0("_{", seq_len(p_m), "}"),
+                        "$)")
+    # construct text string with information on variables
+    note <- paste0("\\emph{", text_note, "}. ",
+           text_x, paste(independent, collapse = ", "),
+           text_m, paste(mediators, collapse = ", "),
+           text_y, y, " ($Y$)", covariate_info, ".",
+           sample_info, boot_info)
+  } else stop("not implemented")
+  # return note
+  note
 }

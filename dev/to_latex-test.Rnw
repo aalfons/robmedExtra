@@ -57,7 +57,7 @@ boot_serial <- test_mediation(BSG2014,
 \begin{table}[h!]
 \caption{Results from mediation analysis for a serial multiple mediator model, using the robust bootstrap test ROBMED.}
 <<echo=FALSE, results="asis">>=
-to_latex(boot_serial)
+to_latex(boot_serial, p_value = TRUE)
 @
 \end{table}
 

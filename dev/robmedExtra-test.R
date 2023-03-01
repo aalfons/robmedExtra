@@ -15,6 +15,7 @@ boot_simple <- test_mediation(BSG2014,
 summary(boot_simple)
 to_latex(boot_simple)
 foo <- to_flextable(boot_simple)
+foo
 to_docx(foo, file = "dev/test.docx")
 
 
@@ -45,6 +46,7 @@ boot_parallel <- test_mediation(BSG2014,
                                                "GenderDiversity"))
 summary(boot_parallel)
 to_latex(boot_parallel)
+to_flextable(boot_parallel)
 
 
 ## multiple independent variables
@@ -59,6 +61,7 @@ boot_multiple <- test_mediation(BSG2014,
                                 m = "ProceduralJustice")
 summary(boot_multiple)
 to_latex(boot_multiple)
+to_flextable(boot_multiple)
 
 
 ## multiple independent variables and parallel multiple mediators
@@ -74,6 +77,7 @@ boot_mult_par <- test_mediation(BSG2014,
                                       "InteractionalJustice"))
 summary(boot_mult_par)
 to_latex(boot_mult_par)
+to_flextable(boot_mult_par)
 
 
 ## multiple independent variables and serial multiple mediators
@@ -87,6 +91,7 @@ boot_mult_ser <- test_mediation(BSG2014,
                                 model = "serial")
 summary(boot_mult_ser)
 to_latex(boot_mult_ser)
+to_flextable(boot_mult_ser)
 
 
 ## bootstrap test with covariance fit
@@ -100,6 +105,7 @@ cov_boot <- test_mediation(BSG2014,
                            method = "covariance")
 summary(cov_boot)
 to_latex(cov_boot)
+to_flextable(cov_boot)
 
 
 # sobel test with regression fit
@@ -110,6 +116,7 @@ reg_sobel <- test_mediation(BSG2014,
                             test = "sobel")
 summary(reg_sobel)
 to_latex(reg_sobel)
+to_flextable(reg_sobel)
 
 
 # sobel test with coavariance fit
@@ -121,3 +128,4 @@ cov_sobel <- test_mediation(BSG2014,
                             method = "covariance")
 summary(cov_sobel)
 to_latex(cov_sobel)
+to_flextable(cov_sobel)
