@@ -46,15 +46,16 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   names(indirect_header) <- names(indirect) <- names(df)
   df <- rbind(df, indirect_header, indirect)
   # format the table body with nicer unicode symbols
-  df[, 1L] <- format_unicode_label(df[, 1L])
-  df[, -1L] <- lapply(df[, -1L], format_unicode_column)
+  df[, 1L] <- format_labels_unicode(df[, 1L])
+  df[, -1L] <- lapply(df[, -1L], format_values_unicode)
   # construct flextable
   ft <- flextable::flextable(df)
   # format headers
   ft <- format_header(ft, values = names(df), i = NULL)
   ft <- format_header(ft, values = direct_header, i = i_direct)
   ft <- format_header(ft, values = indirect_header, i = i_indirect)
-  # TODO: ensure that indices are in subscripts and effect symbols are in italic
+  # ensure that indices in effect paths and symbols are in subscripts
+  ft <- format_labels_subscript(ft, values = df[, 1L], j = 1L)
   # merge cells for confidence intervals
   if (p_extra > 0L) {
     i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
@@ -162,10 +163,10 @@ format_header <- function(object, values, i = NULL) {
   # split corresponding values in header by space
   value_list <- strsplit(values[to_format], split = " ", fixed = TRUE)
   # loop over columns and format the corresponding cells
-  for (which in seq_along(value_list)) {
-    values <- value_list[[which]]
+  for (which in seq_along(to_format)) {
     j <- to_format[which]
-    object <- compose(
+    values <- value_list[[which]]
+    object <- flextable::compose(
       object, i = i, j = j,
       value = flextable::as_paragraph(flextable::as_i(values[1L]),
                                       " ", values[2L]),
@@ -176,16 +177,51 @@ format_header <- function(object, values, i = NULL) {
   object
 }
 
+## format the label column of a flextable using subscripts for indices
+#' @importFrom flextable compose as_paragraph as_sub
+format_labels_subscript <- function(object, values, j = 1L) {
+  # find rows to be formatted
+  to_format <- grep("[0-9]+", values, fixed = FALSE)
+  # extract text chunks and index chunks
+  text_list <- strsplit(values[to_format], split = "[0-9]+", fixed = FALSE)
+  indices_list <- strsplit(values[to_format], split = "[^0-9]+", fixed = FALSE)
+  # construct list of values to be used in compose(): each element is in turn
+  # a list to be supplied to as_paragraph()
+  value_list <- mapply(function(index_chunks, text_chunks) {
+    # construct list of chunks: index chunks are put in subscripts
+    chunk_list <- mapply(function(index_chunk, text_chunk) {
+      if (index_chunk != "") index_chunk <- flextable::as_sub(index_chunk)
+      list(index_chunk, text_chunk)
+    }, index_chunk = index_chunks, text_chunk = text_chunks,
+    SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    # make sure we don't have a nested list
+    do.call(c, chunk_list)
+  }, index_chunks = indices_list, text_chunks = text_list,
+  SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  # loop over rows and format the corresponding cells
+  for (which in seq_along(to_format)) {
+    i <- to_format[which]
+    list_values <- value_list[[which]]
+    object <- flextable::compose(
+      object, i = i, j = j,
+      value = flextable::as_paragraph(list_values = list_values),
+      part = "body"
+    )
+  }
+  # return flextable with formatted label column
+  object
+}
+
 # format a column of a table using nicer unicode symbols
-format_unicode_column <- function(column) {
+format_values_unicode <- function(column) {
   gsub("-", "\U2212", column, fixed = TRUE)
 }
 
 # format the label column of a table using nicer unicode symbols
-format_unicode_label <- function(label) {
+format_labels_unicode <- function(labels) {
   # format arrows and ellipses nicely
-  label <- gsub("->", "\U2192", label, fixed = TRUE)  # alternative: \U2B62
-  label <- gsub("...", "\U2026", label, fixed = TRUE)
-  # return label
-  label
+  labels <- gsub("->", "\U2192", labels, fixed = TRUE)  # alternative: \U2B62
+  labels <- gsub("...", "\U2026", labels, fixed = TRUE)
+  # return labels
+  labels
 }
