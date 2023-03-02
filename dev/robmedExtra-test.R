@@ -116,7 +116,9 @@ reg_sobel <- test_mediation(BSG2014,
                             test = "sobel")
 summary(reg_sobel)
 to_latex(reg_sobel)
-to_flextable(reg_sobel)
+bar <- to_flextable(reg_sobel)
+bar
+to_docx(bar, file = "dev/test.docx")
 
 
 # sobel test with coavariance fit

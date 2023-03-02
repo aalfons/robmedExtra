@@ -231,11 +231,15 @@ format_labels_unicode <- function(labels) {
   # format arrows and ellipses nicely
   labels <- gsub("->", "\U2192", labels, fixed = TRUE)  # alternative: \U2B62
   labels <- gsub("...", "\U2026", labels, fixed = TRUE)
-  # return labels
+  # return formatted labels
   labels
 }
 
 # format a column of a table using nicer unicode symbols
 format_values_unicode <- function(column) {
-  gsub("-", "\U2212", column, fixed = TRUE)
+  # remove leading spaces and format minus signs nicely
+  column <- gsub("^ +", "", column, fixed = FALSE)
+  column <- gsub("-", "\U2212", column, fixed = TRUE)
+  # return formatted column
+  column
 }
