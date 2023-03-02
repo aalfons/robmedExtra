@@ -204,8 +204,11 @@ format_labels_flextable <- function(object, values, j = 1L) {
   value_list <- mapply(function(index_chunks, text_chunks) {
     # construct list of chunks: index chunks are put in subscripts
     chunk_list <- mapply(function(index_chunk, text_chunk) {
-      if (index_chunk != "") index_chunk <- flextable::as_sub(index_chunk)
-      list(index_chunk, text_chunk)
+      if (index_chunk == "") list(text_chunk)
+      else {
+        index_chunk <- flextable::as_sub(index_chunk)
+        list(index_chunk, text_chunk)
+      }
     }, index_chunk = index_chunks, text_chunk = text_chunks,
     SIMPLIFY = FALSE, USE.NAMES = FALSE)
     # make sure we don't have a nested list

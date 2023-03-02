@@ -118,7 +118,7 @@ summary(reg_sobel)
 to_latex(reg_sobel)
 bar <- to_flextable(reg_sobel)
 bar
-to_docx(bar, file = "dev/test.docx")
+# to_docx(bar, file = "dev/test.docx")
 
 
 # sobel test with coavariance fit
