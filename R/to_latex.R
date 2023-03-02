@@ -17,13 +17,21 @@ to_latex.test_mediation <- function(object, type = c("boot", "data"), ...) {
   to_latex(summary, ...)
 }
 
+## Formatting numbers is not done via formatC().  Arguments are passed down
+## via '...' (such as 'digits' for the number of digits), but some of the
+## defaults are different.  In addition, argument 'big.mark' is ignored for
+## the numbers in the table and only used for the sample size and number of
+## bootstrap samples in the table note.
+## The first element in argument 'align' is used as alignment specification in
+## the \begin{tabular} statement, while the second element is used for the
+## alignment specification in \multicolumn{} statements in case of bootstrapped
+## confidence intervals in case of the indirect effect.
 #' @export
 to_latex.summary_test_mediation <- function(object, p_value = FALSE,
-                                            digits = 3L,
                                             align = c("lrrrr", "c"),
                                             ...) {
   # call workhorse function to format tables
-  tables <- get_mediation_tables(object, p_value = p_value, digits = digits)
+  tables <- get_mediation_tables(object, p_value = p_value, ...)
   # add alignment specification and set class
   tables$align <- align
   class(tables) <- "mediation_latex_tables"

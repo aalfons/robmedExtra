@@ -11,7 +11,9 @@
 ## heavy lifting for to_flextable() and to_latex()
 ## object ... object of class "summary_test_mediation"
 #' @importFrom robmed p_value
-get_mediation_tables <- function(object, p_value = FALSE, digits = 3L, ...) {
+get_mediation_tables <- function(object, p_value = FALSE, digits = 3L,
+                                 format = "f", flag = " ", big.mark = NULL,
+                                 decimal.mark = getOption("OutDec"), ...) {
   # initializations
   summary <- object$summary
   object <- object$object
@@ -30,19 +32,29 @@ get_mediation_tables <- function(object, p_value = FALSE, digits = 3L, ...) {
                                         digits = digits)
   } else p_value_indirect <- NULL
   # convert matrices to data frames
-  df_total <- format_effect_table(df_total, digits = digits,
-                                  label = "Total Effect")
-  df_direct <- format_effect_table(df_direct, digits = digits,
-                                   label = "Direct Effect")
-  df_indirect <- format_indirect_table(df_indirect,
-                                       digits = digits,
-                                       level = level,
-                                       p_value = p_value_indirect)
+  df_total <- format_effect_table(df_total, label = "Total Effect",
+                                  digits = digits, format = format,
+                                  flag = flag, big.mark = "",
+                                  decimal.mark = decimal.mark, ...)
+  df_direct <- format_effect_table(df_direct, label = "Direct Effect",
+                                   digits = digits, format = format,
+                                   flag = flag, big.mark = "",
+                                   decimal.mark = decimal.mark, ...)
+  df_indirect <- format_indirect_table(df_indirect, level = level,
+                                       p_value = p_value_indirect,
+                                       digits = digits, format = format,
+                                       flag = flag, big.mark = "",
+                                       decimal.mark = decimal.mark, ...)
   # construct list of tables
   tables <- list(total = df_total, direct = df_direct, indirect = df_indirect)
-  # add information on variables, sample size, and number of bootstrap samples
-  tables <- c(tables, summary[c("x", "m", "y", "covariates", "n")],
-              if (have_boot) object["R"])
+  # add information on variables
+  tables <- c(tables, summary[c("x", "m", "y", "covariates")])
+  # add information on sample size, and number of bootstrap samples
+  if (is.null(big.mark)) big.mark <- if (decimal.mark == ".") "," else ""
+  tables$n <- formatC(summary$n, format = "d", big.mark = big.mark)
+  if (have_boot) {
+    tables$R <- formatC(object$R, format = "d", big.mark = big.mark)
+  }
   # return list of tables
   tables
 }
@@ -388,9 +400,9 @@ get_contrast_labels <- function(labels, type = "estimates") {
 # Format table of effect summaries -----
 
 # convert matrix of total or direct effect summaries to formatted data frame
-format_effect_table <- function(object, digits = 3L, label = "Effect", ...) {
+format_effect_table <- function(object, label = "Effect", ...) {
   # format numbers and replace missing values
-  object <- formatC(object, digits = digits, format = "f")
+  object <- formatC(object, ...)
   object <- gsub("NA", "  ", object, fixed = TRUE)
   # convert to data frame and fix names
   df <- data.frame(rownames(object), object, check.names = FALSE,
@@ -402,14 +414,13 @@ format_effect_table <- function(object, digits = 3L, label = "Effect", ...) {
 }
 
 # convert matrix of indirect effect summaries to formatted data frame
-format_indirect_table <- function(object, digits = 3L, level = 0.95,
-                                  p_value = NULL, ...) {
+format_indirect_table <- function(object, level = 0.95, p_value = NULL, ...) {
   # initializations
   have_boot <- !is.null(level)
   have_p_value <- !is.null(p_value)
   label <- "Indirect Effect"
   # format numbers
-  object <- formatC(object, digits = digits, format = "f")
+  object <- formatC(object, ...)
   # construct data frame and fix column names
   if (have_boot) {
     # format confidence intervals and construct column name
@@ -422,7 +433,10 @@ format_indirect_table <- function(object, digits = 3L, level = 0.95,
                      stringsAsFactors = FALSE)
     names(df) <- c(label, "Estimate", ci_label)
     # add p values if supplied
-    if (have_p_value) df <- cbind(df, "p Value" = p_value)
+    if (have_p_value) {
+      p_value <- formatC(p_value, ...)
+      df <- cbind(df, "p Value" = p_value)
+    }
   } else {
     # convert to data frame and fix column names
     df <- data.frame(rownames(object), object, check.names = FALSE,
@@ -457,14 +471,10 @@ get_table_note <- function(x, m, y, covariates, n, R = NULL,
     big_mark <- flextable::get_flextable_defaults()$big.mark
   } else big_mark <- ","
   # construct note for sample size
-  sample_info <- paste0(" Sample size = ",
-                        formatC(n, big.mark = big_mark), ".")
+  sample_info <- paste0(" Sample size = ", n, ".")
   # if applicable, construct note for number of bootstrap samples
   if (is.null(R)) boot_info <- ""
-  else {
-    boot_info <- paste0(" Number of bootstrap samples = ",
-                        formatC(R, big.mark = big_mark), ".")
-  }
+  else boot_info <- paste0(" Number of bootstrap samples = ", R, ".")
   # initializations for note on variables
   p_x <- length(x)
   p_m <- length(m)

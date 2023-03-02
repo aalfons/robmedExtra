@@ -19,12 +19,17 @@ to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
   to_flextable(summary, ...)
 }
 
+## Formatting numbers is not done via flextable defaults, but instead via
+## formatC() to have consistency between to_flextable() and to_latex().
+## Arguments are passed down to formatC() via '...' (such as 'digits' for the
+## number of digits), but some of the defaults are different.  In addition,
+## argument 'big.mark' is ignored for the numbers in the table and only used
+## for the sample size and number of bootstrap samples in the table note.
 #' @importFrom flextable add_footer_lines flextable merge_h_range
 #' @export
-to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
-                                                digits = 3L, ...) {
+to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
   # call workhorse function to format tables
-  tables <- get_mediation_tables(object, p_value = p_value, digits = digits)
+  tables <- get_mediation_tables(object, p_value = p_value, ...)
   # start with data frame for total effects
   df <- tables$total
   # add header and body for direct effects
