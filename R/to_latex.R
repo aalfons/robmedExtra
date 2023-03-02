@@ -36,13 +36,12 @@ print.mediation_latex_tables <- function(x, ...) {
   ## initializations
   direct <- x$direct
   indirect <- x$indirect
-  width <- ncol(direct) - ncol(indirect) + 1L
   ## initialize LaTeX table
   cat("\\begin{center}\n")
   cat("\\begin{tabular}{", x$align[1L], "}\n", sep = "")
   cat("\\hline\\noalign{\\smallskip}\n")
   ## write table for total effects
-  total <- to_effect_table(x$total, which = "latex")
+  total <- format_table_latex(x$total)
   # write table header
   cat(paste(names(total), collapse = " & "), "\\\\ \n")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
@@ -51,7 +50,7 @@ print.mediation_latex_tables <- function(x, ...) {
   cat(lines, sep = "")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
   ## write table for direct effects
-  direct <- to_effect_table(direct, which = "latex")
+  direct <- format_table_latex(direct)
   # write table header
   cat(paste(names(direct), collapse = " & "), "\\\\ \n")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
@@ -60,7 +59,9 @@ print.mediation_latex_tables <- function(x, ...) {
   cat(lines, sep = "")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
   ## write table for indirect effects
-  indirect <- to_indirect_table(indirect, which = "latex", width = width,
+  j_ci <- grep("Confidence Interval", names(indirect), fixed = TRUE)
+  width <- ncol(direct) - ncol(indirect) + 1L
+  indirect <- format_table_latex(indirect, multicolumn = j_ci, width = width,
                                 align = x$align[2L])
   # write table header
   cat(paste(names(indirect), collapse = " & "), "\\\\ \n")
@@ -74,12 +75,67 @@ print.mediation_latex_tables <- function(x, ...) {
   cat("\\end{center}\n")
   ## add note
   note <- get_table_note(x = x$x, m = x$m, y = x$y, covariates = x$covariates,
-                         n = x$n, R = x$R, which = "latex")
+                         n = x$n, R = x$R, type = "latex")
   cat(note, "\n")
 }
 
 
 # Internal functions -----
+
+# format a table for LaTeX
+format_table_latex <- function(object, multicolumn = NULL,
+                               width = 1L, align = "c") {
+  # format the table header for LaTeX
+  names(object) <- format_header_latex(object)
+  # format the table body for LaTeX
+  object[, 1L] <- format_labels_latex(object[, 1L])
+  object[, -1L] <- lapply(object[, -1L], format_values_latex)
+  # if applicable, ensure that specified column uses \multicolumn{} statement
+  # (condition uses length() as grep() returns because empty integer vector if
+  # there is no match)
+  if (length(multicolumn) == 1L) {
+    multicolumn_statement <- "\\multicolumn{%d}{%s}{%s}"
+    names(object)[multicolumn] <- sprintf(multicolumn_statement, width, align,
+                                          names(object)[multicolumn])
+    object[[multicolumn]] <- sprintf(multicolumn_statement, width, align,
+                                     object[[multicolumn]])
+  }
+  # return formatted object
+  object
+}
+
+# format the table header for LaTeX
+format_header_latex <- function(object) {
+  # extract column names
+  cn <- names(object)
+  # format for LaTeX
+  cn <- gsub("^(([ptz]) )", "$\\2$ ", cn, fixed = FALSE)
+  cn <- gsub("%", "\\%", cn, fixed = TRUE)
+  # return formatted column names
+  cn
+}
+
+# format the label column of a table for LaTeX
+format_labels_latex <- function(labels) {
+  # first call format_values_latex(), which puts cells in math mode
+  labels <- format_values_latex(labels)
+  # format arrows and ellipses nicely
+  labels <- gsub("->", " \\rightarrow ", labels, fixed = TRUE)
+  labels <- gsub("...", " \\ldots ", labels, fixed = TRUE)
+  # ensure that indices are formatted as subscripts
+  labels <- gsub("([0-9]+)", "_{\\1}", labels, fixed = FALSE)
+  # ensure that a space interrupts math mode so that the space is maintained
+  labels <- gsub(" (", "$ $(", labels, fixed = TRUE)
+  # ensure that label for total indirect effect is in text mode
+  labels <- gsub("$(total)$", "(total)", labels, fixed = TRUE)
+  # return labels
+  labels
+}
+
+# format a column of a table for LaTeX
+format_values_latex <- function(column) {
+  paste0("$", column, "$")
+}
 
 # wrapper function for pasting columns of LaTeX table with column separator '&'
 paste_amp <- function(..., sep = " & ") paste(..., sep = sep)

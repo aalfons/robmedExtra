@@ -30,12 +30,14 @@ get_mediation_tables <- function(object, p_value = FALSE, digits = 3L, ...) {
                                         digits = digits)
   } else p_value_indirect <- NULL
   # convert matrices to data frames
-  df_total <- to_effect_table(df_total, digits = digits,
-                              label = "Total Effect")
-  df_direct <- to_effect_table(df_direct, digits = digits,
-                               label = "Direct Effect")
-  df_indirect <- to_indirect_table(df_indirect, digits = digits, level = level,
-                                   p_value = p_value_indirect)
+  df_total <- format_effect_table(df_total, digits = digits,
+                                  label = "Total Effect")
+  df_direct <- format_effect_table(df_direct, digits = digits,
+                                   label = "Direct Effect")
+  df_indirect <- format_indirect_table(df_indirect,
+                                       digits = digits,
+                                       level = level,
+                                       p_value = p_value_indirect)
   # construct list of tables
   tables <- list(total = df_total, direct = df_direct, indirect = df_indirect)
   # add information on variables, sample size, and number of bootstrap samples
@@ -383,15 +385,10 @@ get_contrast_labels <- function(labels, type = "estimates") {
 }
 
 
-# Convert to table of effect summaries -----
+# Format table of effect summaries -----
 
-
-# convert summaries of total and direct effects
-to_effect_table <- function(object, ...) UseMethod("to_effect_table")
-
-# default method converts matrix of effect summaries to formatted data frame
-to_effect_table.default <- function(object, digits = 3L, label = "Effect",
-                                    ...) {
+# convert matrix of total or direct effect summaries to formatted data frame
+format_effect_table <- function(object, digits = 3L, label = "Effect", ...) {
   # format numbers and replace missing values
   object <- formatC(object, digits = digits, format = "f")
   object <- gsub("NA", "  ", object, fixed = TRUE)
@@ -404,38 +401,9 @@ to_effect_table.default <- function(object, digits = 3L, label = "Effect",
   df
 }
 
-## further prepare the formatted data frame for LaTeX or convert to flextable
-to_effect_table.data.frame <- function(object, which = "flextable",
-                                       align = NULL, ...) {
-  if (which == "flextable") {
-    # # format the table body with nicer unicode symbols
-    # object[, 1L] <- format_unicode_label(object[, 1L])
-    # object[, -1L] <- lapply(object[, -1L], format_unicode_column)
-    # # create flextable
-    # object <- flextable::qflextable(object)
-    # # set column alignment
-    # object <- flextable::valign(object, valign = "bottom", part = "header")
-    # for (j in seq_along(align)) {
-    #   object <- flextable::align(object, j = j, align = align[j], part = "all")
-    # }
-  } else if (which == "latex") {
-    # format the table header for LaTeX
-    names(object) <- format_latex_header(object)
-    # format the table body for LaTeX
-    object[, 1L] <- format_latex_label(object[, 1L])
-    object[, -1L] <- lapply(object[, -1L], format_latex_column)
-  } else stop("type of table not implemented")
-  # return prepared or converted object
-  object
-}
-
-
-# convert summaries of indirect effects
-to_indirect_table <- function(object, ...) UseMethod("to_indirect_table")
-
-# default method converts matrix of effect summaries to formatted data frame
-to_indirect_table.default <- function(object, digits = 3L, level = 0.95,
-                                      p_value = NULL, ...) {
+# convert matrix of indirect effect summaries to formatted data frame
+format_indirect_table <- function(object, digits = 3L, level = 0.95,
+                                  p_value = NULL, ...) {
   # initializations
   have_boot <- !is.null(level)
   have_p_value <- !is.null(p_value)
@@ -466,29 +434,6 @@ to_indirect_table.default <- function(object, digits = 3L, level = 0.95,
   df
 }
 
-# further prepare the formatted data frame for LaTeX or convert to flextable
-to_indirect_table.data.frame <- function(object, which = "flextable",
-                                         width, align, ...) {
-  if (which == "flextable") {
-    # # first perform the same formatting as for total and direct effects
-    # object <- to_effect_table(object, which = which, align = align)
-  } else if (which == "latex") {
-    # first perform the same formatting as for total and direct effects
-    object <- to_effect_table(object, which = which)
-    # wrap confidence interval in \multicolumn statement
-    cn <- names(object)
-    pos_ci <- grep("Confidence Interval", cn, fixed = TRUE)
-    if (length(pos_ci) == 1L) {
-      multicolumn <- "\\multicolumn{%d}{%s}{%s}"
-      names(object)[pos_ci] <- sprintf(multicolumn, width, align, cn[pos_ci])
-      object[[pos_ci]] <- sprintf(multicolumn, width, align, object[[pos_ci]])
-    }
-  } else stop("type of table not implemented")
-  # return prepared or converted object
-  object
-}
-
-
 # convert column names from R style to nicer names and add label for effects
 get_table_names <- function(label, object) {
   # extract column names
@@ -500,57 +445,15 @@ get_table_names <- function(label, object) {
   c(label, cn)
 }
 
-# format the table header for LaTeX
-format_latex_header <- function(object) {
-  # extract column names
-  cn <- names(object)
-  # format for LaTeX
-  cn <- gsub("^(([ptz]) )", "$\\2$ ", cn, fixed = FALSE)
-  cn <- gsub("%", "\\%", cn, fixed = TRUE)
-  # return formatted column names
-  cn
-}
-
-# format the label column of a table for LaTeX
-format_latex_label <- function(label) {
-  # first call format_latex_column(), which puts cells in math mode
-  label <- format_latex_column(label)
-  # format arrows and ellipses nicely
-  label <- gsub("->", " \\rightarrow ", label, fixed = TRUE)
-  label <- gsub("...", " \\ldots ", label, fixed = TRUE)
-  # ensure that indices are formatted as subscripts
-  label <- gsub("([0-9]+)", "_{\\1}", label, fixed = FALSE)
-  # ensure that a space interrupts math mode so that the space is maintained
-  label <- gsub(" (", "$ $(", label, fixed = TRUE)
-  # ensure that label for total indirect effect is in text mode
-  label <- gsub("$(total)$", "(total)", label, fixed = TRUE)
-  # return label
-  label
-}
-
-# format a column of a table for LaTeX
-format_latex_column <- function(column) {
-  paste0("$", column, "$")
-}
-
-# # format the table note for LaTeX
-# format_latex_note <- function(note) {
-#   # ensure that symbols for variables (in parentheses) are in math mode
-#   note <- gsub("\\(([MXY])\\)", "($\\1$)", note, fixed = FALSE)
-#   note <- gsub("\\(([MXY])([0-9]+)\\)", "($\\1_{\\2}$)", note, fixed = FALSE)
-#   # return note
-#   note
-# }
-
 
 ## Construct table note -----
 
 #' @importFrom flextable as_i as_sub get_flextable_defaults
 get_table_note <- function(x, m, y, covariates, n, R = NULL,
-                           which = "flextable") {
+                           type = "flextable") {
   # initializations
   text_note <- "Note"
-  if (which == "flextable") {
+  if (type == "flextable") {
     big_mark <- flextable::get_flextable_defaults()$big.mark
   } else big_mark <- ","
   # construct note for sample size
@@ -583,7 +486,7 @@ get_table_note <- function(x, m, y, covariates, n, R = NULL,
                              paste(covariates, collapse = ", "))
   }
   # construct text chunks for note on variables
-  if (which == "flextable") {
+  if (type == "flextable") {
     # construct first chunk for note
     first_chunk <- flextable::as_i(text_note)
     prefix_x <- paste(".", text_x)
@@ -617,7 +520,7 @@ get_table_note <- function(x, m, y, covariates, n, R = NULL,
     # put everything together
     note <- c(list(first_chunk), independent_chunks,
               mediator_chunks, list(last_chunk))
-  } else if (which == "latex") {
+  } else if (type == "latex") {
     # construct text strings that list independent variables and mediators
     independent <- paste0(x, " ($", label_x,
                           if (p_x > 1L) paste0("_{", seq_len(p_x), "}"),
@@ -631,7 +534,7 @@ get_table_note <- function(x, m, y, covariates, n, R = NULL,
            text_m, paste(mediators, collapse = ", "),
            text_y, y, " ($Y$)", covariate_info, ".",
            sample_info, boot_info)
-  } else stop("not implemented")
+  } else stop("type of table not implemented")
   # return note
   note
 }

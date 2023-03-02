@@ -61,11 +61,11 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   # construct flextable
   ft <- flextable::flextable(df)
   # format headers
-  ft <- format_header(ft, values = names(df), i = NULL)
-  ft <- format_header(ft, values = direct_header, i = i_direct)
-  ft <- format_header(ft, values = indirect_header, i = i_indirect)
+  ft <- format_header_flextable(ft, values = names(df), i = NULL)
+  ft <- format_header_flextable(ft, values = direct_header, i = i_direct)
+  ft <- format_header_flextable(ft, values = indirect_header, i = i_indirect)
   # ensure that indices in effect paths and symbols are in subscripts
-  ft <- format_labels_subscript(ft, values = df[, 1L], j = 1L)
+  ft <- format_labels_flextable(ft, values = df[, 1L], j = 1L)
   # merge cells for confidence intervals
   if (p_extra > 0L) {
     i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
@@ -79,7 +79,7 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE,
   # add table note
   note_list <- get_table_note(x = tables$x, m = tables$m, y = tables$y,
                               covariates = tables$covariates, n = tables$n,
-                              R = tables$R, which = "flextable")
+                              R = tables$R, type = "flextable")
   ft <- flextable::add_footer_lines(
     ft,
     values = flextable::as_paragraph(list_values = note_list)
@@ -158,12 +158,12 @@ theme_mediation <- function(x, ...) {
 
 # Internal functions -----
 
-## format header
+## format headers in a flextable using italics for certain symbols
 ## object ... a flextable object
 ## values ... character string giving the unformatted values of the header
 ## i ........ integer giving the row of the flextable to format
 #' @importFrom flextable compose as_i as_paragraph
-format_header <- function(object, values, i = NULL) {
+format_header_flextable <- function(object, values, i = NULL) {
   # initializations
   part <- if (is.null(i)) "header" else "body"
   # find columns to be formatted
@@ -188,7 +188,7 @@ format_header <- function(object, values, i = NULL) {
 
 ## format the label column of a flextable using subscripts for indices
 #' @importFrom flextable compose as_paragraph as_sub
-format_labels_subscript <- function(object, values, j = 1L) {
+format_labels_flextable <- function(object, values, j = 1L) {
   # find rows to be formatted
   to_format <- grep("[0-9]+", values, fixed = FALSE)
   # extract text chunks and index chunks
@@ -221,11 +221,6 @@ format_labels_subscript <- function(object, values, j = 1L) {
   object
 }
 
-# format a column of a table using nicer unicode symbols
-format_values_unicode <- function(column) {
-  gsub("-", "\U2212", column, fixed = TRUE)
-}
-
 # format the label column of a table using nicer unicode symbols
 format_labels_unicode <- function(labels) {
   # format arrows and ellipses nicely
@@ -233,4 +228,9 @@ format_labels_unicode <- function(labels) {
   labels <- gsub("...", "\U2026", labels, fixed = TRUE)
   # return labels
   labels
+}
+
+# format a column of a table using nicer unicode symbols
+format_values_unicode <- function(column) {
+  gsub("-", "\U2212", column, fixed = TRUE)
 }
