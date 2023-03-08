@@ -9,54 +9,190 @@
 ## convert summary of results from mediation analysis to list of tables for
 ## total, direct, indirect effects, and additional information: this does the
 ## heavy lifting for to_flextable() and to_latex()
-## object ... object of class "summary_test_mediation"
-#' @importFrom robmed p_value
-get_mediation_tables <- function(object, p_value = FALSE, digits = 3L,
-                                 format = "f", flag = " ", big.mark = NULL,
-                                 decimal.mark = getOption("OutDec"), ...) {
+
+# generic function
+get_mediation_tables <- function(object, ...) UseMethod("get_mediation_tables")
+
+# method for summary of results from mediation analysis
+get_mediation_tables.summary_test_mediation <- function(object,
+                                                        p_value = FALSE,
+                                                        digits = 3L,
+                                                        big.mark = NULL,
+                                                        decimal.mark = getOption("OutDec"),
+                                                        ...) {
   # initializations
   summary <- object$summary
   object <- object$object
-  have_boot <- inherits(object, "boot_test_mediation")
-  level <- if (have_boot) object$level
-  # extract matrices containing effect summaries
-  df_total <- extract_total(summary)
-  df_direct <- rbind(extract_a(summary),
-                     extract_d(summary),
-                     extract_b(summary),
-                     extract_direct(summary))
-  df_indirect <- extract_indirect(object)
-  # if requested, compute p values of bootstrap tests for indirect effects
-  if (have_boot && p_value) {
-    p_value_indirect <- robmed::p_value(object, parm = "indirect",
-                                        digits = digits)
-  } else p_value_indirect <- NULL
-  # convert matrices to data frames
-  df_total <- format_effect_table(df_total, label = "Total Effect",
-                                  digits = digits, format = format,
-                                  flag = flag, big.mark = "",
-                                  decimal.mark = decimal.mark, ...)
-  df_direct <- format_effect_table(df_direct, label = "Direct Effect",
-                                   digits = digits, format = format,
-                                   flag = flag, big.mark = "",
-                                   decimal.mark = decimal.mark, ...)
-  df_indirect <- format_indirect_table(df_indirect, level = level,
-                                       p_value = p_value_indirect,
-                                       digits = digits, format = format,
-                                       flag = flag, big.mark = "",
-                                       decimal.mark = decimal.mark, ...)
+  # obtain formatted tables for total, direct, and indirect effects
+  df_total <- get_total_table(summary, digits = digits, big.mark = "",
+                              decimal.mark = decimal.mark, ...)
+  df_direct <- get_direct_table(summary, digits = digits, big.mark = "",
+                                decimal.mark = decimal.mark, ...)
+  df_indirect <- get_indirect_table(object, p_value = p_value, digits = digits,
+                                    big.mark = "", decimal.mark = decimal.mark,
+                                    ...)
   # construct list of tables
   tables <- list(total = df_total, direct = df_direct, indirect = df_indirect)
   # add information on variables
   tables <- c(tables, summary[c("x", "m", "y", "covariates")])
-  # add information on sample size, and number of bootstrap samples
+  # add information on sample size and number of bootstrap samples
   if (is.null(big.mark)) big.mark <- if (decimal.mark == ".") "," else ""
   tables$n <- formatC(summary$n, format = "d", big.mark = big.mark)
-  if (have_boot) {
-    tables$R <- formatC(object$R, format = "d", big.mark = big.mark)
-  }
+  # if applicable, add information on number of bootstrap samples
+  R <- object$R
+  if (!is.null(R)) tables$R <- formatC(R, format = "d", big.mark = big.mark)
   # return list of tables
   tables
+}
+
+# list of results from mediation analysis of summaries thereof
+get_mediation_tables.list <- function(object, type = c("boot", "data"),
+                                      p_value = FALSE, digits = 3L,
+                                      big.mark = NULL,
+                                      decimal.mark = getOption("OutDec"),
+                                      ...) {
+  # initializations
+  is_mediation <- sapply(object, inherits, "test_mediation")
+  is_summary <- sapply(object, inherits, "summary_test_mediation")
+  object <- object[is_mediation | is_summary]
+  if (length(object) == 0L) {
+    stop('no objects inheriting from class "test_mediation" or ',
+         '"summary_test_mediation"')
+  }
+  # make sure we have summary objects
+  object[is_mediation] <- lapply(object[is_mediation], summary,
+                                 type = type, plot = FALSE)
+  # if we have only one object, call the corresponding method
+  if (length(object) == 1L) return(get_mediation_tables[[1L]])
+  # extract mediation objects and summaries
+  object_list <- lapply(object, "[[", "object")
+  summary_list <- lapply(object, "[[", "summary")
+  # check that variables are the same
+  components <- c("x", "y", "m", "covariates")
+  variables <- summary_list[[1L]][components]
+  variable_list <- lapply(summary_list[-1L], "[", components)
+  all_identical <- all(sapply(variable_list, identical, variables))
+  if (!all_identical) {
+    stop("all mediation objects must use the same variables")
+  }
+  # check that number of observations is the same for all objects
+  n <- unique(sapply(summary_list, "[[", "n"))
+  if (length(n) > 1L) {
+    stop("number of observations must be the same for all mediation objects")
+  }
+  # check that mediation model is the same for all objects
+  model <- unique(do.call(c, lapply(summary_list, "[[", "model")))
+  if (length(model) > 1L) {
+    stop("mediation model must be the same for all objects")
+  }
+  # check that number of bootstrap samples is the same for all objects
+  R <- unique(do.call(c, lapply(object_list, "[[", "R")))
+  if (length(R) > 1L) {
+    stop("number of bootstrap samples must be the same for all ",
+         "mediation objects")
+  }
+  # check that confidence level is the same for all objects
+  level <- unique(do.call(c, lapply(object_list, "[[", "level")))
+  if (length(level) > 1L) {
+    stop("confidence level must be the same for all mediation objects")
+  }
+  # check names of list elements
+  methods <- names(object)
+  is_empty <- methods == ""
+  if (any(is_empty)) {
+    methods[is_empty] <- sapply(object_list[is_empty], get_method_name)
+    names(object_list) <- names(summary_list) <- methods
+  }
+  # obtain list of formatted tables for total, direct, and indirect effects
+  df_total_list <- lapply(summary_list, get_total_table, digits = digits,
+                          big.mark = "", decimal.mark = decimal.mark, ...)
+  df_direct_list <- lapply(summary_list, get_direct_table, digits = digits,
+                           big.mark = "", decimal.mark = decimal.mark, ...)
+  df_indirect_list <- lapply(object_list,get_indirect_table,
+                             p_value = p_value, digits = digits,
+                             big.mark = "", decimal.mark = decimal.mark,
+                             ...)
+  # construct return object
+  tables <- list(methods = methods, total = df_total_list,
+                 direct = df_direct_list, indirect = df_indirect_list)
+  # add information on variables
+  tables <- c(tables, variables)
+  # add information on sample size and number of bootstrap samples
+  if (is.null(big.mark)) big.mark <- if (decimal.mark == ".") "," else ""
+  tables$n <- formatC(n, format = "d", big.mark = big.mark)
+  if (!is.null(R)) tables$R <- formatC(R, format = "d", big.mark = big.mark)
+  # return list of tables
+  tables
+}
+
+
+# obtain table of total effects
+get_total_table <- function(summary, digits = 3L, format = "f",
+                            flag = " ", big.mark = "", ...) {
+  # extract matrix containing effect summaries
+  total <- extract_total(summary)
+  # convert matrix to formatted data frame
+  format_effect_table(total, label = "Total Effect", digits = digits,
+                      format = format, flag = flag, big.mark = big.mark,
+                      ...)
+}
+
+# obtain table of direct effects
+get_direct_table <- function(summary, digits = 3L, format = "f",
+                             flag = " ", big.mark = "", ...) {
+  # extract matrix containing effect summaries
+  direct <- rbind(extract_a(summary),
+                  extract_d(summary),
+                  extract_b(summary),
+                  extract_direct(summary))
+  # convert matrix to formatted data frame
+  format_effect_table(direct, label = "Direct Effect", digits = digits,
+                      format = format, flag = flag, big.mark = big.mark,
+                      ...)
+}
+
+## obtain table of indirect effects, possibly including p values
+#' @importFrom robmed p_value
+get_indirect_table <- function(object, p_value = FALSE, digits = 3L,
+                               format = "f", flag = " ", big.mark = "",
+                               ...) {
+  # initializations
+  have_boot <- inherits(object, "boot_test_mediation")
+  level <- if (have_boot) object$level
+  # extract matrix containing effect summaries
+  indirect <- extract_indirect(object)
+  # if requested, compute p values of bootstrap tests for indirect effects
+  if (have_boot && p_value) {
+    p_value <- robmed::p_value(object, parm = "indirect", digits = digits)
+  } else p_value <- NULL
+  # convert matrix to formatted data frame
+  format_indirect_table(indirect, level = level, p_value = p_value,
+                        digits = digits, format = format, flag = flag,
+                        big.mark = big.mark, ...)
+}
+
+# construct default name for method
+get_method_name <- function(object) {
+  # get label for estimation method
+  fit <- object$fit
+  robust <- fit$robust
+  if (inherits(fit, "reg_fit_mediation")) {
+    if (is.character(robust)) {
+      if (robust == "MM") method <- "Robust"
+      else if (robust == "median") method <- "Median"
+      else stop("unknown robust estimation method")
+    } else if (fit$family == "gaussian") method <- "OLS"
+    else method <- "SNT"
+  } else if (inherits(fit, "cov_fit_mediation")) {
+   method <- if (robust) "Winsorized" else "Covariance"
+  } else stop("unknown estimation method")
+  # get label for type of test
+  if (inherits(object, "boot_test_mediation")) test <- "Bootstrap"
+  else if (inherits(object, "sobel_test_mediation")) test <- "Sobel"
+  else stop("unknown test for indirect effect")
+  # put labels together
+  if (method == "Robust" && test == "Bootstrap") "ROBMED"
+  else paste(method, test)
 }
 
 

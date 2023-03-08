@@ -30,8 +30,7 @@ Authors@R:
       person("Aurore", "Archimbaud", 
              email = "archimbaud@ese.eur.nl", 
              role = "aut",
-             comment = c(ORCID = "0000-0002-6511-9091"))
-      )
+             comment = c(ORCID = "0000-0002-6511-9091")))
 Author: 
     Andreas Alfons [aut, cre] (<https://orcid.org/0000-0002-2513-3788>), 
     Vincent Drenth [aut], 
