@@ -40,6 +40,26 @@ to_latex.summary_test_mediation <- function(object, p_value = FALSE,
 }
 
 #' @export
+to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
+                          orientation = c("portrait", "landscape"),
+                          align = NULL, ...) {
+  # initializations
+  orientation <- match.arg(orientation)
+  if (is.null(align)) {
+    if (orientation == "portrait") align <- c("lrrrr", "c")
+    else align <- c("lrrrrlrrrr", "c")
+  }
+  # call workhorse function to format tables
+  tables <- get_mediation_tables(object, type = type, p_value = p_value, ...)
+  # add orientation and alignment specification, and set class
+  tables$orientation <- orientation
+  tables$align <- align
+  class(tables) <- "mediation_latex_tables"
+  # return object for LaTeX tables
+  tables
+}
+
+#' @export
 print.mediation_latex_tables <- function(x, ...) {
   ## initializations
   direct <- x$direct
