@@ -98,10 +98,15 @@ get_mediation_tables.list <- function(object, type = c("boot", "data"),
   }
   # check names of list elements
   methods <- names(object)
-  is_empty <- methods == ""
-  if (any(is_empty)) {
-    methods[is_empty] <- sapply(object_list[is_empty], get_method_name)
+  if (is.null(methods)) {
+    methods <- sapply(object_list, get_method_name)
     names(object_list) <- names(summary_list) <- methods
+  } else {
+    is_empty <- methods == ""
+    if (any(is_empty)) {
+      methods[is_empty] <- sapply(object_list[is_empty], get_method_name)
+      names(object_list) <- names(summary_list) <- methods
+    }
   }
   # obtain list of formatted tables for total, direct, and indirect effects
   df_total_list <- lapply(summary_list, get_total_table, digits = digits,
