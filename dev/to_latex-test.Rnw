@@ -25,6 +25,57 @@ seed <- 20211117
 
 
 <<include=FALSE>>=
+# apply OLS Sobel test
+set.seed(seed)
+ols_sobel <- test_mediation(BSG2014,
+                            x = "ValueDiversity",
+                            y = "TeamCommitment",
+                            m = "TaskConflict",
+                            test = "sobel",
+                            method = "regression",
+                            robust = FALSE)
+
+# apply OLS bootstrap
+set.seed(seed)
+ols_boot <- test_mediation(BSG2014,
+                           x = "ValueDiversity",
+                           y = "TeamCommitment",
+                           m = "TaskConflict",
+                           test = "boot",
+                           method = "regression",
+                           robust = FALSE)
+
+# apply winsorized bootstrap
+set.seed(seed)
+winsorized_boot <- test_mediation(BSG2014,
+                                  x = "ValueDiversity",
+                                  y = "TeamCommitment",
+                                  m = "TaskConflict",
+                                  test = "boot",
+                                  method = "covariance",
+                                  robust = TRUE)
+
+# apply ROBMED
+set.seed(seed)
+robust_boot <- test_mediation(BSG2014,
+                              x = "ValueDiversity",
+                              y = "TeamCommitment",
+                              m = "TaskConflict",
+                              test = "boot",
+                              method = "regression",
+                              robust = TRUE)
+@
+
+\begin{table}[h!]
+\caption{Results from mediation analysis for a simple mediation model, using the robust bootstrap test ROBMED.}
+<<echo=FALSE, results="asis">>=
+boot_list <- list(ols_sobel, ols_boot, robust_boot)
+to_latex(boot_list)
+@
+\end{table}
+
+
+<<include=FALSE>>=
 # set seed of the random number generator
 set.seed(seed)
 # perform mediation analysis

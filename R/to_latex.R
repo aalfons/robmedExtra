@@ -62,14 +62,79 @@ to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
 #' @export
 print.mediation_latex_tables <- function(x, ...) {
   ## initializations
-  direct <- x$direct
-  indirect <- x$indirect
+  # direct <- x$direct
+  # indirect <- x$indirect
   ## initialize LaTeX table
   cat("\\begin{center}\n")
   cat("\\begin{tabular}{", x$align[1L], "}\n", sep = "")
   cat("\\hline\\noalign{\\smallskip}\n")
+  # ## write table for total effects
+  # total <- format_table_latex(x$total)
+  # # write table header
+  # cat(paste(names(total), collapse = " & "), "\\\\ \n")
+  # cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # # write table body
+  # lines <- paste(do.call(paste_amp, total), "\\\\ \n")
+  # cat(lines, sep = "")
+  # cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # ## write table for direct effects
+  # direct <- format_table_latex(direct)
+  # # write table header
+  # cat(paste(names(direct), collapse = " & "), "\\\\ \n")
+  # cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # # write table body
+  # lines <- paste(do.call(paste_amp, direct), "\\\\ \n")
+  # cat(lines, sep = "")
+  # cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # ## write table for indirect effects
+  # j_ci <- grep("Confidence Interval", names(indirect), fixed = TRUE)
+  # width <- ncol(direct) - ncol(indirect) + 1L
+  # indirect <- format_table_latex(indirect, multicolumn = j_ci, width = width,
+  #                               align = x$align[2L])
+  # # write table header
+  # cat(paste(names(indirect), collapse = " & "), "\\\\ \n")
+  # cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+  # # write table body
+  # lines <- paste(do.call(paste_amp, indirect), "\\\\ \n")
+  # cat(lines, sep = "")
+  ## print table contents
+  if (is.null(x$orientation)) {
+    print_latex_table(x$total, x$direct, x$indirect, align = x$align[2L], ...)
+  } else if (x$orientation == "portrait") {
+    first <- x$methods[1L]
+    for (method in x$methods) {
+      if (method != first) {
+        cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
+      }
+      print_latex_table(x$total[[method]], x$direct[[method]],
+                        x$indirect[[method]], label = method,
+                        align = x$align[2L], ...)
+    }
+  } else {
+    stop("not implemented yet")
+  }
+  ## finalize LaTeX table
+  cat("\\noalign{\\smallskip}\\hline\n")
+  cat("\\end{tabular}\n")
+  cat("\\end{center}\n")
+  ## add note
+  note <- get_table_note(x = x$x, m = x$m, y = x$y, covariates = x$covariates,
+                         n = x$n, R = x$R, type = "latex")
+  cat(note, "\n")
+}
+
+
+print_latex_table <- function(total, direct, indirect, label = NULL,
+                              align = "c", ...) {
+  ## if submitted, write label for method
+  if (!is.null(label)) {
+    p <- ncol(total)
+    cat(" & \\multicolumn{", p-1L, "}{", align, "}{", label, "} \\\\ \n",
+        sep = "")
+    cat("\\noalign{\\smallskip}\\cline{2-", p, "}\\noalign{\\smallskip}\n")
+  }
   ## write table for total effects
-  total <- format_table_latex(x$total)
+  total <- format_table_latex(total)
   # write table header
   cat(paste(names(total), collapse = " & "), "\\\\ \n")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
@@ -90,23 +155,16 @@ print.mediation_latex_tables <- function(x, ...) {
   j_ci <- grep("Confidence Interval", names(indirect), fixed = TRUE)
   width <- ncol(direct) - ncol(indirect) + 1L
   indirect <- format_table_latex(indirect, multicolumn = j_ci, width = width,
-                                align = x$align[2L])
+                                 align = align)
   # write table header
   cat(paste(names(indirect), collapse = " & "), "\\\\ \n")
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
   # write table body
   lines <- paste(do.call(paste_amp, indirect), "\\\\ \n")
   cat(lines, sep = "")
-  ## finalize LaTeX table
-  cat("\\noalign{\\smallskip}\\hline\n")
-  cat("\\end{tabular}\n")
-  cat("\\end{center}\n")
-  ## add note
-  note <- get_table_note(x = x$x, m = x$m, y = x$y, covariates = x$covariates,
-                         n = x$n, R = x$R, type = "latex")
-  cat(note, "\n")
+  # return NULL invisibly
+  invisible()
 }
-
 
 # Internal functions -----
 

@@ -131,3 +131,35 @@ cov_sobel <- test_mediation(BSG2014,
 summary(cov_sobel)
 to_latex(cov_sobel)
 to_flextable(cov_sobel)
+
+
+## multiple objects in one table
+
+library("robmedExtra")
+data("BSG2014")
+
+## seed to be used for the random number generator
+seed <- 20211117
+
+# set seed of the random number generator
+set.seed(seed)
+# perform mediation analysis
+robust_boot <- test_mediation(BSG2014,
+                              x = "ValueDiversity",
+                              y = "TeamCommitment",
+                              m = "TaskConflict",
+                              robust = TRUE)
+
+# set seed of the random number generator
+set.seed(seed)
+# perform mediation analysis
+ols_boot <- test_mediation(BSG2014,
+                           x = "ValueDiversity",
+                           y = "TeamCommitment",
+                           m = "TaskConflict",
+                           robust = FALSE)
+
+# combine into list
+boot_list <- list(robust_boot, ols_boot)
+foo <- to_latex(boot_list)
+unclass(foo)

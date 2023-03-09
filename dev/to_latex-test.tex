@@ -70,6 +70,68 @@
 \begin{center}
 \begin{tabular}{lrrrr}
 \hline\noalign{\smallskip}
+ & \multicolumn{4}{c}{OLS Sobel} \\ 
+\noalign{\smallskip}\cline{2- 5 }\noalign{\smallskip}
+Total Effect & Estimate & Std. Error & $t$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow Y$ $(c')$ & $-0.077$ & $ 0.139$ & $-0.555$ & $ 0.580$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Direct Effect & Estimate & Std. Error & $t$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M$ $(a)$ & $ 0.155$ & $ 0.121$ & $ 1.283$ & $ 0.203$ \\ 
+$M \rightarrow Y$ $(b)$ & $-0.364$ & $ 0.118$ & $-3.090$ & $ 0.003$ \\ 
+$X \rightarrow Y$ $(c)$ & $-0.021$ & $ 0.134$ & $-0.156$ & $ 0.877$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Indirect Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M \rightarrow Y$ $(ab)$ & $-0.057$ & $ 0.048$ & $-1.185$ & $ 0.236$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+ & \multicolumn{4}{c}{OLS Bootstrap} \\ 
+\noalign{\smallskip}\cline{2- 5 }\noalign{\smallskip}
+Total Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow Y$ $(c')$ & $-0.079$ & $ 0.159$ & $-0.493$ & $ 0.622$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Direct Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M$ $(a)$ & $ 0.158$ & $ 0.129$ & $ 1.224$ & $ 0.221$ \\ 
+$M \rightarrow Y$ $(b)$ & $-0.367$ & $ 0.158$ & $-2.328$ & $ 0.020$ \\ 
+$X \rightarrow Y$ $(c)$ & $-0.020$ & $ 0.144$ & $-0.139$ & $ 0.889$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Indirect Effect & Estimate & \multicolumn{3}{c}{95\% Confidence Interval} \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M \rightarrow Y$ $(ab)$ & $-0.058$ & \multicolumn{3}{c}{$(-0.214,  0.025)$} \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+ & \multicolumn{4}{c}{ROBMED} \\ 
+\noalign{\smallskip}\cline{2- 5 }\noalign{\smallskip}
+Total Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow Y$ $(c')$ & $-0.043$ & $ 0.187$ & $-0.230$ & $ 0.818$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Direct Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M$ $(a)$ & $ 0.321$ & $ 0.107$ & $ 2.996$ & $ 0.003$ \\ 
+$M \rightarrow Y$ $(b)$ & $-0.337$ & $ 0.178$ & $-1.896$ & $ 0.058$ \\ 
+$X \rightarrow Y$ $(c)$ & $ 0.064$ & $ 0.186$ & $ 0.344$ & $ 0.731$ \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+Indirect Effect & Estimate & \multicolumn{3}{c}{95\% Confidence Interval} \\ 
+\noalign{\smallskip}\hline\noalign{\smallskip}
+$X \rightarrow M \rightarrow Y$ $(ab)$ & $-0.107$ & \multicolumn{3}{c}{$(-0.294, -0.009)$} \\ 
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+\emph{Note}. Independent variable: ValueDiversity ($X$), hypothesized mediator: TaskConflict ($M$), dependent variable: TeamCommitment ($Y$). Sample size = 89. Number of bootstrap samples = 5,000. 
+
+\end{table}
+
+
+
+
+\begin{table}[h!]
+\caption{Results from mediation analysis for a simple mediation model, using the robust bootstrap test ROBMED.}
+\begin{center}
+\begin{tabular}{lrrrr}
+\hline\noalign{\smallskip}
 Total Effect & Estimate & Std. Error & $z$ Statistic & $p$ Value \\ 
 \noalign{\smallskip}\hline\noalign{\smallskip}
 $X \rightarrow Y$ $(c')$ & $-0.043$ & $ 0.187$ & $-0.230$ & $ 0.818$ \\ 
