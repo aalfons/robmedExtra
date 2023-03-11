@@ -62,8 +62,6 @@ get_mediation_tables.list <- function(object, type = c("boot", "data"),
   # make sure we have summary objects
   object[is_mediation] <- lapply(object[is_mediation], summary,
                                  type = type, plot = FALSE)
-  # if we have only one object, call the corresponding method
-  if (length(object) == 1L) return(get_mediation_tables[[1L]])
   # extract mediation objects and summaries
   object_list <- lapply(object, "[[", "object")
   summary_list <- lapply(object, "[[", "summary")

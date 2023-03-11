@@ -2,6 +2,7 @@
 
 % % additional packages
 \usepackage[a4paper]{geometry}
+\usepackage{rotating}  % for sidewaystable
 
 
 \begin{document}
@@ -67,12 +68,20 @@ robust_boot <- test_mediation(BSG2014,
 @
 
 \begin{table}[h!]
-\caption{Results from mediation analysis for a simple mediation model, using the robust bootstrap test ROBMED.}
+\caption{Results from mediation analysis for a simple mediation model, using various methods.}
 <<echo=FALSE, results="asis">>=
 boot_list <- list(ols_sobel, ols_boot, robust_boot)
-to_latex(boot_list)
+to_latex(boot_list, orientation = "portrait")
 @
 \end{table}
+
+\begin{sidewaystable}[h!]
+\caption{Results from mediation analysis for a simple mediation model, using various methods.}
+<<echo=FALSE, results="asis">>=
+boot_list <- list(ols_sobel, ols_boot, winsorized_boot, robust_boot)
+to_latex(boot_list, orientation = "landscape")
+@
+\end{sidewaystable}
 
 
 <<include=FALSE>>=

@@ -161,5 +161,5 @@ ols_boot <- test_mediation(BSG2014,
 
 # combine into list
 boot_list <- list(robust_boot, ols_boot)
-foo <- to_latex(boot_list)
-unclass(foo)
+to_latex(boot_list, orientation = "portrait")
+to_latex(boot_list, orientation = "landscape")
