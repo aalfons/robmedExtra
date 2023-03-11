@@ -17,6 +17,8 @@ to_latex.test_mediation <- function(object, type = c("boot", "data"), ...) {
   to_latex(summary, ...)
 }
 
+# TODO: add checks for argument 'align'
+
 ## Formatting numbers is not done via formatC().  Arguments are passed down
 ## via '...' (such as 'digits' for the number of digits), but some of the
 ## defaults are different.  In addition, argument 'big.mark' is ignored for
