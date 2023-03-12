@@ -599,7 +599,7 @@ get_table_names <- function(label, object) {
 }
 
 
-## Construct table note -----
+# Construct table note -----
 
 #' @importFrom flextable as_i as_sub get_flextable_defaults
 get_table_note <- function(x, m, y, covariates, n, R = NULL,
@@ -686,4 +686,19 @@ get_table_note <- function(x, m, y, covariates, n, R = NULL,
   } else stop("type of table not implemented")
   # return note
   note
+}
+
+
+# Other internal functions -----
+
+# create empty data frame of given dimensions
+get_empty_df <- function(n, p) {
+  # create data frame of empty text strings
+  column <- rep.int("", n)
+  args <- replicate(p, column, simplify = FALSE)
+  args$stringsAsFactors <- FALSE
+  df <- do.call(data.frame, args)
+  # set empty names
+  names(df) <- rep.int("", p)
+  df
 }

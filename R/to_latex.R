@@ -321,17 +321,5 @@ format_values_latex <- function(column) {
   column
 }
 
-# create empty data frame of given dimensions
-get_empty_df <- function(n, p) {
-  # create data frame of empty text strings
-  column <- rep.int("", n)
-  args <- replicate(p, column, simplify = FALSE)
-  args$stringsAsFactors <- FALSE
-  df <- do.call(data.frame, args)
-  # set empty names
-  names(df) <- rep.int("", p)
-  df
-}
-
 # wrapper function for pasting columns of LaTeX table with column separator '&'
 paste_amp <- function(..., sep = " & ") paste(..., sep = sep)

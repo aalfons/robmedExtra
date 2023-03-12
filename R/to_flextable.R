@@ -30,36 +30,48 @@ to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
 to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
   # call workhorse function to format tables
   tables <- get_mediation_tables(object, p_value = p_value, ...)
-  # start with data frame for total effects
-  df <- tables$total
-  # add header and body for direct effects
-  i_direct <- nrow(df) + 1L
-  direct <- tables$direct
-  direct_header <- names(direct)
-  names(direct_header) <- names(direct) <- names(df)
-  df <- rbind(df, direct_header, direct)
-  # add header and body for indirect effects
-  i_indirect <- nrow(df) + 1L
-  indirect <- tables$indirect
-  indirect_header <- names(indirect)
-  p_indirect <- ncol(indirect)
-  p_extra <- ncol(df) - p_indirect
-  if (p_extra > 0L) {
-    n_indirect <- nrow(indirect)
-    extra_header <- rep.int("", p_extra)
-    extra <- replicate(p_extra, rep.int("", n_indirect), simplify = FALSE)
-    if (p_value) {
-      indirect_header <- c(indirect_header[-p_indirect], extra_header,
-                           indirect_header[p_indirect])
-      indirect <- cbind(indirect[, -p_indirect, drop = FALSE], extra,
-                        indirect[, p_indirect, drop = FALSE])
-    } else {
-      indirect_header <- c(indirect_header, extra_header)
-      indirect <- cbind(indirect, extra)
-    }
-  }
-  names(indirect_header) <- names(indirect) <- names(df)
-  df <- rbind(df, indirect_header, indirect)
+
+  # # start with data frame for total effects
+  # df <- tables$total
+  # # add header and body for direct effects
+  # i_direct <- nrow(df) + 1L
+  # direct <- tables$direct
+  # direct_header <- names(direct)
+  # names(direct_header) <- names(direct) <- names(df)
+  # df <- rbind(df, direct_header, direct)
+  # # add header and body for indirect effects
+  # i_indirect <- nrow(df) + 1L
+  # indirect <- tables$indirect
+  # indirect_header <- names(indirect)
+  # p_indirect <- ncol(indirect)
+  # p_extra <- ncol(df) - p_indirect
+  # if (p_extra > 0L) {
+  #   n_indirect <- nrow(indirect)
+  #   extra_header <- rep.int("", p_extra)
+  #   extra <- replicate(p_extra, rep.int("", n_indirect), simplify = FALSE)
+  #   if (p_value) {
+  #     indirect_header <- c(indirect_header[-p_indirect], extra_header,
+  #                          indirect_header[p_indirect])
+  #     indirect <- cbind(indirect[, -p_indirect, drop = FALSE], extra,
+  #                       indirect[, p_indirect, drop = FALSE])
+  #   } else {
+  #     indirect_header <- c(indirect_header, extra_header)
+  #     indirect <- cbind(indirect, extra)
+  #   }
+  # }
+  # names(indirect_header) <- names(indirect) <- names(df)
+  # df <- rbind(df, indirect_header, indirect)
+
+  # put data frames of effects together
+  df <- prepare_flextable(tables$total, tables$direct, tables$indirect,
+                          p_value = p_value)
+  # extract some relevant information
+  i_direct <- attr(df, "direct")
+  direct_header <- unlist(df[i_direct, , drop = TRUE])
+  i_indirect <- attr(df, "indirect")
+  indirect_header <- unlist(df[i_indirect, , drop = TRUE])
+  merge_args <- attr(df, "merge_args")
+  have_ci <- !is.null(merge_args)
   # format the table body with nicer unicode symbols
   df[, 1L] <- format_labels_unicode(df[, 1L])
   df[, -1L] <- lapply(df[, -1L], format_values_unicode)
@@ -72,12 +84,17 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
   # ensure that indices in effect paths and symbols are in subscripts
   ft <- format_labels_flextable(ft, values = df[, 1L], j = 1L)
   # merge cells for confidence intervals
-  if (p_extra > 0L) {
-    i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
-    j_ci_start <- grep("Confidence Interval", indirect_header, fixed = TRUE)
-    j_ci_end <- j_ci_start + p_extra
-    ft <- flextable::merge_h_range(ft, i = i_merge, j1 = j_ci_start,
-                                   j2 = j_ci_end, part = "body")
+  # if (p_extra > 0L) {
+  #   i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
+  #   j_ci_start <- grep("Confidence Interval", indirect_header, fixed = TRUE)
+  #   j_ci_end <- j_ci_start + p_extra
+  #   ft <- flextable::merge_h_range(ft, i = i_merge, j1 = j_ci_start,
+  #                                  j2 = j_ci_end, part = "body")
+  # }
+  if (have_ci) {
+    ft <- flextable::merge_h_range(ft, i = merge_args$i, j1 = merge_args$j1,
+                                   j2 = merge_args$j2, part = "body")
+
   }
   # make sure that columns fit nicely
   ft <- flextable::autofit(ft)
@@ -92,12 +109,68 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
   # add information on rows where direct and indirect effects start
   ft$additional_header_rows <- c(direct = i_direct, indirect = i_indirect)
   # if applicable, add information on merged cells for confidence intervals
-  if (p_extra > 0L) {
-    ft$merge_h_range <- list(i = i_merge, j1 = j_ci_start, j2 = j_ci_end)
+  if (have_ci) {
+    # ft$merge_h_range <- list(i = i_merge, j1 = j_ci_start, j2 = j_ci_end)
+    ft$merge_args <- merge_args
   }
   # set class and theme to return flextable
   class(ft) <- c("mediation_flextable", class(ft))
   theme_mediation(ft)
+}
+
+
+# put data frames of effects together for a single method
+prepare_flextable <- function(total, direct, indirect, p_value = FALSE) {
+  ## start with data frame for total effects
+  df <- total
+  ## add header and body for direct effects
+  # obtain index and header
+  i_direct <- nrow(df) + 1L
+  direct_header <- names(direct)
+  # add header and body to data frame
+  names(direct_header) <- names(direct) <- names(df)
+  df <- rbind(df, direct_header, direct)
+  ## add header and body for indirect effects
+  # obtain index and header
+  i_indirect <- nrow(df) + 1L
+  indirect_header <- names(indirect)
+  # determine number of empty columns to be added
+  p_indirect <- ncol(indirect)
+  p_extra <- ncol(df) - p_indirect
+  # if we need to add empty columns, we have a confidence interval from a
+  # bootstrap test (potentially with a p value as well)
+  if (p_extra > 0L) {
+    # create a data frame with empty columns
+    n_indirect <- nrow(indirect)
+    extra <- get_empty_df(n_indirect, p_extra)
+    # add empty columns to data frame for indirect effects
+    if (p_value) {
+      # if we have a p value, we need to add the empty columns before
+      indirect_header <- c(indirect_header[-p_indirect], names(extra),
+                           indirect_header[p_indirect])
+      indirect <- cbind(indirect[, -p_indirect, drop = FALSE], extra,
+                        indirect[, p_indirect, drop = FALSE])
+    } else {
+      # otherwise add empty columns at the end
+      indirect_header <- c(indirect_header, names(extra))
+      indirect <- cbind(indirect, extra)
+    }
+    # determine which cells need to be merged for confidence intervals
+    i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
+    j_ci_start <- grep("Confidence Interval", indirect_header, fixed = TRUE)
+    j_ci_end <- j_ci_start + p_extra
+  }
+  # add header and body to data frame
+  names(indirect_header) <- names(indirect) <- names(df)
+  df <- rbind(df, indirect_header, indirect)
+  ## add relevant information as attributes
+  attr(df, "direct") <- i_direct
+  attr(df, "indirect") <- i_indirect
+  if (p_extra > 0L) {
+    attr(df, "merge_args") <- list(i = i_merge, j1 = j_ci_start, j2 = j_ci_end)
+  }
+  ## return data frame
+  df
 }
 
 
@@ -148,8 +221,12 @@ theme_mediation <- function(x, ...) {
   }
   x <- flextable::align(x, align = "justify", part = "footer")
   # set horizontal alignment of merged cells
-  if (have_mediation && !is.null(x$merge_h_range)) {
-    x <- flextable::align(x, i = x$merge_h_range$i, j = x$merge_h_range$j1,
+  # if (have_mediation && !is.null(x$merge_h_range)) {
+  #   x <- flextable::align(x, i = x$merge_h_range$i, j = x$merge_h_range$j1,
+  #                         align = "center", part = "body")
+  # }
+  if (have_mediation && !is.null(merge_args <- x$merge_args)) {
+    x <- flextable::align(x, i = merge_args$i, j = merge_args$j1,
                           align = "center", part = "body")
   }
   # set vertical alignment
