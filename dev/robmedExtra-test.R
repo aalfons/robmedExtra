@@ -141,25 +141,47 @@ data("BSG2014")
 ## seed to be used for the random number generator
 seed <- 20211117
 
-# set seed of the random number generator
+# apply OLS Sobel test
 set.seed(seed)
-# perform mediation analysis
-robust_boot <- test_mediation(BSG2014,
-                              x = "ValueDiversity",
-                              y = "TeamCommitment",
-                              m = "TaskConflict",
-                              robust = TRUE)
+ols_sobel <- test_mediation(BSG2014,
+                            x = "ValueDiversity",
+                            y = "TeamCommitment",
+                            m = "TaskConflict",
+                            test = "sobel",
+                            method = "regression",
+                            robust = FALSE)
 
-# set seed of the random number generator
+# apply OLS bootstrap
 set.seed(seed)
-# perform mediation analysis
 ols_boot <- test_mediation(BSG2014,
                            x = "ValueDiversity",
                            y = "TeamCommitment",
                            m = "TaskConflict",
+                           test = "boot",
+                           method = "regression",
                            robust = FALSE)
 
+# apply winsorized bootstrap
+set.seed(seed)
+winsorized_boot <- test_mediation(BSG2014,
+                                  x = "ValueDiversity",
+                                  y = "TeamCommitment",
+                                  m = "TaskConflict",
+                                  test = "boot",
+                                  method = "covariance",
+                                  robust = TRUE)
+
+# apply ROBMED
+set.seed(seed)
+robust_boot <- test_mediation(BSG2014,
+                              x = "ValueDiversity",
+                              y = "TeamCommitment",
+                              m = "TaskConflict",
+                              test = "boot",
+                              method = "regression",
+                              robust = TRUE)
+
 # combine into list
-boot_list <- list(robust_boot, ols_boot)
-to_latex(boot_list, orientation = "portrait")
-to_latex(boot_list, orientation = "landscape")
+boot_list <- list(ols_sobel, ols_boot, winsorized_boot, robust_boot)
+to_flextable(boot_list, orientation = "portrait")
+# to_flextable(boot_list, orientation = "landscape")
