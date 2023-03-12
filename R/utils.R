@@ -602,7 +602,7 @@ get_table_names <- function(label, object) {
 # Construct table note -----
 
 #' @importFrom flextable as_i as_sub get_flextable_defaults
-get_table_note <- function(x, m, y, covariates, n, R = NULL,
+get_table_note <- function(x, m, y, covariates = character(), n, R = NULL,
                            type = "flextable") {
   # initializations
   text_note <- "Note"
