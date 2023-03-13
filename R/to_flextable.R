@@ -32,29 +32,9 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
   # put data frames of effects together
   df <- prepare_table(tables$total, tables$direct, tables$indirect,
                       p_value = p_value)
-  # extract some relevant information
-  direct_header_rows <- attr(df, "direct_header_rows")
-  indirect_header_rows <- attr(df, "indirect_header_rows")
-  merged_cells <- attr(df, "merged_cells")
-  # construct flextable
-  ft <- mediation_flextable(df)
-  # format flextable nicely
-  ft <- format_flextable(ft, df = df, direct_header_rows = direct_header_rows,
-                         indirect_header_rows = indirect_header_rows,
-                         merged_cells = merged_cells)
-  # add table note
-  ft <- add_note_flextable(ft, x = tables$x, m = tables$m, y = tables$y,
-                           covariates = tables$covariates, n = tables$n,
-                           R = tables$R)
-  # add information on rows where direct and indirect effects start
-  ft$direct_header_rows <- direct_header_rows
-  ft$indirect_header_rows <- indirect_header_rows
-  # if applicable, add information on merged cells for confidence intervals
-  if (length(merged_cells) > 0L) ft$merged_cells <- merged_cells
-  # # set class and theme to return flextable
-  # class(ft) <- c("mediation_flextable", class(ft))
-  # set theme and return flextable
-  theme_mediation(ft)
+  # create flextable
+  info <- tables[c("x", "m", "y", "covariates", "n", "R")]
+  mediation_flextable(df, info = info)
 }
 
 
@@ -75,251 +55,189 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
 
     # put data frames of effects together
     df <- prepare_table(tables$total[[1L]], tables$direct[[1L]],
-                        tables$indirect[[1L]], p_value = p_value)
-    # extract some relevant information
-    have_total_header_rows <- FALSE
-    direct_header_rows <- attr(df, "direct_header_rows")
-    indirect_header_rows <- attr(df, "indirect_header_rows")
-    merged_cells <- attr(df, "merged_cells")
-    # construct flextable
-    ft <- mediation_flextable(df)
-    # format flextable nicely
-    ft <- format_flextable(ft, df = df, direct_header_rows = direct_header_rows,
-                           indirect_header_rows = indirect_header_rows,
-                           merged_cells = merged_cells)
-    # add header row for method label
-    p <- ncol(df)
-    ft <- flextable::add_header_row(ft, values = c("", methods),
-                                    colwidths =  c(1L, p-1L),
-                                    top = TRUE)
-    # add merged label cells to list of merged cells
-    label_cells <- list(h = 1L, j1 = 2L, j2 = p, part = "header")
-    merged_cells <- c(list(label_cells), merged_cells)
-    # define columns for partial lines under method labels
-    label_cols <- seq(from = 2L, to = p)
+                        tables$indirect[[1L]], p_value = p_value,
+                        label = methods[1L])
+    # add information for partial lines under method labels
+    attr(df, "label_cols") <- seq(from = 2L, to = ncol(df))
 
   } else if (orientation == "portrait") {
 
     # add each table under the previous one
     start <- 0L
     df_list <- vector("list", length = n_methods)
-    # prepare table for first method
-    df_list[[1L]] <- prepare_table(tables$total[[1L]], tables$direct[[1L]],
-                                   tables$indirect[[1L]], p_value = p_value)
-    cn <- names(df_list[[1L]])
-    # prepare table for other methods
-    for (i in seq(from = 2L, to = n_methods)) {
-      start <- start + nrow(df_list[[i-1L]])
+    # prepare tables
+    for (i in seq_len(n_methods)) {
       df_list[[i]] <- prepare_table(tables$total[[i]], tables$direct[[i]],
                                     tables$indirect[[i]], p_value = p_value,
-                                    start = start, label = methods[i],
-                                    col_keys = cn)
+                                    label = methods[i], start = start)
+      start <- start + nrow(df_list[[i]])
     }
     # put tables for methods together
     df <- do.call(rbind, df_list)
-    # extract some relevant information
-    have_total_header_rows <- TRUE
-    total_header_rows <- do.call(c, lapply(df_list, attr, "total_header_rows"))
-    direct_header_rows <- do.call(c, lapply(df_list, attr, "direct_header_rows"))
-    indirect_header_rows <- do.call(c, lapply(df_list, attr, "indirect_header_rows"))
-    merged_cells <- do.call(c, lapply(df_list, attr, "merged_cells"))
-    # construct flextable
-    ft <- mediation_flextable(df)
-    # format flextable nicely
-    ft <- format_flextable(ft, df = df, total_header_rows = total_header_rows,
-                           direct_header_rows = direct_header_rows,
-                           indirect_header_rows = indirect_header_rows,
-                           merged_cells = merged_cells)
-    # add header row for method label
-    p <- ncol(df)
-    ft <- flextable::add_header_row(ft, values = c("", methods[1L]),
-                                    colwidths =  c(1L, p-1L),
-                                    top = TRUE)
-    # add merged label cells to list of merged cells
-    label_cells <- list(h = 1L, j1 = 2L, j2 = p, part = "header")
-    merged_cells <- c(list(label_cells), merged_cells)
-    # define columns for partial lines under method labels
-    label_cols <- seq(from = 2L, to = p)
+    # update attributes
+    attr(df, "label_rows") <- sapply(df_list, attr, "label_rows")
+    attr(df, "label_cols") <- seq(from = 2L, to = ncol(df))
+    attr(df, "total_header_rows") <- sapply(df_list, attr, "total_header_rows")
+    attr(df, "direct_header_rows") <- sapply(df_list, attr, "direct_header_rows")
+    attr(df, "indirect_header_rows") <- sapply(df_list, attr, "indirect_header_rows")
+    attr(df, "merged_cells") <- do.call(c, lapply(df_list, attr, "merged_cells"))
 
   } else {
 
-    # put two tables next to each other and add the next ones underneath
-    if (n_methods == 2L) {
-      # prepare table
-      df <- prepare_tables(tables$total[[1L]], tables$direct[[1L]],
-                           tables$indirect[[1L]], tables$total[[2L]],
-                           tables$direct[[2L]], tables$indirect[[2L]],
-                           p_value = p_value)
-      # extract some relevant information
-      have_total_header_rows <- FALSE
-      direct_header_rows <- attr(df, "direct_header_rows")
-      indirect_header_rows <- attr(df, "indirect_header_rows")
-      merged_cells <- attr(df, "merged_cells")
-    } else {
-      # initializations
-      have_even <- n_methods %% 2L == 0L
-      i_max <- ceiling(n_methods / 2)
-      start <- 0L
-      df_list <- vector("list", length = i_max)
-      # prepare table for first two methods
-      df_list[[1L]] <- prepare_tables(tables$total[[1L]], tables$direct[[1L]],
-                                      tables$indirect[[1L]], tables$total[[2L]],
-                                      tables$direct[[2L]], tables$indirect[[2L]],
-                                      p_value = p_value)
-      cn <- names(df_list[[1L]])
-      # prepare table for other methods
-      for (i in seq(from = 2L, to = i_max)) {
-        # relevant indices
-        i_right <- 2L * i
-        i_left <- i_right - 1L
-        start <- start + nrow(df_list[[i-1L]])
-        # prepare tables
-        if (i < i_max || have_even) {
-          # prepare left and right tables of current row
-          df_list[[i]] <- prepare_tables(tables$total[[i_left]],
-                                         tables$direct[[i_left]],
-                                         tables$indirect[[i_left]],
-                                         tables$total[[i_right]],
-                                         tables$direct[[i_right]],
-                                         tables$indirect[[i_right]],
-                                         p_value = p_value, start = start,
-                                         label_left = methods[i_left],
-                                         label_right = methods[i_right],
-                                         col_keys = cn)
-        } else {
-          # last row and uneven number of tables: only one table left to prepare
-          df_list[[i]] <- prepare_tables(tables$total[[i_left]],
-                                         tables$direct[[i_left]],
-                                         tables$indirect[[i_left]],
-                                         p_value = p_value, start = start,
-                                         label_left = methods[i_left],
-                                         col_keys = cn)
-        }
-      }
-      # put tables for methods together
-      df <- do.call(rbind, df_list)
-      # extract some relevant information
-      have_total_header_rows <- TRUE
-      total_header_rows <- do.call(c, lapply(df_list, attr, "total_header_rows"))
-      direct_header_rows <- do.call(c, lapply(df_list, attr, "direct_header_rows"))
-      indirect_header_rows <- do.call(c, lapply(df_list, attr, "indirect_header_rows"))
-      merged_cells <- do.call(c, lapply(df_list, attr, "merged_cells"))
-
-    }
-    # construct flextable
-    ft <- mediation_flextable(df)
-    # format flextable nicely
-    ft <- format_flextable(ft, df = df, total_header_rows = total_header_rows,
-                           direct_header_rows = direct_header_rows,
-                           indirect_header_rows = indirect_header_rows,
-                           merged_cells = merged_cells)
-    # add header row for method label
-    p <- ncol(df) %/% 2
-    method_labels <- c("", "", methods[1L], "", methods[2L])
-    ft <- flextable::add_header_row(ft, values = method_labels,
-                                    colwidths =  c(1L, 1L, p-1L, 1L, p-1L),
-                                    top = TRUE)
-    # add merged label cells to list of merged cells
-    label_cells <- list(list(h = 1L, j1 = 3L, j2 = p+1L, part = "header"),
-                        list(h = 1L, j1 = p+3L, j2 = 2*p+1L, part = "header"))
-    merged_cells <- c(label_cells, merged_cells)
-    # define columns for partial lines under method labels
-    label_cols <- c(seq(from = 3L, to = p+1L), seq(from = p+3L, to = 2*p+1L))
+    # # put two tables next to each other and add the next ones underneath
+    # if (n_methods == 2L) {
+    #   # prepare table
+    #   df <- prepare_tables(tables$total[[1L]], tables$direct[[1L]],
+    #                        tables$indirect[[1L]], tables$total[[2L]],
+    #                        tables$direct[[2L]], tables$indirect[[2L]],
+    #                        p_value = p_value)
+    #   # extract some relevant information
+    #   have_total_header_rows <- FALSE
+    #   direct_header_rows <- attr(df, "direct_header_rows")
+    #   indirect_header_rows <- attr(df, "indirect_header_rows")
+    #   merged_cells <- attr(df, "merged_cells")
+    # } else {
+    #   # initializations
+    #   have_even <- n_methods %% 2L == 0L
+    #   i_max <- ceiling(n_methods / 2)
+    #   start <- 0L
+    #   df_list <- vector("list", length = i_max)
+    #   # prepare table for first two methods
+    #   df_list[[1L]] <- prepare_tables(tables$total[[1L]], tables$direct[[1L]],
+    #                                   tables$indirect[[1L]], tables$total[[2L]],
+    #                                   tables$direct[[2L]], tables$indirect[[2L]],
+    #                                   p_value = p_value)
+    #   cn <- names(df_list[[1L]])
+    #   # prepare table for other methods
+    #   for (i in seq(from = 2L, to = i_max)) {
+    #     # relevant indices
+    #     i_right <- 2L * i
+    #     i_left <- i_right - 1L
+    #     start <- start + nrow(df_list[[i-1L]])
+    #     # prepare tables
+    #     if (i < i_max || have_even) {
+    #       # prepare left and right tables of current row
+    #       df_list[[i]] <- prepare_tables(tables$total[[i_left]],
+    #                                      tables$direct[[i_left]],
+    #                                      tables$indirect[[i_left]],
+    #                                      tables$total[[i_right]],
+    #                                      tables$direct[[i_right]],
+    #                                      tables$indirect[[i_right]],
+    #                                      p_value = p_value, start = start,
+    #                                      label_left = methods[i_left],
+    #                                      label_right = methods[i_right],
+    #                                      col_keys = cn)
+    #     } else {
+    #       # last row and uneven number of tables: only one table left to prepare
+    #       df_list[[i]] <- prepare_tables(tables$total[[i_left]],
+    #                                      tables$direct[[i_left]],
+    #                                      tables$indirect[[i_left]],
+    #                                      p_value = p_value, start = start,
+    #                                      label_left = methods[i_left],
+    #                                      col_keys = cn)
+    #     }
+    #   }
+    #   # put tables for methods together
+    #   df <- do.call(rbind, df_list)
+    #   # extract some relevant information
+    #   have_total_header_rows <- TRUE
+    #   total_header_rows <- do.call(c, lapply(df_list, attr, "total_header_rows"))
+    #   direct_header_rows <- do.call(c, lapply(df_list, attr, "direct_header_rows"))
+    #   indirect_header_rows <- do.call(c, lapply(df_list, attr, "indirect_header_rows"))
+    #   merged_cells <- do.call(c, lapply(df_list, attr, "merged_cells"))
+    #
+    # }
+    # # construct flextable
+    # ft <- mediation_flextable(df)
+    # # format flextable nicely
+    # ft <- format_flextable(ft, df = df, total_header_rows = total_header_rows,
+    #                        direct_header_rows = direct_header_rows,
+    #                        indirect_header_rows = indirect_header_rows,
+    #                        merged_cells = merged_cells)
+    # # add header row for method label
+    # p <- ncol(df) %/% 2
+    # method_labels <- c("", "", methods[1L], "", methods[2L])
+    # ft <- flextable::add_header_row(ft, values = method_labels,
+    #                                 colwidths =  c(1L, 1L, p-1L, 1L, p-1L),
+    #                                 top = TRUE)
+    # # add merged label cells to list of merged cells
+    # label_cells <- list(list(h = 1L, j1 = 3L, j2 = p+1L, part = "header"),
+    #                     list(h = 1L, j1 = p+3L, j2 = 2*p+1L, part = "header"))
+    # merged_cells <- c(label_cells, merged_cells)
+    # # define columns for partial lines under method labels
+    # label_cols <- c(seq(from = 3L, to = p+1L), seq(from = p+3L, to = 2*p+1L))
 
   }
 
-  # add table note
-  ft <- add_note_flextable(ft, x = tables$x, m = tables$m, y = tables$y,
-                           covariates = tables$covariates, n = tables$n,
-                           R = tables$R)
-  # add information on rows where direct and indirect effects start
-  if (have_total_header_rows) ft$total_header_rows <- total_header_rows
-  ft$direct_header_rows <- direct_header_rows
-  ft$indirect_header_rows <- indirect_header_rows
-  # add information on columns for partial lines under method labels
-  ft$label_cols <- label_cols
-  # add information on merged cells for confidence intervals
-  ft$merged_cells <- merged_cells
-  # add information on orientation of the table
-  ft$orientation <- orientation
-  # # set class and theme to return flextable
-  # class(ft) <- c("mediation_flextable", class(ft))
-  # set theme and return flextable
-  theme_mediation(ft)
+  # create flextable
+  info <- tables[c("x", "m", "y", "covariates", "n", "R")]
+  ft <- mediation_flextable(df, info = info)
+  # add information on orientation and return flextable
+  ft$orientation
+  ft
 
 }
 
 
 # put data frames of effects together for a single method
 prepare_table <- function(total, direct, indirect, p_value = FALSE,
-                          start = 0L, label = NULL, col_keys = NULL) {
+                          label = NULL, start = 0L) {
   ## initializations
   p <- ncol(total)
-  ## start with data frame for total effects
-  if (start == 0L) {
-    df <- total
-    col_keys <- names(df)
+  col_keys <- paste("Column", seq_len(p), sep = "_")
+  ## if supplied, start with header for label
+  if (is.null(label)) {
+    df <- NULL
+    i_label <- NULL
+    label_cells <- NULL
   } else {
-    # prepare data frame including method label and effect names
+    # obtain row index and header
     i_label <- start + 1L
-    i_total <- i_label + 1L
     label_header <- c("", label, rep.int("", p-2L))
-    total_header <- names(total)
-    names(label_header) <- names(total_header) <- names(total) <- col_keys
-    df <- rbind(label_header, total_header, total)
-    # indicate which cells need to be merged for label header
-    label_cells <- list(i = i_label, j1 = 2L, j2 = p, part = "body")
+    # add header to data frame
+    names(label_header) <- col_keys
+    df <- as.data.frame(as.list(label_header), stringsAsFactors = FALSE)
+    # indicate cells to be merged in header
+    label_cells <- list(list(i = i_label, j1 = 2L, j2 = p))
   }
+  ## add header and body for total effects
+  # obtain row index and header
+  i_total <- start + NROW(df) + 1L
+  total_header <- names(total)
+  # add header and body to data frame
+  names(total_header) <- names(total) <- col_keys
+  df <- rbind(df, total_header, total, stringsAsFactors = FALSE)
   ## add header and body for direct effects
-  # obtain index and header
+  # obtain row index and header
   i_direct <- start + nrow(df) + 1L
   direct_header <- names(direct)
   # add header and body to data frame
   names(direct_header) <- names(direct) <- col_keys
   df <- rbind(df, direct_header, direct)
   ## add header and body for indirect effects
-  # obtain index and header
+  # obtain row index
   i_indirect <- start + nrow(df) + 1L
+  # prepare data frame (adds empty columns where necessary)
+  p_extra <- p - ncol(indirect)
+  indirect <- prepare_indirect_table(indirect, p_extra = p_extra,
+                                     p_value = p_value)
   indirect_header <- names(indirect)
-  # determine number of empty columns to be added
-  p_indirect <- ncol(indirect)
-  p_extra <- p - p_indirect
-  # if we need to add empty columns, we have a confidence interval from a
-  # bootstrap test (potentially with a p value as well)
-  if (p_extra > 0L) {
-    # create a data frame with empty columns
-    n_indirect <- nrow(indirect)
-    extra <- get_empty_df(n_indirect, p_extra)
-    # add empty columns to data frame for indirect effects
-    if (p_value) {
-      # if we have a p value, we need to add the empty columns before
-      indirect_header <- c(indirect_header[-p_indirect], names(extra),
-                           indirect_header[p_indirect])
-      indirect <- cbind(indirect[, -p_indirect, drop = FALSE], extra,
-                        indirect[, p_indirect, drop = FALSE])
-    } else {
-      # otherwise add empty columns at the end
-      indirect_header <- c(indirect_header, names(extra))
-      indirect <- cbind(indirect, extra)
-    }
-    # determine which cells need to be merged for confidence intervals
-    i_merge <- seq(from = i_indirect, length.out = n_indirect + 1L)
-    j_ci_start <- grep("Confidence Interval", indirect_header, fixed = TRUE)
-    j_ci_end <- j_ci_start + p_extra
-    ci_cells <- list(i = i_merge, j1 = j_ci_start, j2 = j_ci_end, part = "body")
+  # determine cells to be merged for confidence intervals
+  if (p_extra == 0L) ci_cells <- NULL
+  else {
+    i_merge <- seq(from = i_indirect, length.out = nrow(indirect) + 1L)
+    j_ci <- grep("Confidence Interval", indirect_header, fixed = TRUE)
+    ci_cells <- list(list(i = i_merge, j1 = j_ci, j2 = j_ci + p_extra))
   }
   # add header and body to data frame
   names(indirect_header) <- names(indirect) <- col_keys
   df <- rbind(df, indirect_header, indirect)
-  ## format the table body with nicer unicode symbols
-  df[, 1L] <- format_labels_unicode(df[, 1L])
-  df[, -1L] <- lapply(df[, -1L], format_values_unicode)
   ## add attributes for relevant information
-  attr(df, "total_header_rows") <- if (start > 0L) i_total
+  attr(df, "label_rows") <- i_label
+  attr(df, "total_header_rows") <- i_total
   attr(df, "direct_header_rows") <- i_direct
   attr(df, "indirect_header_rows") <- i_indirect
-  attr(df, "merged_cells") <- c(if (start > 0L) list(label_cells),
-                                if (p_extra > 0L) list(ci_cells))
+  attr(df, "merged_cells") <- c(label_cells, ci_cells)
   ## return data frame
   df
 }
@@ -328,98 +246,98 @@ prepare_table <- function(total, direct, indirect, p_value = FALSE,
 prepare_tables <- function(total_left, direct_left, indirect_left,
                            total_right = NULL, direct_right = NULL,
                            indirect_right = NULL, p_value = FALSE,
-                           start = 0L, label_left = "",
-                           label_right = "", col_keys = NULL) {
-  ## initializations
-  p <- ncol(total_left)
-  have_right <- !is.null(total_right) && !is.null(direct_right) &&
-    !is.null(indirect_right)
-  ## prepare data frame for total effects
-  n_total <- nrow(total_left)
-  empty_column <- get_empty_df(n_total, 1L)
-  if (have_right) total_right <- total_right[, -1L, drop = FALSE]
-  else total_right <- get_empty_df(n_total, p-1L)
-  total <- cbind(total_left[, 1L, drop = FALSE], empty_column,
-                 total_left[, -1L, drop = FALSE], empty_column,
-                 total_right, fix.empty.names = FALSE)
-  ## start with data frame for total effects
-  if (start == 0L) {
-    df <- total
-    col_keys <- names(df)
-    label_cells <- NULL
-  } else {
-    # prepare data frame including method label and effect names
-    i_label <- start + 1L
-    i_total <- i_label + 1L
-    empty_label <- rep.int("", p-2L)
-    label_header <- c("", "", label_left, empty_label,
-                      "", label_right, empty_label)
-    total_header <- names(total)
-    names(label_header) <- names(total_header) <- names(total) <- col_keys
-    df <- rbind(label_header, total_header, total)
-    # indicate which cells need to be merged for label header
-    label_cells <- list(list(i = i_label, j1 = 3L, j2 = p+1L, part = "body"),
-                        list(i = i_label, j1 = p+3L, j2 = 2L*p+1L, part = "body"))
-  }
-  ## add header and body for direct effects
-  # obtain row index and header
-  i_direct <- start + nrow(df) + 1L
-  n_direct <- nrow(direct_left)
-  empty_column <- get_empty_df(n_direct, 1L)
-  if (have_right) direct_right <- direct_right[, -1L, drop = FALSE]
-  else direct_right <- get_empty_df(n_direct, p-1L)
-  direct <- cbind(direct_left[, 1L, drop = FALSE], empty_column,
-                  direct_left[, -1L, drop = FALSE], empty_column,
-                  direct_right, fix.empty.names = FALSE)
-  direct_header <- names(direct)
-  # add header and body to data frame
-  names(direct_header) <- names(direct) <- col_keys
-  df <- rbind(df, direct_header, direct)
-  ## add header and body for indirect effects
-  # obtain row index
-  i_indirect <- start + nrow(df) + 1L
-  # prepare left data frame (adds empty columns where necessary)
-  p_extra_left <- p - ncol(indirect_left)
-  indirect_left <- prepare_indirect_table(indirect_left, p_extra = p_extra_left,
-                                          p_value = p_value, position = "left")
-  # prepare right data frame (adds empty columns where necessary)
-  if (have_right) {
-    p_extra_right <- p - ncol(indirect_right)
-    indirect_right <- prepare_indirect_table(indirect_right,
-                                             p_extra = p_extra_right,
-                                             p_value = p_value,
-                                             position = "right")
-  } else {
-    n_indirect <- nrow(indirect_left)
-    p_extra_right <- 0L
-    indirect_right <- get_empty_df(n_indirect, p)
-  }
-  # combine left and right data frames and obtain header
-  indirect <- cbind(indirect_left, indirect_right, fix.empty.names = FALSE)
-  indirect_header <- names(indirect)
-  # determine which cells need to be merged for confidence intervals
-  p_extra <- c(p_extra_left, p_extra_right)
-  have_ci <- p_extra > 0L
-  if (any(have_ci)) {
-    i_merge <- seq(from = i_indirect, length.out = nrow(indirect) + 1L)
-    j_ci <- grep("Confidence Interval", names(indirect), fixed = TRUE)
-    ci_cells <- mapply(function(j1, width) {
-      list(i = i_merge, j1 = j1, j2 = j1 + width, part = "body")
-    }, j1 = j_ci, width = p_extra[have_ci], SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  } else ci_cells <- NULL
-  # add header and body to data frame
-  names(indirect_header) <- names(indirect) <- col_keys
-  df <- rbind(df, indirect_header, indirect)
-  ## format the table body with nicer unicode symbols
-  df[, 1L] <- format_labels_unicode(df[, 1L])
-  df[, -1L] <- lapply(df[, -1L], format_values_unicode)
-  ## add attributes for relevant information
-  attr(df, "total_header_rows") <- if (start > 0L) i_total
-  attr(df, "direct_header_rows") <- i_direct
-  attr(df, "indirect_header_rows") <- i_indirect
-  attr(df, "merged_cells") <- c(label_cells, ci_cells)
-  ## return data frame
-  df
+                           label_left = "", label_right = "",
+                           start = 0L) {
+  # ## initializations
+  # p <- ncol(total_left)
+  # have_right <- !is.null(total_right) && !is.null(direct_right) &&
+  #   !is.null(indirect_right)
+  # ## prepare data frame for total effects
+  # n_total <- nrow(total_left)
+  # empty_column <- get_empty_df(n_total, 1L)
+  # if (have_right) total_right <- total_right[, -1L, drop = FALSE]
+  # else total_right <- get_empty_df(n_total, p-1L)
+  # total <- cbind(total_left[, 1L, drop = FALSE], empty_column,
+  #                total_left[, -1L, drop = FALSE], empty_column,
+  #                total_right, fix.empty.names = FALSE)
+  # ## start with data frame for total effects
+  # if (start == 0L) {
+  #   df <- total
+  #   col_keys <- names(df)
+  #   label_cells <- NULL
+  # } else {
+  #   # prepare data frame including method label and effect names
+  #   i_label <- start + 1L
+  #   i_total <- i_label + 1L
+  #   empty_label <- rep.int("", p-2L)
+  #   label_header <- c("", "", label_left, empty_label,
+  #                     "", label_right, empty_label)
+  #   total_header <- names(total)
+  #   names(label_header) <- names(total_header) <- names(total) <- col_keys
+  #   df <- rbind(label_header, total_header, total)
+  #   # indicate which cells need to be merged for label header
+  #   label_cells <- list(list(i = i_label, j1 = 3L, j2 = p+1L, part = "body"),
+  #                       list(i = i_label, j1 = p+3L, j2 = 2L*p+1L, part = "body"))
+  # }
+  # ## add header and body for direct effects
+  # # obtain row index and header
+  # i_direct <- start + nrow(df) + 1L
+  # n_direct <- nrow(direct_left)
+  # empty_column <- get_empty_df(n_direct, 1L)
+  # if (have_right) direct_right <- direct_right[, -1L, drop = FALSE]
+  # else direct_right <- get_empty_df(n_direct, p-1L)
+  # direct <- cbind(direct_left[, 1L, drop = FALSE], empty_column,
+  #                 direct_left[, -1L, drop = FALSE], empty_column,
+  #                 direct_right, fix.empty.names = FALSE)
+  # direct_header <- names(direct)
+  # # add header and body to data frame
+  # names(direct_header) <- names(direct) <- col_keys
+  # df <- rbind(df, direct_header, direct)
+  # ## add header and body for indirect effects
+  # # obtain row index
+  # i_indirect <- start + nrow(df) + 1L
+  # # prepare left data frame (adds empty columns where necessary)
+  # p_extra_left <- p - ncol(indirect_left)
+  # indirect_left <- prepare_indirect_table(indirect_left, p_extra = p_extra_left,
+  #                                         p_value = p_value, position = "left")
+  # # prepare right data frame (adds empty columns where necessary)
+  # if (have_right) {
+  #   p_extra_right <- p - ncol(indirect_right)
+  #   indirect_right <- prepare_indirect_table(indirect_right,
+  #                                            p_extra = p_extra_right,
+  #                                            p_value = p_value,
+  #                                            position = "right")
+  # } else {
+  #   n_indirect <- nrow(indirect_left)
+  #   p_extra_right <- 0L
+  #   indirect_right <- get_empty_df(n_indirect, p)
+  # }
+  # # combine left and right data frames and obtain header
+  # indirect <- cbind(indirect_left, indirect_right, fix.empty.names = FALSE)
+  # indirect_header <- names(indirect)
+  # # determine which cells need to be merged for confidence intervals
+  # p_extra <- c(p_extra_left, p_extra_right)
+  # have_ci <- p_extra > 0L
+  # if (any(have_ci)) {
+  #   i_merge <- seq(from = i_indirect, length.out = nrow(indirect) + 1L)
+  #   j_ci <- grep("Confidence Interval", names(indirect), fixed = TRUE)
+  #   ci_cells <- mapply(function(j1, width) {
+  #     list(i = i_merge, j1 = j1, j2 = j1 + width, part = "body")
+  #   }, j1 = j_ci, width = p_extra[have_ci], SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  # } else ci_cells <- NULL
+  # # add header and body to data frame
+  # names(indirect_header) <- names(indirect) <- col_keys
+  # df <- rbind(df, indirect_header, indirect)
+  # ## format the table body with nicer unicode symbols
+  # df[, 1L] <- format_labels_unicode(df[, 1L])
+  # df[, -1L] <- lapply(df[, -1L], format_values_unicode)
+  # ## add attributes for relevant information
+  # attr(df, "total_header_rows") <- if (start > 0L) i_total
+  # attr(df, "direct_header_rows") <- i_direct
+  # attr(df, "indirect_header_rows") <- i_indirect
+  # attr(df, "merged_cells") <- c(label_cells, ci_cells)
+  # ## return data frame
+  # df
 }
 
 # prepare table for indirect effect
@@ -500,55 +418,6 @@ prepare_indirect_table <- function(indirect, p_extra = 0L, p_value = FALSE,
 }
 
 
-## format flextable: headers, labels, and merged cells
-#' @importFrom flextable autofit merge_h_range
-format_flextable <- function(ft, df, total_header_rows = NULL,
-                             direct_header_rows, indirect_header_rows,
-                             merged_cells = NULL) {
-
-  # # extract underlying data frame
-  # df <- ft$body$dataset
-
-  # Hack: The part above is commented out and instead the original data frame
-  # is passed an argument. This is because the flextable uses generic column
-  # names, and the content that is shown are labels that cannot be easily
-  # extracted.
-
-  # format headers
-  ft <- format_header_flextable(ft, values = names(df), i = NULL)
-  for (i in c(total_header_rows, direct_header_rows, indirect_header_rows)) {
-    current_header <- unlist(df[i, , drop = TRUE])
-    ft <- format_header_flextable(ft, values = current_header, i = i)
-  }
-  # ensure that indices in effect paths and symbols are in subscripts
-  ft <- format_labels_flextable(ft, values = df[, 1L], j = 1L)
-  # merge cells for confidence intervals
-  for (merged_cell in merged_cells) {
-    ft <- flextable::merge_h_range(ft, i = merged_cell$i,
-                                   j1 = merged_cell$j1,
-                                   j2 = merged_cell$j2,
-                                   part = merged_cell$part)
-  }
-  # make sure that columns fit nicely
-  flextable::autofit(ft)
-
-}
-
-## add note to flextable
-#' @importFrom flextable add_footer_lines as_paragraph
-add_note_flextable <- function(object, x, m, y, covariates = character(),
-                               n, R = NULL) {
-  # prepare note
-  note_list <- get_table_note(x = x, m = m, y = y, covariates = covariates,
-                              n = n, R = R, type = "flextable")
-  # add paragraph to flextable
-  flextable::add_footer_lines(
-    object,
-    values = flextable::as_paragraph(list_values = note_list)
-  )
-}
-
-
 # Theme for formatting a flextable of results from mediation analysis -----
 
 #' @importFrom flextable align border_remove fix_border_issues
@@ -567,73 +436,45 @@ theme_mediation <- function(x, ...) {
   std_border <- officer::fp_border(color = defaults$border.color,
                                    style = "solid", width = 1L)
   # get relevant table dimensions
-  n_header <- flextable::nrow_part(x, part <- "header")
-  n_body <- flextable::nrow_part(x, part <- "body")
+  n <- flextable::nrow_part(x, part <- "body")
   p <- flextable::ncol_keys(x)
   # set borders
   x <- flextable::border_remove(x)
-  if (n_header > 0L) {
-    x <- flextable::hline_top(x, border = std_border, part = "header")
-    if (have_mediation && !is.null(label_cols <- x$label_cols)) {
-      x <- flextable::hline(x, i = 1L, j = label_cols, border = std_border,
-                            part = "header")
-    }
-    x <- flextable::hline_bottom(x, border = std_border, part = "header")
-  }
-  if (n_body > 0L) {
-    if (n_header == 0L) {
-      x <- flextable::hline_top(x, border = std_border, part = "body")
-    }
+  if (n > 0L) {
+    x <- flextable::hline_top(x, border = std_border, part = "body")
     x <- flextable::hline_bottom(x, border = std_border, part = "body")
     # set borders for additional header rows
     if (have_mediation) {
       # partial lines for method labels
-      i_partial_lines <- x$total_header_rows - 1L
-      if (length(i_partial_lines) > 0L) {
-        x <- flextable::hline(x, i = i_partial_lines, j = label_cols,
+      if (length(x$label_rows) > 0L && length(x$label_cols) > 0L) {
+        x <- flextable::hline(x, i = x$label_rows, j = x$label_cols,
                               border = std_border, part = "body")
       }
       # lines for headers for total, direct, or indirect effects
-      i_lines <- c(x$total_header_rows - 2L, x$total_header_rows,
+      offset <- if (length(x$label_rows) == 0L) 1L else 2L
+      i_lines <- c(x$total_header_rows[-1L] - offset, x$total_header_rows,
                    x$direct_header_rows - 1L, x$direct_header_rows,
                    x$indirect_header_rows - 1L, x$indirect_header_rows)
       x <- flextable::hline(x, i = i_lines, border = std_border, part = "body")
     }
   }
   # set horizontal alignment
-  if (p > 0L) x <- flextable::align(x, j = 1L, align = "left", part = "all")
+  if (p > 0L) x <- flextable::align(x, j = 1L, align = "left", part = "body")
   if (p > 1L) {
-    j_right <- seq(from = 2L, to = p)
-    x <- flextable::align(x, j = j_right, align = "right", part = "header")
-    x <- flextable::align(x, j = j_right, align = "right", part = "body")
+    x <- flextable::align(x, j = seq(from = 2L, to = p), align = "right",
+                          part = "body")
   }
   x <- flextable::align(x, align = "justify", part = "footer")
   # set horizontal alignment of merged cells
-  if (have_mediation && !is.null(merged_cells <- x$merged_cells)) {
-    # extract relevant information on merged cells
-    merged_cells <- x$merged_cells
-    i_list <- lapply(merged_cells, "[[", "i")
-    j <- sapply(merged_cells, "[[", "j1")
-    part <- sapply(merged_cells, "[[", "part")
-    # align any merged cells in table header
-    which_header <- which(part == "header")
-    if (length(which_header) > 0L) {
-      x <- flextable::align(x, i = do.call(c, i_list[which_header]),
-                            j = j[which_header], align = "center",
-                            part = "header")
-    }
-    # align any merged cells in table body
-    which_body <- which(part == "body")
-    if (length(which_body) > 0L) {
-      x <- flextable::align(x, i = do.call(c, i_list[which_body]),
-                            j = j[which_body], align = "center",
-                            part = "body")
+  if (have_mediation) {
+    # loop over merged cells
+    for (merged_cell in x$merged_cells) {
+      x <- flextable::align(x, i = merged_cell$i, j = merged_cell$j1,
+                            align = "center", part = "body")
     }
   }
   # set vertical alignment
-  x <- flextable::valign(x, valign = "bottom", part = "header")
-  x <- flextable::valign(x, valign = "center", part = "body")
-  x <- flextable::valign(x, valign = "center", part = "footer")
+  x <- flextable::valign(x, valign = "center", part = "all")
   # return flextable
   flextable::fix_border_issues(x, part = "all")
 }
@@ -646,9 +487,7 @@ theme_mediation <- function(x, ...) {
 ## values ... character string giving the unformatted values of the header
 ## i ........ integer giving the row of the flextable to format
 #' @importFrom flextable compose as_i as_paragraph
-format_header_flextable <- function(object, values, i = NULL) {
-  # initializations
-  part <- if (is.null(i)) "header" else "body"
+format_header_flextable <- function(object, values, i) {
   # find columns to be formatted
   to_format <- c(grep("Statistic", values, fixed = TRUE),
                  grep("Value", values, fixed = TRUE))
@@ -662,7 +501,7 @@ format_header_flextable <- function(object, values, i = NULL) {
       object, i = i, j = j,
       value = flextable::as_paragraph(flextable::as_i(values[1L]),
                                       " ", values[2L]),
-      part = part
+      part = "body"
     )
   }
   # return flextable with formatted row
@@ -726,19 +565,52 @@ format_values_unicode <- function(column) {
 }
 
 ## construct a flextable of subclass "mediation_flextable"
-#' @importFrom flextable flextable set_header_labels
-mediation_flextable <- function(data) {
-  # define generic column keys for flextable
-  column_keys <- paste("Column", seq_along(data), sep = "_")
-  # obtain list of original names of data frame
-  column_labels <- as.list(names(data))
-  # change names of data frame and list to column keys
-  names(column_labels) <- names(data) <- column_keys
+#' @importFrom flextable add_footer_lines as_paragraph autofit flextable
+#' merge_h_range set_header_labels
+mediation_flextable <- function(data, info, ...) {
+  # extract attributes
+  label_rows <- attr(data, "label_rows")
+  label_cols <- attr(data, "label_cols")
+  total_header_rows <- attr(data, "total_header_rows")
+  direct_header_rows <- attr(data, "direct_header_rows")
+  indirect_header_rows <- attr(data, "indirect_header_rows")
+  merged_cells <- attr(data, "merged_cells")
+  # format the table body with nicer unicode symbols
+  data[, 1L] <- format_labels_unicode(data[, 1L])
+  data[, -1L] <- lapply(data[, -1L], format_values_unicode)
   # create flextable
-  ft <- flextable::flextable(data)
-  # change column labels to be displayed in header to original names
-  ft <- flextable::set_header_labels(ft, values = column_labels)
+  ft <- flextable::flextable(data, ...)
+  # delete header since it contains generic column names
+  ft <- flextable::delete_part(ft, part = "header")
+  # format headers
+  for (i in c(total_header_rows, direct_header_rows, indirect_header_rows)) {
+    header <- unlist(data[i, , drop = TRUE])
+    ft <- format_header_flextable(ft, values = header, i = i)
+  }
+  # ensure that indices in effect paths and symbols are in subscripts
+  ft <- format_labels_flextable(ft, values = data[, 1L], j = 1L)
+  # merge cells for confidence intervals
+  for (merged_cell in merged_cells) {
+    ft <- flextable::merge_h_range(ft, i = merged_cell$i, j1 = merged_cell$j1,
+                                   j2 = merged_cell$j2, part = "body")
+  }
+  # make sure that columns fit nicely
+  ft <- flextable::autofit(ft)
+  # prepare note
+  note_list <- get_table_note(x = info$x, m = info$m, y = info$y,
+                              covariates = info$covariates, n = info$n,
+                              R = info$R, type = "flextable")
+  # add paragraph to flextable
+  footnote <- flextable::as_paragraph(list_values = note_list)
+  ft <- flextable::add_footer_lines(ft, values = footnote)
+  # add attributes as components
+  if (length(label_rows) > 0L) ft$label_rows <- label_rows
+  if (length(label_cols) > 0L) ft$label_cols <- label_cols
+  ft$total_header_rows <- total_header_rows
+  ft$direct_header_rows <- direct_header_rows
+  ft$indirect_header_rows <- indirect_header_rows
+  if (length(merged_cells) > 0L) ft$merged_cells <- merged_cells
   # set class and theme to return flextable
   class(ft) <- c("mediation_flextable", class(ft))
-  ft
+  theme_mediation(ft)
 }
