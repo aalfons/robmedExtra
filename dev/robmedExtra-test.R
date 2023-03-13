@@ -184,4 +184,4 @@ robust_boot <- test_mediation(BSG2014,
 # combine into list
 boot_list <- list(ols_sobel, ols_boot, winsorized_boot, robust_boot)
 to_flextable(boot_list, orientation = "portrait")
-# to_flextable(boot_list, orientation = "landscape")
+to_flextable(boot_list, orientation = "landscape")
