@@ -45,22 +45,18 @@ to_latex.summary_test_mediation <- function(object, p_value = FALSE,
 to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
                           orientation = c("portrait", "landscape"),
                           align = NULL, ...) {
+  # check argument for orientation
+  orientation <- match.arg(orientation)
   # call workhorse function to format tables
   tables <- get_mediation_tables(object, type = type, p_value = p_value, ...)
-  # check arguments
-  n_methods <- length(tables$methods)
-  if (n_methods > 1L) {
-    # check argument for orientation
-    orientation <- match.arg(orientation)
-    # add orientation specification to object
-    tables$orientation <- orientation
-  } else orientation <- "portrait"
   # check argument for alignment
   if (is.null(align)) {
-    if (orientation == "portrait") align <- c("lrrrr", "c")
+    n_methods <- length(tables$methods)
+    if (n_methods == 1L || orientation == "portrait") align <- c("lrrrr", "c")
     else align <- c("llrrrrlrrrr", "c")
   }
   # add alignment specification and set class
+  tables$orientation <- orientation
   tables$align <- align
   class(tables) <- "mediation_latex_tables"
   # return object for LaTeX tables
