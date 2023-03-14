@@ -57,8 +57,6 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
     df <- prepare_table(tables$total[[1L]], tables$direct[[1L]],
                         tables$indirect[[1L]], label = methods[1L],
                         p_value = p_value)
-    # add information for partial lines under method labels
-    attr(df, "label_cols") <- seq(from = 2L, to = ncol(df))
 
   } else if (orientation == "portrait") {
 
@@ -76,7 +74,6 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
     df <- do.call(rbind, df_list)
     # update attributes
     attr(df, "label_rows") <- sapply(df_list, attr, "label_rows")
-    attr(df, "label_cols") <- seq(from = 2L, to = ncol(df))
     attr(df, "total_header_rows") <- sapply(df_list, attr, "total_header_rows")
     attr(df, "direct_header_rows") <- sapply(df_list, attr, "direct_header_rows")
     attr(df, "indirect_header_rows") <- sapply(df_list, attr, "indirect_header_rows")
@@ -122,8 +119,6 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
     p <- ncol(df) %/% 2
     # extract some relevant information
     attr(df, "label_rows") <- sapply(df_list, attr, "label_rows")
-    attr(df, "label_cols") <- c(seq(from = 3L, to = p+1L),
-                                seq(from = p+3L, to = 2*p+1L))
     attr(df, "total_header_rows") <- sapply(df_list, attr, "total_header_rows")
     attr(df, "direct_header_rows") <- sapply(df_list, attr, "direct_header_rows")
     attr(df, "indirect_header_rows") <- sapply(df_list, attr, "indirect_header_rows")
@@ -133,10 +128,7 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
 
   # create flextable
   info <- tables[c("x", "m", "y", "covariates", "n", "R")]
-  ft <- mediation_flextable(df, info = info)
-  # add information on orientation and return flextable
-  ft$orientation
-  ft
+  mediation_flextable(df, info = info, orientation = orientation)
 
 }
 
@@ -168,13 +160,27 @@ theme_mediation <- function(x, ...) {
     x <- flextable::hline_bottom(x, border = std_border, part = "body")
     # set borders for additional header rows
     if (have_mediation) {
-      # partial lines for method labels
-      if (length(x$label_rows) > 0L && length(x$label_cols) > 0L) {
-        x <- flextable::hline(x, i = x$label_rows, j = x$label_cols,
-                              border = std_border, part = "body")
+      if (length(x$label_rows) == 0L) offset <- 1L
+      else {
+        # find which merged cells involve only one row
+        merged_rows <- lapply(x$merged_cells, "[[", "i")
+        keep <- sapply(merged_rows, length) == 1L
+        # for each label row, obtain the corresponding merged columns
+        label_cols <- lapply(x$label_rows, function(i, rows, cells) {
+          col_list <- lapply(cells[rows == i], function(cell) {
+            seq(from = cell$j1, to = cell$j2)
+          })
+          do.call(c, col_list)
+        }, rows = unlist(merged_rows[keep]), cells = x$merged_cells[keep])
+        # add partial lines for method labels
+        for (i in seq_along(x$label_rows)) {
+          x <- flextable::hline(x, i = x$label_rows[i], j = label_cols[[i]],
+                                border = std_border, part = "body")
+        }
+        # offset for full line indicating new method
+        offset <- 2L
       }
-      # lines for headers for total, direct, or indirect effects
-      offset <- if (length(x$label_rows) == 0L) 1L else 2L
+      # add lines for headers for total, direct, or indirect effects
       i_lines <- c(x$total_header_rows[-1L] - offset, x$total_header_rows,
                    x$direct_header_rows - 1L, x$direct_header_rows,
                    x$indirect_header_rows - 1L, x$indirect_header_rows)
@@ -290,10 +296,9 @@ format_values_unicode <- function(column) {
 ## construct a flextable of subclass "mediation_flextable"
 #' @importFrom flextable add_footer_lines as_paragraph autofit flextable
 #' merge_h_range set_header_labels
-mediation_flextable <- function(data, info, ...) {
+mediation_flextable <- function(data, info, orientation = NULL, ...) {
   # extract attributes
   label_rows <- attr(data, "label_rows")
-  label_cols <- attr(data, "label_cols")
   total_header_rows <- attr(data, "total_header_rows")
   direct_header_rows <- attr(data, "direct_header_rows")
   indirect_header_rows <- attr(data, "indirect_header_rows")
@@ -328,11 +333,11 @@ mediation_flextable <- function(data, info, ...) {
   ft <- flextable::add_footer_lines(ft, values = footnote)
   # add attributes as components
   if (length(label_rows) > 0L) ft$label_rows <- label_rows
-  if (length(label_cols) > 0L) ft$label_cols <- label_cols
   ft$total_header_rows <- total_header_rows
   ft$direct_header_rows <- direct_header_rows
   ft$indirect_header_rows <- indirect_header_rows
   if (length(merged_cells) > 0L) ft$merged_cells <- merged_cells
+  if (!is.null(orientation)) ft$orientation <- orientation
   # set class and theme to return flextable
   class(ft) <- c("mediation_flextable", class(ft))
   theme_mediation(ft)
