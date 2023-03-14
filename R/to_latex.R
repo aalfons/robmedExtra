@@ -186,11 +186,11 @@ print_latex_tables <- function(total_left, direct_left, indirect_left,
       "\\noalign{\\smallskip}\n", sep = "")
   ## write table for total effects
   n_total <- nrow(total_left)
-  empty_column <- get_empty_df(n_total, 1L)
+  empty <- get_empty_df(n_total, 1L)
   if (have_right) total_right <- total_right[, -1L, drop = FALSE]
   else total_right <- get_empty_df(n_total, p-1L)
-  total <- cbind(total_left[, 1L, drop = FALSE], empty_column,
-                 total_left[, -1L, drop = FALSE], empty_column,
+  total <- cbind(total_left[, 1L, drop = FALSE], empty,
+                 total_left[, -1L, drop = FALSE], empty,
                  total_right, fix.empty.names = FALSE)
   total <- format_table_latex(total)
   # write table header
@@ -202,11 +202,11 @@ print_latex_tables <- function(total_left, direct_left, indirect_left,
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
   ## write table for direct effects
   n_direct <- nrow(direct_left)
-  empty_column <- get_empty_df(n_direct, 1L)
+  empty <- get_empty_df(n_direct, 1L)
   if (have_right) direct_right <- direct_right[, -1L, drop = FALSE]
   else direct_right <- get_empty_df(n_direct, p-1L)
-  direct <- cbind(direct_left[, 1L, drop = FALSE], empty_column,
-                  direct_left[, -1L, drop = FALSE], empty_column,
+  direct <- cbind(direct_left[, 1L, drop = FALSE], empty,
+                  direct_left[, -1L, drop = FALSE], empty,
                   direct_right, fix.empty.names = FALSE)
   direct <- format_table_latex(direct)
   # write table header
@@ -218,9 +218,9 @@ print_latex_tables <- function(total_left, direct_left, indirect_left,
   cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
   ## write table for indirect effects
   n_indirect <- nrow(indirect_left)
-  empty_column <- get_empty_df(n_indirect, 1L)
+  empty <- get_empty_df(n_indirect, 1L)
   # format left table
-  indirect_left <- cbind(indirect_left[, 1L, drop = FALSE], empty_column,
+  indirect_left <- cbind(indirect_left[, 1L, drop = FALSE], empty,
                          indirect_left[, -1L, drop = FALSE],
                          fix.empty.names = FALSE)
   j_ci_left <- grep("Confidence Interval", names(indirect_left), fixed = TRUE)
@@ -238,7 +238,7 @@ print_latex_tables <- function(total_left, direct_left, indirect_left,
                                          width = width_right, align = align)
   } else indirect_right <- get_empty_df(n_indirect, p-1L)
   # put formatted left and right tables together
-  indirect <- cbind(indirect_left, empty_column, indirect_right,
+  indirect <- cbind(indirect_left, empty, indirect_right,
                     fix.empty.names = FALSE)
   # write table header
   cat(paste(names(indirect), collapse = " & "), "\\\\ \n")
