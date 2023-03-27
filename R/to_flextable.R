@@ -8,7 +8,23 @@
 
 # Convert results from mediation analysis to a flextable -----
 
+#' Tabular summary of results from (robust) mediation analysis
+#'
+#' Convert results from (robust) mediation analysis to a tabular summary in
+#' the form of a \code{\link[flextable]{flextable}}.  This \code{flextable}
+#' can easily be exported to Microsoft Word or integrated into a dynamic
+#' \proglang{Markdown} document, which eliminates the risk of mistakes in
+#' reporting that stem from copying-and-pasting results.
+#'
+#' @param object  an object inheriting from class
+#' \code{"\link[robmed]{test_mediation}"} or
+#' \code{"\link[robmed:summary.test_mediation]{summary_test_mediation}"}
+#' containing results from (robust) mediation analysis, or a list of such
+#' objects.
+#' @param dots  additional arguments to be passed down.
+#'
 #' @export
+
 to_flextable <- function(object, ...) UseMethod("to_flextable")
 
 #' @export
