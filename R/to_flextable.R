@@ -43,6 +43,7 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
                               orientation = c("portrait", "landscape"), ...) {
 
   # check arguments
+  type <- match.arg(type)
   orientation <- match.arg(orientation)
   # call workhorse function to format tables
   tables <- get_mediation_tables(object, type = type, p_value = p_value, ...)

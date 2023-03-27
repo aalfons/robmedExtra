@@ -23,14 +23,25 @@ get_mediation_tables.summary_test_mediation <- function(object,
   # initializations
   summary <- object$summary
   object <- object$object
-  # obtain formatted tables for total, direct, and indirect effects
+  # If the significance tests for the total and direct effects are based on the
+  # bootstrap distribution, report the bootstrap point estimates of all effects
+  # to stay within the bootstrap framework.  Otherwise, if those significance
+  # tests are t-tests based on the original data, the summary object reports
+  # only the point estimates of the total and direct effects from the original
+  # data. Hence also the point estimate of the indirect effect should be taken
+  # from the original data. For the total and direct effects, this can easily
+  # be done within the respective functions since the 'summary' component is
+  # passed along, but for the indirect effect we need an extra argument.
+  have_boot_summary <- all(c("Data", "Boot") %in% colnames(summary$direct))
+  type <- if (have_boot_summary) "boot" else "data"
+  # obtain formatted tables for total direct, and indirect effects
   df_total <- get_total_table(summary, digits = digits, big.mark = "",
                               decimal.mark = decimal.mark, ...)
   df_direct <- get_direct_table(summary, digits = digits, big.mark = "",
                                 decimal.mark = decimal.mark, ...)
-  df_indirect <- get_indirect_table(object, p_value = p_value, digits = digits,
-                                    big.mark = "", decimal.mark = decimal.mark,
-                                    ...)
+  df_indirect <- get_indirect_table(object, type = type, p_value = p_value,
+                                    digits = digits, big.mark = "",
+                                    decimal.mark = decimal.mark, ...)
   # construct list of tables
   tables <- list(total = df_total, direct = df_direct, indirect = df_indirect)
   # add information on variables
@@ -46,11 +57,9 @@ get_mediation_tables.summary_test_mediation <- function(object,
 }
 
 # list of results from mediation analysis of summaries thereof
-get_mediation_tables.list <- function(object, type = c("boot", "data"),
-                                      p_value = FALSE, digits = 3L,
-                                      big.mark = NULL,
-                                      decimal.mark = getOption("OutDec"),
-                                      ...) {
+get_mediation_tables.list <- function(object, type = "boot", p_value = FALSE,
+                                      digits = 3L, big.mark = NULL,
+                                      decimal.mark = getOption("OutDec"), ...) {
   # initializations
   is_mediation <- sapply(object, inherits, "test_mediation")
   is_summary <- sapply(object, inherits, "summary_test_mediation")
@@ -111,10 +120,9 @@ get_mediation_tables.list <- function(object, type = c("boot", "data"),
                           big.mark = "", decimal.mark = decimal.mark, ...)
   df_direct_list <- lapply(summary_list, get_direct_table, digits = digits,
                            big.mark = "", decimal.mark = decimal.mark, ...)
-  df_indirect_list <- lapply(object_list,get_indirect_table,
-                             p_value = p_value, digits = digits,
-                             big.mark = "", decimal.mark = decimal.mark,
-                             ...)
+  df_indirect_list <- lapply(object_list, get_indirect_table, type = type,
+                             p_value = p_value, digits = digits, big.mark = "",
+                             decimal.mark = decimal.mark, ...)
   # construct return object
   tables <- list(methods = methods, total = df_total_list,
                  direct = df_direct_list, indirect = df_indirect_list)
@@ -156,14 +164,14 @@ get_direct_table <- function(summary, digits = 3L, format = "f",
 
 ## obtain table of indirect effects, possibly including p values
 #' @importFrom robmed p_value
-get_indirect_table <- function(object, p_value = FALSE, digits = 3L,
-                               format = "f", flag = " ", big.mark = "",
-                               ...) {
+get_indirect_table <- function(object, type = "boot", p_value = FALSE,
+                               digits = 3L, format = "f", flag = " ",
+                               big.mark = "", ...) {
   # initializations
   have_boot <- inherits(object, "boot_test_mediation")
   level <- if (have_boot) object$level
   # extract matrix containing effect summaries
-  indirect <- extract_indirect(object)
+  indirect <- extract_indirect(object, type = type)
   # if requested, compute p values of bootstrap tests for indirect effects
   if (have_boot && p_value) {
     p_value <- robmed::p_value(object, parm = "indirect", digits = digits)
@@ -372,7 +380,10 @@ extract_total <- function(summary) {
 # extract summaries of indirect effects of X on Y: information needs to be
 # collected from different components of an object of class "test_mediation",
 # in a similar way as in the corresponding print() method
-extract_indirect <- function(object) {
+# object ... object of class "test_mediation"
+# type ..... character string specifying whether to extract bootstrap estimates
+#            ("boot") or estimates based on the original data ("data")
+extract_indirect <- function(object, type = "boot") {
 
   # initializations
   p_x <- length(object$fit$x)
@@ -383,7 +394,8 @@ extract_indirect <- function(object) {
   have_contrast <- is.character(contrast)  # but this always works
   # extract effect summaries
   if (inherits(object, "boot_test_mediation")) {
-    indirect <- cbind(Estimate = object$indirect,
+    estimate <- if (type == "boot") object$indirect else object$fit$indirect
+    indirect <- cbind(Estimate = estimate,
                       if (have_simple) t(object$ci) else object$ci)
   } else {
     indirect <- cbind(object$fit$indirect, object$se,
