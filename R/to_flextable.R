@@ -20,14 +20,104 @@
 #' \code{"\link[robmed]{test_mediation}"} or
 #' \code{"\link[robmed:summary.test_mediation]{summary_test_mediation}"}
 #' containing results from (robust) mediation analysis, or a list of such
-#' objects.
-#' @param dots  additional arguments to be passed down.
+#' objects (typically obtained via different procedures for mediation
+#' analysis).  In case of a named list, the supplied names are used as labels
+#' in the resulting \code{flextable}, otherwise default labels are constructed
+#' based on how the mediation model was fitted and which type of test was used
+#' (e.g., \code{"ROBMED"} or \code{"OLS Bootstrap"}).
+#' @param \dots  additional arguments to be passed down, eventually to
+#' \code{\link[base]{formatC}()} for formatting numbers.  In particular,
+#' argument \code{digits} can be used to customize the number of digits after
+#' the decimal point (defaults to 3).  Also note that argument \code{big.mark}
+#' is ignored for the numbers in the table; it is only used for formatting the
+#' sample size and (if applicable) the number of bootstrap samples in the
+#' table note.
+#'
+#' @return  An object of class \code{"mediation_flextable"}, which inherits
+#' from class \code{"\link[flextable]{flextable}"}.
+#'
+#' @note
+#' Numbers are not formatted via \code{flextable} defaults (see
+#' \code{\link[flextable]{set_flextable_defaults}()}), but instead via
+#' \code{\link[base]{formatC}()}. This is done to ensure consistency in
+#' number formatting between functions \code{to_flextable()} and
+#' \code{\link{to_latex}()}.
+#'
+#' @author Andreas Alfons, based on code by Vincent Drenth
+#'
+#' @references
+#' Alfons, A., Ates, N.Y. and Groenen, P.J.F. (2022a) A Robust Bootstrap Test
+#' for Mediation Analysis.  \emph{Organizational Research Methods},
+#' \bold{25}(3), 591--617.  doi:10.1177/1094428121999096.
+#'
+#' Alfons, A., Ates, N.Y. and Groenen, P.J.F. (2022b) Robust Mediation Analysis:
+#' The \R Package \pkg{robmed}.  \emph{Journal of Statistical Software},
+#' \bold{103}(13), 1--45.  doi:10.18637/jss.v103.i13.
+#'
+#' @seealso
+#' \code{\link{test_mediation}()},
+#' \code{\link[robmed:summary.test_mediation]{summary}()}
+#'
+#' \code{\link{export_docx}()}, \code{\link{to_latex}()}
+#'
+#' @examples
+#' data("BSG2014")
+#'
+#' # seed to be used for the random number generator
+#' seed <- 20211117
+#'
+#' # perform mediation analysis via robust bootstrap test ROBMED
+#' set.seed(seed)
+#' robust_boot <- test_mediation(BSG2014,
+#'                               x = "ValueDiversity",
+#'                               y = "TeamCommitment",
+#'                               m = "TaskConflict",
+#'                               robust = TRUE)
+#'
+#' # construct flextable of results
+#' to_flextable(robust_boot)
+#'
+#' # perform mediation analysis via the OLS bootstrap
+#' set.seed(seed)
+#' ols_boot <- test_mediation(BSG2014,
+#'                            x = "ValueDiversity",
+#'                            y = "TeamCommitment",
+#'                            m = "TaskConflict",
+#'                            robust = FALSE)
+#'
+#' # construct flextable of results from both procedures
+#' boot_list <- list(ols_boot, robust_boot)
+#' to_flextable(boot_list, orientation = "landscape")
+#'
+#' # customize labels for procedures and number of digits
+#' boot_list_named <- list("Non-robust" = ols_boot,
+#'                         "Robust" = robust_boot)
+#' to_flextable(boot_list_named, orientation = "landscape",
+#'              digits = 4)
 #'
 #' @export
 
 to_flextable <- function(object, ...) UseMethod("to_flextable")
 
+#' @name to_flextable
+#'
+#' @param type  a character string specifying which estimates and significance
+#' tests to report if mediation analysis was done via a bootstrap procedure.
+#' If \code{"boot"} (the default), the means of the bootstrap replicates are
+#' reported as point estimates for all effects, and significance tests for the
+#' total and direct effects use the normal approximation of the bootstrap
+#' distribution (i.e., the tests assume a normal distribution of the
+#' corresponding effect with the standard deviation computed from the bootstrap
+#' replicates).  If \code{"data"}, the point estimates on the original data are
+#' reported for all effects, and the significance tests for the total and
+#' direct effects are based on statistical theory (e.g., t-tests if the
+#' coefficients are estimated via regression).  Note that for bootstrap
+#' procedures, significance of the indirect effect is always reported via a
+#' percentile-based confidence interval due to the asymmetry of its
+#' distribution.
+#'
 #' @export
+
 to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
   # compute summary
   summary <- summary(object, type = type, plot = FALSE)
@@ -35,13 +125,16 @@ to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
   to_flextable(summary, ...)
 }
 
-## Formatting numbers is not done via flextable defaults, but instead via
-## formatC() to have consistency between to_flextable() and to_latex().
-## Arguments are passed down to formatC() via '...' (such as 'digits' for the
-## number of digits), but some of the defaults are different.  In addition,
-## argument 'big.mark' is ignored for the numbers in the table and only used
-## for the sample size and number of bootstrap samples in the table note.
+
+#' @name to_flextable
+#'
+#' @param p_value  a logical indicating whether to include p-values for the
+#' indirect effects if mediation analysis was done via a bootstrap procedure.
+#' These are obtained via \code{\link[robmed]{p_value}()} and may take some
+#' time to compute.
+#'
 #' @export
+
 to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
   # call workhorse function to format tables for effects
   tables <- get_mediation_tables(object, p_value = p_value, ...)
@@ -54,7 +147,18 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
 }
 
 
+#' @name to_flextable
+#'
+#' @param orientation  a character string specifying how to arrange the results
+#' from different objects (list elements) in the \code{flextable}.  If
+#' \code{"portrait"}, results from different objects are arranged underneath
+#' one another, which is intended for documents in portrait mode.  If
+#' \code{"landscape"}, results from two objects are arranged next to each
+#' other with the results from remaining objects underneath (in groups of
+#' two), which is intended for documents in landscape mode.
+#'
 #' @export
+
 to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
                               orientation = c("portrait", "landscape"), ...) {
 
