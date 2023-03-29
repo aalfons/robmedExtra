@@ -9,10 +9,9 @@
 export_docx <- function(object, ...) UseMethod("export_docx")
 
 #' @importFrom flextable body_add_flextable
-#' @importFrom officer read_docx
+#' @importFrom officer body_end_section_landscape read_docx
 #' @export
-## TODO: play with font size and cell margins so that certain example tables
-##       fit nicely
+## TODO: allow to set font, font size, and cell margins
 export_docx.flextable <- function(object, file, ...) {
   # create .docx file
   docx <- officer::read_docx()
@@ -23,9 +22,10 @@ export_docx.flextable <- function(object, file, ...) {
   if (inherits(object, "mediation_flextable") &&
       !is.null(object$orientation) &&
       object$orientation == "landscape") {
-    docx <- body_end_section_landscape(docx)
-    # FIXME: we get a blank page in portrait mode at the end of the document
-    #        that should be removed
+    docx <- officer::body_end_section_landscape(docx)
+    # Note: We get a blank page in portrait mode at the end of the document
+    #       that should be removed. Package 'officer' doesn't seem to provide
+    #       a way to avoid or remove that blank page.
   }
   # write to file
   print(docx, target = file)

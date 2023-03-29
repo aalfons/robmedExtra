@@ -184,5 +184,5 @@ robust_boot <- test_mediation(BSG2014,
 boot_list <- list(ols_sobel, ols_boot, winsorized_boot, robust_boot)
 to_flextable(boot_list, orientation = "portrait")
 to_flextable(boot_list, orientation = "landscape")
-export_docx(boot_list, file = "dev/test_landscape.docx",
+export_docx(list(robust_boot, ols_boot), file = "dev/test_landscape.docx",
             orientation = "landscape")
