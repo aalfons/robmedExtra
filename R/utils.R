@@ -575,7 +575,9 @@ format_indirect_table <- function(object, level = 0.95, p_value = NULL, ...) {
   # construct data frame and fix column names
   if (have_boot) {
     # format confidence intervals and construct column name
-    ci <- paste0("(", object[, "Lower"], ", ", object[, "Upper"], ")")
+    lower <- gsub("^ +", "", object[, "Lower"], fixed = FALSE)
+    upper <- gsub("^ +", "", object[, "Upper"], fixed = FALSE)
+    ci <- paste0("(", lower, ", ", upper, ")")
     ci_label <- paste0(format(100 * level, trim = TRUE),
                        "% Confidence Interval")
     # construct data frame and fix column names
