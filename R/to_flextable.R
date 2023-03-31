@@ -8,6 +8,7 @@
 
 # Convert results from mediation analysis to a flextable -----
 
+
 #' Tabular summary of results from (robust) mediation analysis
 #'
 #' Convert results from (robust) mediation analysis to a tabular summary in
@@ -99,6 +100,7 @@
 
 to_flextable <- function(object, ...) UseMethod("to_flextable")
 
+
 #' @name to_flextable
 #'
 #' @param type  a character string specifying which estimates and significance
@@ -129,9 +131,9 @@ to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
 #' @name to_flextable
 #'
 #' @param p_value  a logical indicating whether to include p-values for the
-#' indirect effects if mediation analysis was done via a bootstrap procedure.
-#' These are obtained via \code{\link[robmed]{p_value}()} and may take some
-#' time to compute.
+#' indirect effects if mediation analysis was done via a bootstrap procedure
+#' (defaults to \code{FALSE}).  If \code{TRUE}, the p-values are obtained via
+#' \code{\link[robmed]{p_value}()} and may take some time to compute.
 #'
 #' @export
 
@@ -168,7 +170,7 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
   # call workhorse function to format tables
   tables <- get_mediation_tables(object, type = type, p_value = p_value, ...)
   # further initializations
-  methods <- tables$methods
+  methods <- tables$labels
   n_methods <- length(methods)
 
   # construct flextable

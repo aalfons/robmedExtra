@@ -75,7 +75,7 @@ get_mediation_tables.list <- function(object, type = "boot", p_value = FALSE,
   object_list <- lapply(object, "[[", "object")
   summary_list <- lapply(object, "[[", "summary")
   # check that variables are the same
-  components <- c("x", "y", "m", "covariates")
+  components <- c("x", "m", "y", "covariates")
   variables <- summary_list[[1L]][components]
   variable_list <- lapply(summary_list[-1L], "[", components)
   all_identical <- all(sapply(variable_list, identical, variables))
@@ -124,7 +124,7 @@ get_mediation_tables.list <- function(object, type = "boot", p_value = FALSE,
                              p_value = p_value, digits = digits, big.mark = "",
                              decimal.mark = decimal.mark, ...)
   # construct return object
-  tables <- list(methods = methods, total = df_total_list,
+  tables <- list(labels = methods, total = df_total_list,
                  direct = df_direct_list, indirect = df_indirect_list)
   # add information on variables
   tables <- c(tables, variables)

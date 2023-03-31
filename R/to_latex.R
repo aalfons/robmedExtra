@@ -6,10 +6,141 @@
 
 # Convert results from mediation analysis to a LaTeX table -----
 
+
+#' LaTeX table of results from (robust) mediation analysis
+#'
+#' Generate \proglang{LaTeX} code for a tabular summary of results from
+#' (robust) mediation analysis in the form of a \code{tabular} environment.
+#' This \code{tabular} environment can easily be integrated into a dynamic
+#' \proglang{LaTex} document with tools such as package \pkg{knitr}, which
+#' eliminates the risk of mistakes in reporting that stem from
+#' copying-and-pasting results.  Note that \code{to_latex()} itself does not
+#' actually produce any \proglang{LaTeX} code, it is the \code{print()} method
+#' of the resulting object that prints the code for the \code{tabular}
+#' environment.
+#'
+#' @param object  an object inheriting from class
+#' \code{"\link[robmed]{test_mediation}"} or
+#' \code{"\link[robmed:summary.test_mediation]{summary_test_mediation}"}
+#' containing results from (robust) mediation analysis, or a list of such
+#' objects (typically obtained via different procedures for mediation
+#' analysis).  In case of a named list, the supplied names are used as labels
+#' in the resulting \proglang{LaTeX} table, otherwise default labels are
+#' constructed based on how the mediation model was fitted and which type of
+#' test was used (e.g., \code{"ROBMED"} or \code{"OLS Bootstrap"}).
+#' @param \dots  for \code{to_latex()}, additional arguments to be passed down,
+#' eventually to \code{\link[base]{formatC}()} for formatting numbers.  In
+#' particular, argument \code{digits} can be used to customize the number of
+#' digits after the decimal point (defaults to 3).  Also note that argument
+#' \code{big.mark} is ignored for the numbers in the table; it is only used
+#' for formatting the sample size and (if applicable) the number of bootstrap
+#' samples in the table note.  For the \code{print()} method, additional
+#' arguments are ignored.
+#'
+#' @return
+#' \code{to_latex()} returns an object of class \code{"mediation_latex_tables"}
+#' with the following components:
+#' \item{labels}{a character string giving the labels to be used in the
+#' \proglang{LaTeX} table (only returned if a list of objects is supplied).}
+#' \item{total}{a data frame containing a tabular summary of the total effects,
+#' or a list of such data frames.}
+#' \item{direct}{a data frame containing a tabular summary of the direct
+#' effects, or a list of such data frames.}
+#' \item{indirect}{a data frame containing a tabular summary of the indirect
+#' effects, or a list of such data frames.}
+#' \item{x, m, y, covariates}{character vectors specifying the respective
+#' variables used.}
+#' \item{n}{a character string containing the (formatted) sample size.}
+#' \item{R}{a character string containing the (formatted) number of bootstrap
+#' samples (only returned if applicable).}
+#' \item{orientation}{a character string specifying how to arrange the results
+#' from different objects in the \proglang{LaTeX} table (only returned if a
+#' list of objects is supplied).}
+#' \item{align}{a character vector of length two. The first element gives the
+#' alignment specification to be used in the \code{\\begin\{tabular\}\{\}}
+#' statement, while the second element gives the alignment specification to be
+#' used in \code{\\multicolumn\{\}\{\}\{\}} statements for any bootstrapped
+#' confidence intervals of the indirect effect.}
+#'
+#' The \code{print()} method prints the \proglang{LaTeX} code for the
+#' \code{tabular} environment, and returns the supplied object invisibly.
+#'
+#' @author Andreas Alfons
+#'
+#' @references
+#' Alfons, A., Ates, N.Y. and Groenen, P.J.F. (2022a) A Robust Bootstrap Test
+#' for Mediation Analysis.  \emph{Organizational Research Methods},
+#' \bold{25}(3), 591--617.  doi:10.1177/1094428121999096.
+#'
+#' Alfons, A., Ates, N.Y. and Groenen, P.J.F. (2022b) Robust Mediation Analysis:
+#' The \R Package \pkg{robmed}.  \emph{Journal of Statistical Software},
+#' \bold{103}(13), 1--45.  doi:10.18637/jss.v103.i13.
+#'
+#' @seealso
+#' \code{\link{test_mediation}()},
+#' \code{\link[robmed:summary.test_mediation]{summary}()}
+#'
+#' \code{\link{to_flextable}()}
+#'
+#' @examples
+#' data("BSG2014")
+#'
+#' # seed to be used for the random number generator
+#' seed <- 20211117
+#'
+#' # perform mediation analysis via robust bootstrap test ROBMED
+#' set.seed(seed)
+#' robust_boot <- test_mediation(BSG2014,
+#'                               x = "ValueDiversity",
+#'                               y = "TeamCommitment",
+#'                               m = "TaskConflict",
+#'                               robust = TRUE)
+#'
+#' # construct LaTeX table of results
+#' to_latex(robust_boot)
+#'
+#' # perform mediation analysis via the OLS bootstrap
+#' set.seed(seed)
+#' ols_boot <- test_mediation(BSG2014,
+#'                            x = "ValueDiversity",
+#'                            y = "TeamCommitment",
+#'                            m = "TaskConflict",
+#'                            robust = FALSE)
+#'
+#' # construct LaTeX table of results from both procedures
+#' boot_list <- list(ols_boot, robust_boot)
+#' to_latex(boot_list, orientation = "landscape")
+#'
+#' # customize labels for procedures and number of digits
+#' boot_list_named <- list("Non-robust" = ols_boot,
+#'                         "Robust" = robust_boot)
+#' to_latex(boot_list_named, orientation = "landscape",
+#'          digits = 4)
+#'
 #' @export
+
 to_latex <- function(object, ...) UseMethod("to_latex")
 
+
+#' @name to_latex
+#'
+#' @param type  a character string specifying which estimates and significance
+#' tests to report if mediation analysis was done via a bootstrap procedure.
+#' If \code{"boot"} (the default), the means of the bootstrap replicates are
+#' reported as point estimates for all effects, and significance tests for the
+#' total and direct effects use the normal approximation of the bootstrap
+#' distribution (i.e., the tests assume a normal distribution of the
+#' corresponding effect with the standard deviation computed from the bootstrap
+#' replicates).  If \code{"data"}, the point estimates on the original data are
+#' reported for all effects, and the significance tests for the total and
+#' direct effects are based on statistical theory (e.g., t-tests if the
+#' coefficients are estimated via regression).  Note that for bootstrap
+#' procedures, significance of the indirect effect is always reported via a
+#' percentile-based confidence interval due to the asymmetry of its
+#' distribution.
+#'
 #' @export
+
 to_latex.test_mediation <- function(object, type = c("boot", "data"), ...) {
   # compute summary
   summary <- summary(object, type = type, plot = FALSE)
@@ -17,21 +148,29 @@ to_latex.test_mediation <- function(object, type = c("boot", "data"), ...) {
   to_latex(summary, ...)
 }
 
-# TODO: add checks for argument 'align'
 
-## Formatting numbers is not done via formatC().  Arguments are passed down
-## via '...' (such as 'digits' for the number of digits), but some of the
-## defaults are different.  In addition, argument 'big.mark' is ignored for
-## the numbers in the table and only used for the sample size and number of
-## bootstrap samples in the table note.
-## The first element in argument 'align' is used as alignment specification in
-## the \begin{tabular} statement, while the second element is used for the
-## alignment specification in \multicolumn{} statements in case of bootstrapped
-## confidence intervals in case of the indirect effect.
+#' @name to_latex
+#'
+#' @param p_value  a logical indicating whether to include p-values for the
+#' indirect effects if mediation analysis was done via a bootstrap procedure
+#' (defaults to \code{FALSE}).  If \code{TRUE}, the p-values are obtained via
+#' \code{\link[robmed]{p_value}()} and may take some time to compute.
+#' @param align  a character vector of length two.  The first element is used
+#' as the alignment specification in the \code{\\begin\{tabular\}\{\}}
+#' statement, while the second element is used for the alignment specification
+#' in \code{\\multicolumn\{\}\{\}\{\}} statements in case of bootstrapped
+#' confidence intervals of the indirect effect.  For the former, note that
+#' if \code{object} is a list of objects and \code{orientation} is
+#' \code{"landscape"}, two empty columns are inserted in the \code{LaTeX}
+#' table.  It is not recommended to set this argument unless you know what
+#' you are doing.
+#'
 #' @export
+
 to_latex.summary_test_mediation <- function(object, p_value = FALSE,
                                             align = c("lrrrr", "c"),
                                             ...) {
+  # TODO: add checks for argument 'align'
   # call workhorse function to format tables
   tables <- get_mediation_tables(object, p_value = p_value, ...)
   # add alignment specification and set class
@@ -41,7 +180,20 @@ to_latex.summary_test_mediation <- function(object, p_value = FALSE,
   tables
 }
 
+
+#' @name to_latex
+#'
+#' @param orientation  a character string specifying how to arrange the results
+#' from different objects (list elements) in the \proglang{LaTeX} table.  If
+#' \code{"portrait"}, results from different objects are arranged underneath
+#' one another, which is intended for documents in portrait mode.  If
+#' \code{"landscape"}, results from two objects are arranged next to each
+#' other with the results from remaining objects underneath (in groups of
+#' two), which is intended for documents in landscape mode (or \proglang{LaTeX}
+#' table environments such as \code{sidewaystable}).
+#'
 #' @export
+
 to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
                           orientation = c("portrait", "landscape"),
                           align = NULL, ...) {
@@ -51,8 +203,9 @@ to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
   # call workhorse function to format tables
   tables <- get_mediation_tables(object, type = type, p_value = p_value, ...)
   # check argument for alignment
+  # TODO: add checks for argument 'align'
   if (is.null(align)) {
-    n_methods <- length(tables$methods)
+    n_methods <- length(tables$labels)
     if (n_methods == 1L || orientation == "portrait") align <- c("lrrrr", "c")
     else align <- c("llrrrrlrrrr", "c")
   }
@@ -67,6 +220,7 @@ to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
 
 # print() method that generates the LaTeX code -----
 
+#' @name to_latex
 #' @export
 print.mediation_latex_tables <- function(x, ...) {
   ## initialize LaTeX table
@@ -74,12 +228,12 @@ print.mediation_latex_tables <- function(x, ...) {
   cat("\\begin{tabular}{", x$align[1L], "}\n", sep = "")
   cat("\\hline\\noalign{\\smallskip}\n")
   ## print table contents
-  n_methods <- length(x$methods)
+  n_methods <- length(x$labels)
   if (n_methods == 0L) {
     print_latex_table(x$total, x$direct, x$indirect, align = x$align[2L], ...)
   } else if (n_methods == 1L) {
     print_latex_table(x$total[[1L]], x$direct[[1L]], x$indirect[[1L]],
-                      label = x$methods[1L], align = x$align[2L], ...)
+                      label = x$labels[1L], align = x$align[2L], ...)
   } else if (x$orientation == "portrait") {
     # add each table under the previous one
     for (i in seq_len(n_methods)) {
@@ -87,7 +241,7 @@ print.mediation_latex_tables <- function(x, ...) {
       if (i > 1L) cat("\\noalign{\\smallskip}\\hline\\noalign{\\smallskip}\n")
       # print current table
       print_latex_table(x$total[[i]], x$direct[[i]], x$indirect[[i]],
-                        label = x$methods[i], align = x$align[2L], ...)
+                        label = x$labels[i], align = x$align[2L], ...)
     }
   } else {
     # put two tables next to each other and add the next ones underneath
@@ -104,14 +258,14 @@ print.mediation_latex_tables <- function(x, ...) {
       if (i < i_max || have_even) {
         # print left and right tables of current row
         print_latex_tables(x$total[[i_left]], x$direct[[i_left]],
-                           x$indirect[[i_left]], x$methods[i_left],
+                           x$indirect[[i_left]], x$labels[i_left],
                            x$total[[i_right]], x$direct[[i_right]],
-                           x$indirect[[i_right]], x$methods[i_right],
+                           x$indirect[[i_right]], x$labels[i_right],
                            align = x$align[2L], ...)
       } else {
         # last row and uneven number of tables: only one table left to print
         print_latex_tables(x$total[[i_left]], x$direct[[i_left]],
-                           x$indirect[[i_left]], x$methods[i_left], ...)
+                           x$indirect[[i_left]], x$labels[i_left], ...)
       }
     }
   }
@@ -123,6 +277,8 @@ print.mediation_latex_tables <- function(x, ...) {
   note <- get_table_note(x = x$x, m = x$m, y = x$y, covariates = x$covariates,
                          n = x$n, R = x$R, type = "latex")
   cat(note, "\n")
+  ## return object invisibly
+  invisible(x)
 }
 
 # print lines for a latex table of a single method
