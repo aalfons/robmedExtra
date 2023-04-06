@@ -96,9 +96,9 @@ run_shiny_app <- function(which = c("GUI", "simulation")) {
   # initializations
   which <- match.arg(which)
   # find application folder
-  folder <- system.file("shiny-examples", which, package = "robmedExtra")
+  folder <- system.file("shiny", which, package = "robmedExtra")
   if (folder == "") {
-    stop("Could not find shiny app.  Try re-installing package 'robmedExtra'.")
+    stop("could not find shiny app, try re-installing package 'robmedExtra'")
   }
   # run shiny app
   shiny::runApp(folder, display.mode = "normal")
