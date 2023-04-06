@@ -13,30 +13,30 @@ library(DT)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-    theme = shinytheme("sandstone"),
-    title = "robmed",
+  theme = shinytheme("sandstone"),
+  title = "robmed",
 
-    # Application title
-    titlePanel(h1("robmed", align = "center")
+  # Application title
+  titlePanel(h1("robmed", align = "center")
+  ),
+
+  tabsetPanel(
+    tabPanel("Data",
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("datatype", "Data source",
+                             choices = c("R environment",
+                                         "RData file"),
+                             selected = "R environment"),
+                 uiOutput("dataframechoice"),
+                 uiOutput("rdatafile_dataframes"),
+                 uiOutput("save_rdata_ui")
                ),
 
-    tabsetPanel(
-      tabPanel("Data",
-                       sidebarLayout(
-                         sidebarPanel(
-                          selectInput("datatype", "Data source",
-                                      choices = c("R environment",
-                                                  "RData file"),
-                                      selected = "R environment"),
-                          uiOutput("dataframechoice"),
-                          uiOutput("rdatafile_dataframes"),
-                          uiOutput("save_rdata_ui")
-                       ),
-
-                       mainPanel(
-                       DT::dataTableOutput("data_table")
-                         )
-        )
+               mainPanel(
+                 DT::dataTableOutput("data_table")
+               )
+             )
     ),
     tabPanel("Model",
              sidebarLayout(
@@ -64,7 +64,7 @@ shinyUI(fluidPage(
                  model, an independent variable X is hypothesized to influence a
                  dependent variable Y through multiple mediators M",tags$sub(1),
                                ", ..., M",  tags$sub("k"),
-                 " while the mediator variables do not influence each other."))),
+                               " while the mediator variables do not influence each other."))),
                  img(src = "mediation-parallel.png", height = 140, width = 260),
 
                  h2("Serial multiple mediator model"),
@@ -94,45 +94,45 @@ shinyUI(fluidPage(
                    are included in the output.")
                )
              )
-            ),
-      tabPanel("robmed",
-               sidebarLayout(
-                 sidebarPanel(uiOutput('ui_runbutton_robmed'),
-                              h2("Options"),
-                              sliderInput("ConfidenceROBMED", "Confidence level",
-                                          min = 0, max = 1, value = 0.95),
-                              numericInput("boot_samplesROBMED",
-                                           label = "Number of bootstrap samples",
-                                           value = 5000),
+    ),
+    tabPanel("robmed",
+             sidebarLayout(
+               sidebarPanel(uiOutput('ui_runbutton_robmed'),
+                            h2("Options"),
+                            sliderInput("ConfidenceROBMED", "Confidence level",
+                                        min = 0, max = 1, value = 0.95),
+                            numericInput("boot_samplesROBMED",
+                                         label = "Number of bootstrap samples",
+                                         value = 5000),
 
-                              h2("Random Number Generator"),
-                              numericInput("seedROBMED", label = "Seed",
-                                           value = NULL),
-                              textInput(inputId = "rng_version_robust",
-                                        label = "Version",
-                                        value = as.character(getRversion())),
+                            h2("Random Number Generator"),
+                            numericInput("seedROBMED", label = "Seed",
+                                         value = NULL),
+                            textInput(inputId = "rng_version_robust",
+                                      label = "Version",
+                                      value = as.character(getRversion())),
 
-                              h2("MM-estimator"),
-                              selectInput("MM_eff",
-                                          "Efficiency at normal distribution",
-                                          choices = c(0.80, 0.85, 0.90, 0.95),
-                                          selected = 0.85),
-                              numericInput("max_iter",
-                                           "Maximum number of iterations",
-                                           value = 10000),
-                 ),
-
-                 # Show a plot of the generated distribution
-                 mainPanel(hr(),
-                           h3('Diagnostic plot'),
-                           plotOutput("plot_weights"),
-                           hr(),
-                           h3('Model and Test summary'),
-                           verbatimTextOutput('summary')
-                 )
-               )
-
+                            h2("MM-estimator"),
+                            selectInput("MM_eff",
+                                        "Efficiency at normal distribution",
+                                        choices = c(0.80, 0.85, 0.90, 0.95),
+                                        selected = 0.85),
+                            numericInput("max_iter",
+                                         "Maximum number of iterations",
+                                         value = 10000),
                ),
+
+               # Show a plot of the generated distribution
+               mainPanel(hr(),
+                         h3('Diagnostic plot'),
+                         plotOutput("plot_weights"),
+                         hr(),
+                         h3('Model and Test summary'),
+                         verbatimTextOutput('summary')
+               )
+             )
+
+    ),
     tabPanel("OLS Bootstrap",
              sidebarLayout(
                sidebarPanel(
@@ -147,7 +147,7 @@ shinyUI(fluidPage(
                  numericInput("seedOLS", label = 'Seed', value = NULL),
                  textInput(inputId = 'rng_version_ols', label = 'Version',
                            value = as.character(getRversion())
-                           )
+                 )
                ),
                mainPanel(
                  verbatimTextOutput("CI"),
@@ -155,7 +155,7 @@ shinyUI(fluidPage(
                  verbatimTextOutput('summaryOLS')
                )
              )
-      ),
+    ),
     tabPanel("Export",
              sidebarLayout(
                sidebarPanel(
@@ -190,12 +190,12 @@ shinyUI(fluidPage(
                  uiOutput("downloadbuttonscript"),
                ),
                mainPanel(uiOutput("button_latex_robust"),
-                 verbatimTextOutput("text_latex_robust"),
-                 uiOutput("button_latex_ols"),
-                 verbatimTextOutput("text_latex_ols")
+                         verbatimTextOutput("text_latex_robust"),
+                         uiOutput("button_latex_ols"),
+                         verbatimTextOutput("text_latex_ols")
                )
              )
-            ),
+    ),
     tabPanel("Info",
              sidebarLayout(
                sidebarPanel(
@@ -217,5 +217,5 @@ shinyUI(fluidPage(
              )
 
     )
-    )
+  )
 ))
