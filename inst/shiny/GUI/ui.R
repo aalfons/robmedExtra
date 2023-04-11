@@ -5,8 +5,10 @@
 # based on code by Vincent Drenth
 # ************************************
 
+
 #' @import shiny
 #' @importFrom DT dataTableOutput
+
 shinyUI(fluidPage(
   title = "robmed",
 
@@ -25,9 +27,10 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
           selectInput("data_source", "Data source",
-                      choices = c("R environment",
-                                  "RData file"),
-                      selected = "R environment")
+                      choices = c("R environment", "RData file"),
+                      selected = "R environment", multiple = FALSE),
+          uiOutput("Rdata_file"),
+          uiOutput("data_frame")
         ),
         # output panel on right hand side
         mainPanel(
