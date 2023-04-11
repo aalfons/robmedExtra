@@ -6,6 +6,17 @@
 # ************************************
 
 
+# Internal functions -----
+
+# internal function to construct labels for variable selection inputs
+get_label <- function(label, info) {
+  # FIXME: color is hard-coded to be the same as help text in in bootstrap theme
+  p(label, span(info, style = "color: #737373; font-weight:normal;"))
+}
+
+
+# User interface definition for GUI -----
+
 #' @import shiny
 #' @importFrom DT dataTableOutput
 
@@ -29,8 +40,8 @@ shinyUI(fluidPage(
           selectInput("data_source", "Data source",
                       choices = c("R environment", "RData file"),
                       selected = "R environment", multiple = FALSE),
-          uiOutput("Rdata_file"),
-          uiOutput("data_frame")
+          uiOutput("select_Rdata_file"),
+          uiOutput("select_data_frame")
         ),
         # output panel on right hand side
         mainPanel(
@@ -45,9 +56,21 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          selectInput("response", label = get_label("Dependent variable", "(Numeric)"),
+                      choices = character(), selected = NULL, multiple = FALSE),
+          selectInput("explanatory", label = "Independent variable(s)",
+                      choices = character(), selected = NULL, multiple = TRUE),
+          selectInput("mediators", label = get_label("Mediator(s)", "(Numeric)"),
+                      choices = character(), selected = NULL, multiple = TRUE),
+          selectInput("covariates", label = "Covariate(s)",
+                      choices = character(), selected = NULL, multiple = TRUE)
         ),
         # output panel on right hand side
         mainPanel(
+          textOutput("test_y"),
+          textOutput("test_x"),
+          textOutput("test_m"),
+          textOutput("test_covariates")
         )
       )
     ),
