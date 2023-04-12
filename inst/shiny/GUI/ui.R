@@ -37,6 +37,8 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # TODO: by default, "RData file" should be selected if there are no
+          #       data frames in the global environment, otherwise "R environment"
           selectInput("data_source", "Data source",
                       choices = c("R environment", "RData file"),
                       selected = "R environment", multiple = FALSE),
@@ -56,11 +58,13 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-          selectInput("response", label = get_label("Dependent variable", "(Numeric)"),
-                      choices = character(), selected = NULL, multiple = FALSE),
+          selectInput("response",
+                      label = get_label("Dependent variable", "(Numeric)"),
+                      choices = "", selected = NULL, multiple = FALSE),
           selectInput("explanatory", label = "Independent variable(s)",
                       choices = character(), selected = NULL, multiple = TRUE),
-          selectInput("mediators", label = get_label("Mediator(s)", "(Numeric)"),
+          selectInput("mediators",
+                      label = get_label("Mediator(s)", "(Numeric)"),
                       choices = character(), selected = NULL, multiple = TRUE),
           selectInput("covariates", label = "Covariate(s)",
                       choices = character(), selected = NULL, multiple = TRUE)

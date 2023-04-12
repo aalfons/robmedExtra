@@ -18,7 +18,7 @@ shinyServer(function(input, output, session) {
   # create separate environment for safely loading RData files
   RData_env <- new.env()
 
-  # define reactive expression to get selected data frame
+  # define reactive expression to get the selected data frame
   get_data <- reactive({
     # get data frame (empty if nothing is selected yet)
     if (is.null(input$df_name)) df <- data.frame()
@@ -31,22 +31,21 @@ shinyServer(function(input, output, session) {
     df
   })
 
-  # define reactive expression to get variable names
-  get_variables <- reactive({
-    df <- get_data()
-    names(df)
-  })
+  # define function to get the variable names of a data set
+  # (by default the selected data frame)
+  get_variables <- function(data = get_data()) names(data)
 
-  # define reactive expression to get names of numeric variables
-  get_numeric_variables <- reactive({
-    df <- get_data()
-    variables <- names(df)
-    if (ncol(df) > 0L) {
-      is_numeric <- sapply(df, is.numeric)
+
+  # define function to get the names of numeric variables
+  # (by default the selected data frame)
+  get_numeric_variables <- function(data = get_data()) {
+    variables <- names(data)
+    if (ncol(data) > 0L) {
+      is_numeric <- sapply(data, is.numeric)
       variables <- variables[is_numeric]
     }
     variables
-  })
+  }
 
 
   ## Render inputs for 'Data' tab -----
@@ -59,6 +58,9 @@ shinyServer(function(input, output, session) {
   })
 
   # create UI input for selecting the data frame
+  # TODO: if there is only one data frame in the environment or RData file,
+  #       it should be selected by default, otherwise the default should be
+  #       empty
   output$select_data_frame <- renderUI({
     # determine whether the UI input should list data frames from the R
     # environment, or from an RData file selected by the user
@@ -95,35 +97,57 @@ shinyServer(function(input, output, session) {
 
   ## Update inputs for 'Model' tab -----
 
+  # observer to reset selected variables when new data set is selected
+  observe({
+    # get data and variable names
+    data <- get_data()
+    variables <- get_variables(data)
+    numeric_variables <- get_numeric_variables(data)
+    # update UI inputs for selecting variables
+    updateSelectInput(session, inputId = "response",
+                      choices = c("", numeric_variables),
+                      selected = NULL)
+    updateSelectInput(session, inputId = "explanatory",
+                      choices = variables, selected = NULL)
+    updateSelectInput(session, inputId = "mediators",
+                      choices = numeric_variables, selected = NULL)
+    updateSelectInput(session, inputId = "covariates",
+                      choices = variables, selected = NULL)
+  })
+
   # observer to update variables that can be selected as response variable
   observe({
+    numeric_variables <- isolate(get_numeric_variables())
     remove <- c(input$explanatory, input$mediators, input$covariates)
     updateSelectInput(session, inputId = "response",
-                      choices = setdiff(get_numeric_variables(), remove),
+                      choices = setdiff(numeric_variables, remove),
                       selected = isolate(input$response))
   })
 
   # observer to update variables that can be selected as explanatory variables
   observe({
+    variables <- isolate(get_variables())
     remove <- c(input$response, input$mediators, input$covariates)
     updateSelectInput(session, inputId = "explanatory",
-                      choices = setdiff(get_variables(), remove),
+                      choices = setdiff(variables, remove),
                       selected = isolate(input$explanatory))
   })
 
   # observer to update variables that can be selected as mediators variables
   observe({
+    numeric_variables <- isolate(get_numeric_variables())
     remove <- c(input$response, input$explanatory, input$covariates)
     updateSelectInput(session, inputId = "mediators",
-                      choices = setdiff(get_numeric_variables(), remove),
+                      choices = setdiff(numeric_variables, remove),
                       selected = isolate(input$mediators))
   })
 
   # observer to update variables that can be selected as control variables
   observe({
+    variables <- isolate(get_variables())
     remove <- c(input$response, input$explanatory, input$mediators)
     updateSelectInput(session, inputId = "covariates",
-                      choices = setdiff(get_variables(), remove),
+                      choices = setdiff(variables, remove),
                       selected = isolate(input$covariates))
   })
 
