@@ -163,7 +163,7 @@ shinyServer(function(input, output, session) {
 
   ## Render outputs for 'Data' tab -----
 
-  # for testing whether inputs are handled correctly
+  # # for testing whether inputs are handled correctly
   # output$test_data_source <- renderPrint(get_data_source())
   # output$test_RData_file <- renderPrint(input$RData_file$name)
   # output$test_df_name <- renderPrint(get_df_name())
@@ -231,7 +231,7 @@ shinyServer(function(input, output, session) {
 
   ## Render outputs for 'Model' tab -----
 
-  # for testing whether inputs are handled correctly
+  # # for testing whether inputs are handled correctly
   # output$test_y <- renderPrint(input$response)
   # output$test_x <- renderPrint(input$explanatory)
   # output$test_m <- renderPrint(input$mediators)
