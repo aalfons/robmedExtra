@@ -15,28 +15,57 @@ shinyServer(function(input, output, session) {
 
   ## Define relevant objects and reactive expressions -----
 
-  # create separate environment for safely loading RData files
+  # create a separate environment for safely loading RData files
   RData_env <- new.env()
 
-  # define reactive expression to get the selected data frame
+  # function to get the names of data frames in a given environment
+  get_data_frames <- function(env = .GlobalEnv) {
+    is_df <- sapply(env, is.data.frame, simplify = TRUE, USE.NAMES = TRUE)
+    if (any(is_df)) names(is_df)[is_df]
+    else character()
+  }
+
+  # check if there are any data frames in global environment
+  df_global <- get_data_frames()
+  n_df_global <- length(df_global)
+
+  # reactive expression to get the selected data source
+  get_data_source <- reactive({
+    data_source <- input$data_source
+    if (is.null(data_source)) data_source <- "RData file"
+    data_source
+  })
+
+  # reactive expression to get the name of the selected data frame
+  get_df_name <- reactive({
+    if (get_data_source() == "RData file") input$df_name_RData
+    else input$df_name_global
+  })
+
+  # reactive expression to get the environment of the selected data source
+  get_env <- reactive({
+    # this function is typically called with input$data_source as argument:
+    # if there are no data frames in the global environment, this input is NULL
+    if (get_data_source() == "RData file") RData_env
+    else .GlobalEnv
+  })
+
+  # reactive expression to get the selected data frame
   get_data <- reactive({
     # get data frame (empty if nothing is selected yet)
-    if (is.null(input$df_name)) df <- data.frame()
-    else {
-      env <- if (input$data_source == "RData file") RData_env else .GlobalEnv
-      df <- as.data.frame(get(input$df_name, envir = env))
-    }
+    df_name <- get_df_name()
+    if (is.null(df_name) || df_name == "") df <- data.frame()
+    else df <- as.data.frame(get(df_name, envir = get_env()))
     # make sure that column names are unique
     names(df) <- make.names(names(df), unique = TRUE)
     df
   })
 
-  # define function to get the variable names of a data set
+  # function to get the variable names of a data set
   # (by default the selected data frame)
   get_variables <- function(data = get_data()) names(data)
 
-
-  # define function to get the names of numeric variables
+  # function to get the names of numeric variables of a data set
   # (by default the selected data frame)
   get_numeric_variables <- function(data = get_data()) {
     variables <- names(data)
@@ -50,46 +79,94 @@ shinyServer(function(input, output, session) {
 
   ## Render inputs for 'Data' tab -----
 
+  # create UI input for selecting the data source
+  # (global environment or RData file)
+  output$select_data_source <- renderUI({
+    # determine whether to show the UI input
+    if (n_df_global == 0L) {
+      # no data frames in the global environment
+      helpText(#"There are no data frames in your R environment.",
+               "If you have a data set that is not in RData format, you can",
+               "import it into your R session before (re)starting the GUI.")
+    } else {
+      # show the UI input if there are data frames in the global environment
+      selectInput("data_source", "Data source",
+                  choices = c("R environment", "RData file"),
+                  selected = "R environment", multiple = FALSE)
+    }
+  })
+
   # create UI input for selecting an RData file
   output$select_Rdata_file <- renderUI({
-    if (input$data_source == "RData file") {
+    # determine whether to show the UI input
+    if (get_data_source() == "RData file") {
       fileInput("RData_file", "RData file", multiple = FALSE, accept = ".RData")
     }
   })
 
-  # create UI input for selecting the data frame
-  # TODO: if there is only one data frame in the environment or RData file,
-  #       it should be selected by default, otherwise the default should be
-  #       empty
-  output$select_data_frame <- renderUI({
-    # determine whether the UI input should list data frames from the R
-    # environment, or from an RData file selected by the user
-    if (input$data_source == "RData file") {
-      # load selected RData file into separate environment
-      req(input$RData_file)
-      load(input$RData_file$datapath, envir = RData_env)
-      # set environment and suffix for help text if there are no data frames
-      env <- RData_env
-      suffix <- "the selected RData file."
-    } else {
-      # set environment and suffix for help text if there are no data frames
-      env <- .GlobalEnv
-      suffix <- "your R environment."
+  # create UI input for selecting a data frame from the global environment
+  output$select_df_global <- renderUI({
+    # determine whether to show the UI input
+    if (get_data_source() == "R environment") {
+      # there is at least one data frame in the global environment
+      if (n_df_global == 1L) {
+        # if there is only one data set in the global environment, it is
+        # selected automatically
+        selectInput("df_name_global", "Data frame", choices = df_global,
+                    selected = NULL, multiple = FALSE)
+      } else {
+        # if there are multiple data sets in the global environment, by default
+        # the previously selected data frame is selected again (if it exists)
+        previous <- isolate(input$df_name_global)
+        selectInput("df_name_global", "Data frame", choices = c("", df_global),
+                    selected = previous, multiple = FALSE)
+      }
     }
-    # create UI input for selecting the data frame from the available list
-    is_df <- sapply(env, is.data.frame, simplify = TRUE, USE.NAMES = TRUE)
-    if (!any(is_df)) {
-      # no data frame in the R environment or RData file
-      helpText("There are no data frames in", suffix)
-    } else {
-      # at least one data frame in the R environment or RData file
-      df_names <- names(is_df)[is_df]
-      selectInput("df_name", "Data frame", choices = df_names, multiple = FALSE)
+  })
+
+  # create UI input for selecting a data frame from the selected RData file
+  output$select_df_RData <- renderUI({
+    # determine whether to show the UI input
+    if (get_data_source() == "RData file") {
+      # make sure that an RData file is selected
+      req(input$RData_file)
+      # load the selected RData file into the separate environment
+      # (make sure the environment is empty first)
+      rm(list = ls(envir = RData_env, all.names = TRUE), envir = RData_env)
+      load(input$RData_file$datapath, envir = RData_env)
+      # get data frames in the selected RData file
+      df_RData <- get_data_frames(RData_env)
+      n_df_RData <- length(df_RData)
+      # create UI input
+      if (n_df_RData == 0L) {
+        # let user know if there are no data frames in the selected RData file
+        helpText("There are no data frames in the selected RData file.")
+      } else if (n_df_RData == 1L) {
+        # if there is only one data set in the selected RData file, it is
+        # selected automatically
+        selectInput("df_name_RData", "Data frame", choices = df_RData,
+                    selected = NULL, multiple = FALSE)
+      } else {
+        # if there are multiple data sets in the selected RData file, there
+        # is no default selection
+        # TODO: Is there a way to check what change triggered the evaluation
+        #       of this expression? If the user changes the data source back
+        #       to "RData file", it would be nice to by select the previously
+        #       selected data frame by default.  But if the user selects a new
+        #       RData file, there should not be a default selection.
+        selectInput("df_name_RData", "Data frame", choices = c("", df_RData),
+                    selected = NULL, multiple = FALSE)
+      }
     }
   })
 
 
   ## Render outputs for 'Data' tab -----
+
+  # for testing whether inputs are handled correctly
+  # output$test_data_source <- renderPrint(get_data_source())
+  # output$test_RData_file <- renderPrint(input$RData_file$name)
+  # output$test_df_name <- renderPrint(get_df_name())
 
   # show data frame in main panel
   output$data_table <-  DT::renderDataTable(get_data())
@@ -97,7 +174,7 @@ shinyServer(function(input, output, session) {
 
   ## Update inputs for 'Model' tab -----
 
-  # observer to reset selected variables when new data set is selected
+  # observer to reset selected variables when data set is selected
   observe({
     # get data and variable names
     data <- get_data()
@@ -153,9 +230,11 @@ shinyServer(function(input, output, session) {
 
 
   ## Render outputs for 'Model' tab -----
-  output$test_y <- renderPrint(input$response)
-  output$test_x <- renderPrint(input$explanatory)
-  output$test_m <- renderPrint(input$mediators)
-  output$test_covariates <- renderPrint(input$covariates)
+
+  # for testing whether inputs are handled correctly
+  # output$test_y <- renderPrint(input$response)
+  # output$test_x <- renderPrint(input$explanatory)
+  # output$test_m <- renderPrint(input$mediators)
+  # output$test_covariates <- renderPrint(input$covariates)
 
 })

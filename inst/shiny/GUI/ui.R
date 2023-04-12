@@ -8,7 +8,7 @@
 
 # Internal functions -----
 
-# internal function to construct labels for variable selection inputs
+# function to construct labels for variable selection inputs
 get_label <- function(label, info) {
   # FIXME: color is hard-coded to be the same as help text in in bootstrap theme
   p(label, span(info, style = "color: #737373; font-weight:normal;"))
@@ -37,16 +37,16 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-          # TODO: by default, "RData file" should be selected if there are no
-          #       data frames in the global environment, otherwise "R environment"
-          selectInput("data_source", "Data source",
-                      choices = c("R environment", "RData file"),
-                      selected = "R environment", multiple = FALSE),
+          uiOutput("select_data_source"),
           uiOutput("select_Rdata_file"),
-          uiOutput("select_data_frame")
+          uiOutput("select_df_global"),
+          uiOutput("select_df_RData")
         ),
         # output panel on right hand side
         mainPanel(
+          # textOutput("test_data_source"),
+          # textOutput("test_RData_file"),
+          # textOutput("test_df_name"),
           DT::dataTableOutput("data_table")
         )
       )
@@ -71,10 +71,10 @@ shinyUI(fluidPage(
         ),
         # output panel on right hand side
         mainPanel(
-          textOutput("test_y"),
-          textOutput("test_x"),
-          textOutput("test_m"),
-          textOutput("test_covariates")
+          # textOutput("test_y"),
+          # textOutput("test_x"),
+          # textOutput("test_m"),
+          # textOutput("test_covariates")
         )
       )
     ),
