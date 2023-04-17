@@ -15,6 +15,9 @@ shinyServer(function(input, output, session) {
 
   ## Define relevant objects and reactive expressions -----
 
+  # create a separate environment for safely conducting analyses
+  session_env <- new.env()
+
   # create a separate environment for safely loading RData files
   RData_env <- new.env()
 
@@ -29,52 +32,57 @@ shinyServer(function(input, output, session) {
   df_global <- get_data_frames()
   n_df_global <- length(df_global)
 
+  # initialize reactive values
+  values <- reactiveValues()
+
   # reactive expression to get the selected data source
   get_data_source <- reactive({
+    # if there are no data frames in the global environment, this input is NULL
+    # and the user can only select an RData file
     data_source <- input$data_source
     if (is.null(data_source)) data_source <- "RData file"
     data_source
   })
 
-  # reactive expression to get the name of the selected data frame
-  get_df_name <- reactive({
-    if (get_data_source() == "RData file") input$df_name_RData
-    else input$df_name_global
-  })
-
-  # reactive expression to get the environment of the selected data source
-  get_env <- reactive({
-    # this function is typically called with input$data_source as argument:
-    # if there are no data frames in the global environment, this input is NULL
-    if (get_data_source() == "RData file") RData_env
-    else .GlobalEnv
-  })
-
-  # reactive expression to get the selected data frame
-  get_data <- reactive({
-    # get data frame (empty if nothing is selected yet)
-    df_name <- get_df_name()
-    if (is.null(df_name) || df_name == "") df <- data.frame()
-    else df <- as.data.frame(get(df_name, envir = get_env()))
-    # make sure that column names are unique
-    names(df) <- make.names(names(df), unique = TRUE)
-    df
-  })
-
-  # function to get the variable names of a data set
-  # (by default the selected data frame)
-  get_variables <- function(data = get_data()) names(data)
-
-  # function to get the names of numeric variables of a data set
-  # (by default the selected data frame)
-  get_numeric_variables <- function(data = get_data()) {
-    variables <- names(data)
-    if (ncol(data) > 0L) {
-      is_numeric <- sapply(data, is.numeric)
-      variables <- variables[is_numeric]
-    }
-    variables
-  }
+  # # reactive expression to get the name of the selected data frame
+  # get_df_name <- reactive({
+  #   if (get_data_source() == "RData file") input$df_name_RData
+  #   else input$df_name_global
+  # })
+  #
+  # # reactive expression to get the environment of the selected data source
+  # get_env <- reactive({
+  #   # this function is typically called with input$data_source as argument:
+  #   # if there are no data frames in the global environment, this input is NULL
+  #   if (get_data_source() == "RData file") RData_env
+  #   else .GlobalEnv
+  # })
+  #
+  # # reactive expression to get the selected data frame
+  # get_data <- reactive({
+  #   # get data frame (empty if nothing is selected yet)
+  #   df_name <- get_df_name()
+  #   if (is.null(df_name) || df_name == "") df <- data.frame()
+  #   else df <- as.data.frame(get(df_name, envir = get_env()))
+  #   # make sure that column names are unique
+  #   names(df) <- make.names(names(df), unique = TRUE)
+  #   df
+  # })
+  #
+  # # function to get the variable names of a data set
+  # # (by default the selected data frame)
+  # get_variables <- function(data = get_data()) names(data)
+  #
+  # # function to get the names of numeric variables of a data set
+  # # (by default the selected data frame)
+  # get_numeric_variables <- function(data = get_data()) {
+  #   variables <- names(data)
+  #   if (ncol(data) > 0L) {
+  #     is_numeric <- sapply(data, is.numeric)
+  #     variables <- variables[is_numeric]
+  #   }
+  #   variables
+  # }
 
 
   ## Render inputs for the 'Data' tab -----
@@ -117,9 +125,8 @@ shinyServer(function(input, output, session) {
       } else {
         # if there are multiple data sets in the global environment, by default
         # the previously selected data frame is selected again (if it exists)
-        previous <- isolate(input$df_name_global)
         selectInput("df_name_global", "Data frame", choices = c("", df_global),
-                    selected = previous, multiple = FALSE)
+                    selected = isolate(input$df_name_global), multiple = FALSE)
       }
     }
   })
@@ -160,24 +167,61 @@ shinyServer(function(input, output, session) {
     }
   })
 
+  # observer to update data in separate environment for session
+  observe({
+    # obtain name of data frame and R environment corresponding to data source
+    if (get_data_source() == "RData file") {
+      df_name <- input$df_name_RData
+      source_env <- RData_env
+    } else {
+      df_name <- input$df_name_global
+      source_env <- .GlobalEnv
+    }
+    # make sure that the separate environment is empty
+    rm(list = ls(envir = session_env, all.names = TRUE), envir = session_env)
+    # check if a data frame is selected
+    if (is.null(df_name) || df_name == "") {
+      # reset relevant reactive values
+      values$df_name <- NULL
+      values$variables <- character()
+      values$numeric_variables <- character()
+    } else {
+      # obtain data frame for the source environment
+      df <- get(df_name, envir = source_env)
+      # make sure that column names are unique
+      names(df) <- make.names(names(df), unique = TRUE)
+      # add the selected data frame to the separate environment
+      assign(df_name, df, envir = session_env)
+      # obtain variable names
+      variables <- names(df)
+      if (ncol(df) == 0L) numeric_variables <- variables
+      else {
+        is_numeric <- sapply(df, is.numeric)
+        numeric_variables <- variables[is_numeric]
+      }
+      # update relevant reactive values
+      values$df_name <- df_name
+      values$variables <- variables
+      values$numeric_variables <- numeric_variables
+    }
+  })
+
 
   ## Render outputs for the 'Data' tab -----
 
-  # # for testing whether inputs are handled correctly
-  # output$test_data_source <- renderPrint(get_data_source())
-  # output$test_RData_file <- renderPrint(input$RData_file$name)
-  # output$test_df_name <- renderPrint(get_df_name())
-
   # show data frame in main panel
-  output$data_table <-  DT::renderDataTable(get_data())
+  output$data_table <- DT::renderDataTable({
+    df_name <- values$df_name
+    if (is.null(df_name)) data.frame()
+    else get(df_name, envir = session_env)
+  })
 
 
   ## Update inputs for the 'Model' tab -----
 
   # create UI element to show help text
   output$help_data <- renderUI({
-    df_name <- get_df_name()
-    if (is.null(df_name) || df_name == "") {
+    if (is.null(values$df_name)) {
       # if applicable, show help text that data frame needs to be selected
       helpText("Select a data frame in the", em("Data"), "tab.")
     }
@@ -185,10 +229,9 @@ shinyServer(function(input, output, session) {
 
   # observer to reset selected variables when data set is selected
   observe({
-    # get data and variable names
-    data <- get_data()
-    variables <- get_variables(data)
-    numeric_variables <- get_numeric_variables(data)
+    # get variable names
+    variables <- values$variables
+    numeric_variables <- values$numeric_variables
     # update UI inputs for selecting variables
     updateSelectInput(session, inputId = "y",
                       choices = c("", numeric_variables),
@@ -203,7 +246,7 @@ shinyServer(function(input, output, session) {
 
   # observer to update variables that can be selected as response variable
   observe({
-    numeric_variables <- isolate(get_numeric_variables())
+    numeric_variables <- isolate(values$numeric_variables)
     remove <- c(input$x, input$m, input$covariates)
     updateSelectInput(session, inputId = "y",
                       choices = setdiff(numeric_variables, remove),
@@ -212,7 +255,7 @@ shinyServer(function(input, output, session) {
 
   # observer to update variables that can be selected as explanatory variables
   observe({
-    variables <- isolate(get_variables())
+    variables <- isolate(values$variables)
     remove <- c(input$y, input$m, input$covariates)
     updateSelectInput(session, inputId = "x",
                       choices = setdiff(variables, remove),
@@ -221,7 +264,7 @@ shinyServer(function(input, output, session) {
 
   # observer to update variables that can be selected as mediators variables
   observe({
-    numeric_variables <- isolate(get_numeric_variables())
+    numeric_variables <- isolate(values$numeric_variables)
     remove <- c(input$y, input$x, input$covariates)
     updateSelectInput(session, inputId = "m",
                       choices = setdiff(numeric_variables, remove),
@@ -230,7 +273,7 @@ shinyServer(function(input, output, session) {
 
   # observer to update variables that can be selected as control variables
   observe({
-    variables <- isolate(get_variables())
+    variables <- isolate(values$variables)
     remove <- c(input$y, input$x, input$m)
     updateSelectInput(session, inputId = "covariates",
                       choices = setdiff(variables, remove),
@@ -245,16 +288,6 @@ shinyServer(function(input, output, session) {
                   selected = isolate(input$model))
     }
   })
-
-
-  ## Render outputs for the 'Model' tab -----
-
-  # # for testing whether inputs are handled correctly
-  # output$test_y <- renderPrint(input$y)
-  # output$test_x <- renderPrint(input$x)
-  # output$test_m <- renderPrint(input$m)
-  # output$test_covariates <- renderPrint(input$covariates)
-  # output$test_model <- renderPrint(input$model)
 
 
   ## update inputs for the 'ROBMED' tab
@@ -291,9 +324,9 @@ shinyServer(function(input, output, session) {
 
   # observer to ensure that version of the random number generator is the same
   # as for OLS bootstrap
-  observeEvent(input$rng_version_OLS_boot, {
-    updateNumericInput(session, "rng_version_ROBMED",
-                       value = input$rng_version_OLS_boot)
+  observeEvent(input$RNG_version_OLS_boot, {
+    updateNumericInput(session, "RNG_version_ROBMED",
+                       value = input$RNG_version_OLS_boot)
   })
 
 
@@ -331,9 +364,9 @@ shinyServer(function(input, output, session) {
 
   # observer to ensure that version of the random number generator is the same
   # as for ROBMED
-  observeEvent(input$rng_version_ROBMED, {
-    updateNumericInput(session, "rng_version_OLS_boot",
-                       value = input$rng_version_ROBMED)
+  observeEvent(input$RNG_version_ROBMED, {
+    updateNumericInput(session, "RNG_version_OLS_boot",
+                       value = input$RNG_version_ROBMED)
   })
 
 })

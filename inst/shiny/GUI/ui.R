@@ -44,15 +44,8 @@ shinyUI(fluidPage(
         ),
         # output panel on right hand side
         mainPanel(
-
-          # # for testing whether inputs are handled correctly
-          # textOutput("test_data_source"),
-          # textOutput("test_RData_file"),
-          # textOutput("test_df_name"),
-
           # show selected data set
           DT::dataTableOutput("data_table")
-
         )
       )
     ),
@@ -76,13 +69,6 @@ shinyUI(fluidPage(
         ),
         # output panel on right hand side
         mainPanel(
-
-          # # for testing whether inputs are handled correctly
-          # textOutput("test_y"),
-          # textOutput("test_x"),
-          # textOutput("test_m"),
-          # textOutput("test_covariates"),
-          # textOutput("test_model"),
 
           h2("Simple mediation model"),
           p("In the simplest form of a mediation model, an independent",
@@ -167,7 +153,7 @@ shinyUI(fluidPage(
           # options for the random number generator
           h2("Random number generator"),
           numericInput("seed_ROBMED", "Seed", value = NULL),
-          textInput(inputId = "rng_version_ROBMED", "Version",
+          textInput(inputId = "RNG_version_ROBMED", "Version",
                     value = as.character(getRversion())),
 
           # options for the MM-estimator
@@ -205,7 +191,7 @@ shinyUI(fluidPage(
           # options for the random number generator
           h2("Random number generator"),
           numericInput("seed_OLS_boot", "Seed", value = NULL),
-          textInput(inputId = "rng_version_OLS_boot", "Version",
+          textInput(inputId = "RNG_version_OLS_boot", "Version",
                     value = as.character(getRversion()))
 
         ),
