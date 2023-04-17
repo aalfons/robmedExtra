@@ -63,13 +63,11 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-          selectInput("response",
-                      label = get_label("Dependent variable", "(Numeric)"),
+          selectInput("y", label = get_label("Dependent variable", "(Numeric)"),
                       choices = "", selected = NULL, multiple = FALSE),
-          selectInput("explanatory", label = "Independent variable(s)",
+          selectInput("x", label = "Independent variable(s)",
                       choices = character(), selected = NULL, multiple = TRUE),
-          selectInput("mediators",
-                      label = get_label("Mediator(s)", "(Numeric)"),
+          selectInput("m", label = get_label("Mediator(s)", "(Numeric)"),
                       choices = character(), selected = NULL, multiple = TRUE),
           selectInput("covariates", label = "Covariate(s)",
                       choices = character(), selected = NULL, multiple = TRUE)

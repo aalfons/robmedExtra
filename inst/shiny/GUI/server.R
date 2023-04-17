@@ -181,12 +181,12 @@ shinyServer(function(input, output, session) {
     variables <- get_variables(data)
     numeric_variables <- get_numeric_variables(data)
     # update UI inputs for selecting variables
-    updateSelectInput(session, inputId = "response",
+    updateSelectInput(session, inputId = "y",
                       choices = c("", numeric_variables),
                       selected = NULL)
-    updateSelectInput(session, inputId = "explanatory",
+    updateSelectInput(session, inputId = "x",
                       choices = variables, selected = NULL)
-    updateSelectInput(session, inputId = "mediators",
+    updateSelectInput(session, inputId = "m",
                       choices = numeric_variables, selected = NULL)
     updateSelectInput(session, inputId = "covariates",
                       choices = variables, selected = NULL)
@@ -195,34 +195,34 @@ shinyServer(function(input, output, session) {
   # observer to update variables that can be selected as response variable
   observe({
     numeric_variables <- isolate(get_numeric_variables())
-    remove <- c(input$explanatory, input$mediators, input$covariates)
-    updateSelectInput(session, inputId = "response",
+    remove <- c(input$x, input$m, input$covariates)
+    updateSelectInput(session, inputId = "y",
                       choices = setdiff(numeric_variables, remove),
-                      selected = isolate(input$response))
+                      selected = isolate(input$y))
   })
 
   # observer to update variables that can be selected as explanatory variables
   observe({
     variables <- isolate(get_variables())
-    remove <- c(input$response, input$mediators, input$covariates)
-    updateSelectInput(session, inputId = "explanatory",
+    remove <- c(input$y, input$m, input$covariates)
+    updateSelectInput(session, inputId = "x",
                       choices = setdiff(variables, remove),
-                      selected = isolate(input$explanatory))
+                      selected = isolate(input$x))
   })
 
   # observer to update variables that can be selected as mediators variables
   observe({
     numeric_variables <- isolate(get_numeric_variables())
-    remove <- c(input$response, input$explanatory, input$covariates)
-    updateSelectInput(session, inputId = "mediators",
+    remove <- c(input$y, input$x, input$covariates)
+    updateSelectInput(session, inputId = "m",
                       choices = setdiff(numeric_variables, remove),
-                      selected = isolate(input$mediators))
+                      selected = isolate(input$m))
   })
 
   # observer to update variables that can be selected as control variables
   observe({
     variables <- isolate(get_variables())
-    remove <- c(input$response, input$explanatory, input$mediators)
+    remove <- c(input$y, input$x, input$m)
     updateSelectInput(session, inputId = "covariates",
                       choices = setdiff(variables, remove),
                       selected = isolate(input$covariates))
@@ -232,9 +232,9 @@ shinyServer(function(input, output, session) {
   ## Render outputs for 'Model' tab -----
 
   # # for testing whether inputs are handled correctly
-  # output$test_y <- renderPrint(input$response)
-  # output$test_x <- renderPrint(input$explanatory)
-  # output$test_m <- renderPrint(input$mediators)
+  # output$test_y <- renderPrint(input$y)
+  # output$test_x <- renderPrint(input$x)
+  # output$test_m <- renderPrint(input$m)
   # output$test_covariates <- renderPrint(input$covariates)
 
 })
