@@ -77,7 +77,7 @@ shinyServer(function(input, output, session) {
   }
 
 
-  ## Render inputs for 'Data' tab -----
+  ## Render inputs for the 'Data' tab -----
 
   # create UI input for selecting the data source
   # (global environment or RData file)
@@ -161,7 +161,7 @@ shinyServer(function(input, output, session) {
   })
 
 
-  ## Render outputs for 'Data' tab -----
+  ## Render outputs for the 'Data' tab -----
 
   # # for testing whether inputs are handled correctly
   # output$test_data_source <- renderPrint(get_data_source())
@@ -172,7 +172,7 @@ shinyServer(function(input, output, session) {
   output$data_table <-  DT::renderDataTable(get_data())
 
 
-  ## Update inputs for 'Model' tab -----
+  ## Update inputs for the 'Model' tab -----
 
   # create UI element to show help text
   output$help_data <- renderUI({
@@ -247,7 +247,7 @@ shinyServer(function(input, output, session) {
   })
 
 
-  ## Render outputs for 'Model' tab -----
+  ## Render outputs for the 'Model' tab -----
 
   # # for testing whether inputs are handled correctly
   # output$test_y <- renderPrint(input$y)
@@ -257,12 +257,12 @@ shinyServer(function(input, output, session) {
   # output$test_model <- renderPrint(input$model)
 
 
-  ## update inputs for 'ROBMED' tab
+  ## update inputs for the 'ROBMED' tab
 
   # create UI button to perform ROBMED
   output$button_ROBMED <- renderUI({
     if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
-      # if the necessary variables are selected, show a button to perform ROBMED
+      # if the necessary variables are selected, show the button
       actionButton("run_ROBMED", "Run")
     } else {
       # otherwise show help text that variables need to be selected
@@ -270,6 +270,70 @@ shinyServer(function(input, output, session) {
                "variable, and at least one mediator in the", em("Model"),
                "tab.")
     }
+  })
+
+  # observer to ensure that confidence level is the same as for OLS bootstrap
+  observeEvent(input$level_OLS_boot, {
+    updateNumericInput(session, "level_ROBMED", value = input$level_OLS_boot)
+  })
+
+  # observer to ensure that number of bootstrap samples is the same as for
+  # OLS bootstrap
+  observeEvent(input$R_OLS_boot, {
+    updateNumericInput(session, "R_ROBMED", value = input$R_OLS_boot)
+  })
+
+  # observer to ensure that seed of the random number generator is the same as
+  # for OLS bootstrap
+  observeEvent(input$seed_OLS_boot, {
+    updateNumericInput(session, "seed_ROBMED", value = input$seed_OLS_boot)
+  })
+
+  # observer to ensure that version of the random number generator is the same
+  # as for OLS bootstrap
+  observeEvent(input$rng_version_OLS_boot, {
+    updateNumericInput(session, "rng_version_ROBMED",
+                       value = input$rng_version_OLS_boot)
+  })
+
+
+  ## update inputs for the 'OLS Bootstrap' tab
+
+  # create UI button to perform the OLS Bootstrap
+  output$button_OLS_boot <- renderUI({
+    if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
+      # if the necessary variables are selected, show the button
+      actionButton("run_OLS_boot", "Run")
+    } else {
+      # otherwise show help text that variables need to be selected
+      helpText("Select a dependent variable, at least one independent",
+               "variable, and at least one mediator in the", em("Model"),
+               "tab.")
+    }
+  })
+
+  # observer to ensure that confidence level is the same as for ROBMED
+  observeEvent(input$level_ROBMED, {
+    updateNumericInput(session, "level_OLS_boot", value = input$level_ROBMED)
+  })
+
+  # observer to ensure that number of bootstrap samples is the same as for
+  # ROBMED
+  observeEvent(input$R_ROBMED, {
+    updateNumericInput(session, "R_OLS_boot", value = input$R_ROBMED)
+  })
+
+  # observer to ensure that seed of the random number generator is the same as
+  # for ROBMED
+  observeEvent(input$seed_ROBMED, {
+    updateNumericInput(session, "seed_OLS_boot", value = input$seed_ROBMED)
+  })
+
+  # observer to ensure that version of the random number generator is the same
+  # as for ROBMED
+  observeEvent(input$rng_version_ROBMED, {
+    updateNumericInput(session, "rng_version_OLS_boot",
+                       value = input$rng_version_ROBMED)
   })
 
 })

@@ -159,8 +159,8 @@ shinyUI(fluidPage(
 
           # options for the bootstrap confidence intervals
           h2("Options"),
-          sliderInput("level_ROBMED", "Confidence level", value = 0.95,
-                      min = 0, max = 1, step = 0.01),
+          numericInput("level_ROBMED", "Confidence level", value = 0.95,
+                       min = 0.9, max = 0.999, step = 0.01),
           numericInput("R_ROBMED", "Number of bootstrap samples",
                        value = 5000, min = 1000, step = 1000),
 
@@ -191,6 +191,23 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+
+          # button to perform the OLS bootstrap
+          uiOutput("button_OLS_boot"),
+
+          # options for the bootstrap confidence intervals
+          h2("Options"),
+          numericInput("level_OLS_boot", "Confidence level", value = 0.95,
+                       min = 0.9, max = 0.999, step = 0.01),
+          numericInput("R_OLS_boot", "Number of bootstrap samples",
+                       value = 5000, min = 1000, step = 1000),
+
+          # options for the random number generator
+          h2("Random number generator"),
+          numericInput("seed_OLS_boot", "Seed", value = NULL),
+          textInput(inputId = "rng_version_OLS_boot", "Version",
+                    value = as.character(getRversion()))
+
         ),
         # output panel on right hand side
         mainPanel(
