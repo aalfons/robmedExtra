@@ -228,6 +228,15 @@ shinyServer(function(input, output, session) {
                       selected = isolate(input$covariates))
   })
 
+  # create UI input for selecting the type of multiple mediator model
+  output$select_model <- renderUI({
+    if (length(input$m) > 1L) {
+      selectInput("model", "Multiple mediator model:",
+                  choices = c('parallel', 'serial'),
+                  selected = isolate(input$model))
+    }
+  })
+
 
   ## Render outputs for 'Model' tab -----
 
@@ -236,5 +245,6 @@ shinyServer(function(input, output, session) {
   # output$test_x <- renderPrint(input$x)
   # output$test_m <- renderPrint(input$m)
   # output$test_covariates <- renderPrint(input$covariates)
+  # output$test_model <- renderPrint(input$model)
 
 })

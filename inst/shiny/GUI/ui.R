@@ -70,7 +70,8 @@ shinyUI(fluidPage(
           selectInput("m", label = get_label("Mediator(s)", "(Numeric)"),
                       choices = character(), selected = NULL, multiple = TRUE),
           selectInput("covariates", label = "Covariate(s)",
-                      choices = character(), selected = NULL, multiple = TRUE)
+                      choices = character(), selected = NULL, multiple = TRUE),
+          uiOutput("select_model")
         ),
         # output panel on right hand side
         mainPanel(
@@ -79,7 +80,8 @@ shinyUI(fluidPage(
           # textOutput("test_y"),
           # textOutput("test_x"),
           # textOutput("test_m"),
-          # textOutput("test_covariates")
+          # textOutput("test_covariates"),
+          # textOutput("test_model"),
 
           h2("Simple mediation model"),
           p("In the simplest form of a mediation model, an independent",
