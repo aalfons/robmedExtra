@@ -114,7 +114,6 @@ shinyUI(fluidPage(
           img(src = "mediation-serial-two.png"),
           img(src = "mediation-serial-three.png"),
 
-
           h2("Multiple independent variables to be mediated"),
           p("The simple mediation model can also be extended by allowing",
             "multiple independent variables",
@@ -153,6 +152,31 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+
+          # button to perform ROBMED
+          uiOutput("button_ROBMED"),
+
+          # options for the bootstrap confidence intervals
+          h2("Options"),
+          sliderInput("level_ROBMED", "Confidence level", value = 0.95,
+                      min = 0, max = 1, step = 0.01),
+          numericInput("R_ROBMED", "Number of bootstrap samples",
+                       value = 5000, min = 1000, step = 1000),
+
+          # options for the random number generator
+          h2("Random number generator"),
+          numericInput("seed_ROBMED", "Seed", value = NULL),
+          textInput(inputId = "rng_version_ROBMED", "Version",
+                    value = as.character(getRversion())),
+
+          # options for the MM-estimator
+          h2("MM-estimator"),
+          selectInput("efficiency", "Efficiency at normal distribution",
+                      choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85,
+                      multiple = FALSE),
+          numericInput("max_iterations", "Maximum number of iterations",
+                       value = 10000, min = 1000, step = 1000)
+
         ),
         # output panel on right hand side
         mainPanel(

@@ -247,4 +247,20 @@ shinyServer(function(input, output, session) {
   # output$test_covariates <- renderPrint(input$covariates)
   # output$test_model <- renderPrint(input$model)
 
+
+  ## update inputs for 'ROBMED' tab
+
+  # create UI button to perform ROBMED
+  output$button_ROBMED <- renderUI({
+    if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
+      # if the necessary variables are selected, show a button to perform ROBMED
+      actionButton("run_ROBMED", "Run")
+    } else {
+      # otherwise show help text that variables need to be selected
+      helpText("Select a dependent variable, at least one independent",
+               "variable, and at least one mediator in the", em("Model"),
+               "tab.")
+    }
+  })
+
 })
