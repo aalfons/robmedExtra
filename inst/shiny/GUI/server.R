@@ -174,6 +174,15 @@ shinyServer(function(input, output, session) {
 
   ## Update inputs for 'Model' tab -----
 
+  # create UI element to show help text
+  output$help_data <- renderUI({
+    df_name <- get_df_name()
+    if (is.null(df_name) || df_name == "") {
+      # if applicable, show help text that data frame needs to be selected
+      helpText("Select a data frame in the", em("Data"), "tab.")
+    }
+  })
+
   # observer to reset selected variables when data set is selected
   observe({
     # get data and variable names

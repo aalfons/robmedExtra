@@ -63,6 +63,7 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          uiOutput("help_data"),
           selectInput("y", label = get_label("Dependent variable", "(Numeric)"),
                       choices = "", selected = NULL, multiple = FALSE),
           selectInput("x", label = "Independent variable(s)",
