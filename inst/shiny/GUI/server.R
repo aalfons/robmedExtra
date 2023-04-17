@@ -15,12 +15,6 @@ shinyServer(function(input, output, session) {
 
   ## Define relevant objects and reactive expressions -----
 
-  # create a separate environment for safely conducting analyses
-  session_env <- new.env()
-
-  # create a separate environment for safely loading RData files
-  RData_env <- new.env()
-
   # function to get the names of data frames in a given environment
   get_data_frames <- function(env = .GlobalEnv) {
     is_df <- sapply(env, is.data.frame, simplify = TRUE, USE.NAMES = TRUE)
@@ -31,6 +25,12 @@ shinyServer(function(input, output, session) {
   # check if there are any data frames in global environment
   df_global <- get_data_frames()
   n_df_global <- length(df_global)
+
+  # create a separate environment for safely loading RData files
+  RData_env <- new.env()
+
+  # create a separate environment for safely conducting analyses
+  session_env <- new.env()
 
   # initialize reactive values
   values <- reactiveValues()
@@ -43,46 +43,6 @@ shinyServer(function(input, output, session) {
     if (is.null(data_source)) data_source <- "RData file"
     data_source
   })
-
-  # # reactive expression to get the name of the selected data frame
-  # get_df_name <- reactive({
-  #   if (get_data_source() == "RData file") input$df_name_RData
-  #   else input$df_name_global
-  # })
-  #
-  # # reactive expression to get the environment of the selected data source
-  # get_env <- reactive({
-  #   # this function is typically called with input$data_source as argument:
-  #   # if there are no data frames in the global environment, this input is NULL
-  #   if (get_data_source() == "RData file") RData_env
-  #   else .GlobalEnv
-  # })
-  #
-  # # reactive expression to get the selected data frame
-  # get_data <- reactive({
-  #   # get data frame (empty if nothing is selected yet)
-  #   df_name <- get_df_name()
-  #   if (is.null(df_name) || df_name == "") df <- data.frame()
-  #   else df <- as.data.frame(get(df_name, envir = get_env()))
-  #   # make sure that column names are unique
-  #   names(df) <- make.names(names(df), unique = TRUE)
-  #   df
-  # })
-  #
-  # # function to get the variable names of a data set
-  # # (by default the selected data frame)
-  # get_variables <- function(data = get_data()) names(data)
-  #
-  # # function to get the names of numeric variables of a data set
-  # # (by default the selected data frame)
-  # get_numeric_variables <- function(data = get_data()) {
-  #   variables <- names(data)
-  #   if (ncol(data) > 0L) {
-  #     is_numeric <- sapply(data, is.numeric)
-  #     variables <- variables[is_numeric]
-  #   }
-  #   variables
-  # }
 
 
   ## Render inputs for the 'Data' tab -----
