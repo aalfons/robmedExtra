@@ -5,6 +5,12 @@
 # based on code by Vincent Drenth
 # ************************************
 
+# TODO: look at function save_as_docx() from package 'flextable'
+#       This function allows to supply an object that defines page layout
+#       (e.g., orientation, width, height). If this function is a generic
+#       function, it may be therefore be better to write a method for subclass
+#       "mediation_flextable".
+
 #' @export
 export_docx <- function(object, ...) UseMethod("export_docx")
 
