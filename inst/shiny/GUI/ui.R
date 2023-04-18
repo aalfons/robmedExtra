@@ -21,6 +21,11 @@ get_label <- function(label, info) {
   p(label, span(info, style = "color: #737373; font-weight:normal;"))
 }
 
+# function to get default seed for random number generator based on the date
+get_default_seed <- function() {
+  format(Sys.Date(), "%Y%m%d")
+}
+
 
 # User interface definition for GUI -----
 
@@ -159,7 +164,8 @@ shinyUI(fluidPage(
 
           # options for the random number generator
           h2("Random number generator"),
-          numericInput("seed_ROBMED", "Seed", value = NULL),
+          numericInput("seed_ROBMED", "Seed",
+                       value = get_default_seed()),
           textInput(inputId = "RNG_version_ROBMED", "Version",
                     value = as.character(getRversion())),
 
@@ -176,7 +182,7 @@ shinyUI(fluidPage(
         mainPanel(
           h2('Diagnostic plot'),
           plotOutput("plot_ROBMED"),
-          h2('Model and test summary'),
+          h2('Model and test summaries'),
           verbatimTextOutput('summary_ROBMED')
         )
       )
@@ -201,13 +207,16 @@ shinyUI(fluidPage(
 
           # options for the random number generator
           h2("Random number generator"),
-          numericInput("seed_OLS_boot", "Seed", value = NULL),
+          numericInput("seed_OLS_boot", "Seed",
+                       value = get_default_seed()),
           textInput(inputId = "RNG_version_OLS_boot", "Version",
                     value = as.character(getRversion()))
 
         ),
         # output panel on right hand side
         mainPanel(
+          h2('Model and test summaries'),
+          verbatimTextOutput('summary_OLS_boot')
         )
       )
     ),

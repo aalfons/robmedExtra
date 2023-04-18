@@ -307,15 +307,17 @@ shinyServer(function(input, output, session) {
   # observer for button to run ROBMED
   observeEvent(input$run_ROBMED, {
     # construct command to set the version of the random number generator
-    command_RNG_version <- call("RNGversion", input$RNG_version_ROBMED)
-    eval(command_RNG_version, envir = session_env)
+    RNG_version <- input$RNG_version_ROBMED
+    if (isTruthy(RNG_version)) {
+      command_RNG_version <- call("RNGversion", RNG_version)
+      eval(command_RNG_version, envir = session_env)
+    } else command_RNG_version <- NULL
     # construct command to set the seed of the random number generator
     seed <- input$seed_ROBMED
-    have_seed <- isTruthy(seed)
-    if (have_seed) {
+    if (isTruthy(seed)) {
       command_seed <- call("set.seed", seed)
       eval(command_seed, envir = session_env)
-    }
+    } else command_seed <- NULL
     # construct command for control object for MM-estimator
     command_reg_control <- call("reg_control",
                             efficiency = input$efficiency,
@@ -340,13 +342,9 @@ shinyServer(function(input, output, session) {
                                 command_test_mediation)
     eval(command_robust_boot, envir = session_env)
     # update reactive value with list of commands to perform ROBMED
-    if (have_seed) {
-      commands$ROBMED <- list(command_RNG_version, command_seed,
-                              command_ctrl, command_robust_boot)
-    } else {
-      commands$ROBMED <- list(command_RNG_version, command_ctrl,
-                              command_robust_boot)
-    }
+    commands_ROBMED <- list(command_RNG_version, command_seed,
+                            command_ctrl, command_robust_boot)
+    commands$ROBMED <- commands_ROBMED[!sapply(commands_ROBMED, is.null)]
     # construct command to show diagnostic plot
     command_weight_plot <- call("weight_plot", as.name("robust_boot"))
     command_scale <- call("scale_color_manual", "",
@@ -414,6 +412,53 @@ shinyServer(function(input, output, session) {
   observeEvent(input$RNG_version_ROBMED, {
     updateNumericInput(session, "RNG_version_OLS_boot",
                        value = input$RNG_version_ROBMED)
+  })
+
+  # observer for button to run the OLS bootstrap
+  observeEvent(input$run_OLS_boot, {
+    # construct command to set the version of the random number generator
+    RNG_version <- input$RNG_version_OLS_boot
+    if (isTruthy(RNG_version)) {
+      command_RNG_version <- call("RNGversion", RNG_version)
+      eval(command_RNG_version, envir = session_env)
+    } else command_RNG_version <- NULL
+    # construct command to set the seed of the random number generator
+    seed <- input$seed_OLS_boot
+    if (isTruthy(seed)) {
+      command_seed <- call("set.seed", seed)
+      eval(command_seed, envir = session_env)
+    } else command_seed <- NULL
+    # construct command to perform the OLS bootstrap
+    m <- input$m
+    covariates <- input$covariates
+    command_test_mediation <- call("test_mediation",
+                                   as.name(values$df_name),
+                                   x = input$x,
+                                   y = input$y,
+                                   m = input$m)
+    if (length(covariates) > 0L) command_test_mediation$covariates <- covariates
+    command_test_mediation$R <- input$R_OLS_boot
+    command_test_mediation$level <- input$level_OLS_boot
+    command_test_mediation$robust <- FALSE
+    if (length(m) > 1L) command_test_mediation$model = input$model
+    command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
+    eval(command_ols_boot, envir = session_env)
+    # update reactive value with list of commands to perform the OLS bootstrap
+    commands_OLS_boot <- list(command_RNG_version, command_seed,
+                              command_ols_boot)
+    commands$OLS_boot <- commands_OLS_boot[!sapply(commands_OLS_boot, is.null)]
+    # construct command to show summary
+    command_summary <- call("summary", as.name("ols_boot"))
+    commands$summary_OLS_boot <- command_summary
+  })
+
+
+  ## Render outputs for the 'OLS Bootstrap' tab -----
+
+  # show summary for the OLS bootstrap in main panel
+  output$summary_OLS_boot <- renderPrint({
+    command_summary <- commands$summary_OLS_boot
+    if (!is.null(command_summary)) eval(command_summary, envir = session_env)
   })
 
 })
