@@ -347,7 +347,15 @@ shinyServer(function(input, output, session) {
       commands$ROBMED <- list(command_RNG_version, command_ctrl,
                               command_robust_boot)
     }
-    # TODO: construct command to show diagnostic plot
+    # construct command to show diagnostic plot
+    command_weight_plot <- call("weight_plot", as.name("robust_boot"))
+    command_scale <- call("scale_color_manual", "",
+                          values = c("black", "#00BFC4"))
+    # command_theme <- call("theme", legend.position = "top")
+    # command_plot <- call("+", call("+", command_weight_plot, command_scale),
+    #                      command_theme)
+    command_plot <- call("+", command_weight_plot, command_scale)
+    commands$plot_ROBMED <- command_plot
     # construct command to show summary
     command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
     commands$summary_ROBMED <- command_summary
@@ -355,6 +363,12 @@ shinyServer(function(input, output, session) {
 
 
   ## Render outputs for the 'ROBMED' tab -----
+
+  # show diagnostic plot for ROBMED in main panel
+  output$plot_ROBMED <- renderPlot({
+    command_plot <- commands$plot_ROBMED
+    if (!is.null(command_plot)) eval(command_plot, envir = session_env)
+  })
 
   # show summary for ROBMED in main panel
   output$summary_ROBMED <- renderPrint({
