@@ -228,16 +228,33 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
 
+          # inputs for exporting table
           h2("Table"),
-          # button to preview table
+          # TODO: other inputs such as checkbox whether to include p-values,
+          #       numeric input or slider for number of digits, etc.
           uiOutput("select_orientation"),
           uiOutput("button_table"),
+
+          # inputs for exporting diagnostic plot
+          h2("Diagnostic Plot"),
+          radioButtons("file_type", "File type",
+                       choices = c("pdf", "png"),
+                       selected = "pdf"),
+          radioButtons("units", "Unit of width and height",
+                       choices = c("cm", "inches"),
+                       selected = "inches"),
+          numericInput("width", "Width", value = 5, min = 0),
+          numericInput("height", "Height", value = 5, min = 0),
+          uiOutput("select_resolution"),
+          uiOutput("button_plot"),
 
         ),
         # output panel on right hand side
         mainPanel(
           h2("Table"),
-          uiOutput("flextable")
+          uiOutput("table_preview"),
+          h2('Diagnostic plot'),
+          plotOutput("plot_preview")
         )
       )
     ),

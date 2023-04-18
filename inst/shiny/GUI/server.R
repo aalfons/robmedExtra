@@ -262,7 +262,8 @@ shinyServer(function(input, output, session) {
     if (length(input$m) > 1L) {
       selectInput("model", "Multiple mediator model:",
                   choices = c('parallel', 'serial'),
-                  selected = isolate(input$model))
+                  selected = isolate(input$model),
+                  multiple = FALSE)
     }
   })
 
@@ -351,10 +352,9 @@ shinyServer(function(input, output, session) {
     command_weight_plot <- call("weight_plot", as.name("robust_boot"))
     command_scale <- call("scale_color_manual", "",
                           values = c("black", "#00BFC4"))
-    # command_theme <- call("theme", legend.position = "top")
-    # command_plot <- call("+", call("+", command_weight_plot, command_scale),
-    #                      command_theme)
-    command_plot <- call("+", command_weight_plot, command_scale)
+    command_theme <- call("theme", legend.position = "top")
+    command_plot <- call("+", call("+", command_weight_plot, command_scale),
+                         command_theme)
     commands$plot_ROBMED <- command_plot
     # construct command to show summary
     command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
@@ -477,7 +477,6 @@ shinyServer(function(input, output, session) {
     if (isTruthy(commands$ROBMED) && isTruthy(commands$OLS_boot)) {
       # show the input if both ROBMED and OLS bootstrap have been run
       selectInput("orientation", "Orientation",
-                  choices = c("portrait", "landscape"),
                   selected = isolate(input$orientation),
                   multiple = FALSE)
     }
@@ -515,15 +514,84 @@ shinyServer(function(input, output, session) {
     commands$flextable <- command_ft
   })
 
+  # create UI input for orientation of the table
+  output$select_resolution <- renderUI({
+    if (input$file_type == "png") {
+      numericInput("resolution", "Resolution (ppi)",
+                   value = 300, min = 0, step = 50)
+    }
+  })
+
+  # create UI button to preview the diagnostic plot
+  output$button_plot <- renderUI({
+    if (isTruthy(commands$ROBMED)) {
+      # show the button if ROBMED has been run
+      actionButton("preview_plot", "Preview")
+    } else {
+      # otherwise show help text that variables need to be selected
+      helpText("Run ROBMED in the respective tab.")
+    }
+  })
+
+  # observer for button to preview the plot
+  observeEvent(input$preview_plot, {
+    # construct file name
+    file_name <- paste("diagnostic_plot", input$file_type, sep = ".")
+    # extract and convert some inputs
+    width <- input$width
+    height <- input$height
+    units <- input$units
+    if (units == "inches") units <- "in"
+    else {
+      # convert width and height to inches
+      width <- width / 2.54
+      height <- height / 2.54
+    }
+    # set resolution to be used for preview and construct command for opening
+    # the graphics device
+    if (input$file_type == "pdf") {
+      # construct command
+      command_device <- call("pdf", file = file_name, width = width,
+                             height = height)
+    } else {
+      # construct command
+      command_device <- call("png", file = file_name, width = input$width,
+                             height = input$height, units = units,
+                             res = input$resolution)
+    }
+    # set reactive values for preview
+    values$width <- width
+    values$height <- height
+    # update reactive value with commands for graphics device
+    commands$plot_device <- list(open = command_device,
+                                 close = call("dev.off"))
+  })
+
 
   ## Render outputs for the 'Export' tab -----
 
-  # show preview of flextable
-  output$flextable <- renderUI({
+  # show preview of table in main panel
+  output$table_preview <- renderUI({
     command_flextable <- commands$flextable
     if (!is.null(command_flextable) && exists("ft", envir = session_env)) {
       flextable::htmltools_value(get("ft", envir = session_env))
     }
   })
+
+  # show diagnostic plot for ROBMED in main panel
+  # FIXME: this is not sizing properly as the resolution displayed in the
+  #        browser is different from how the image scales on a device
+  output$plot_preview <- renderPlot({
+    command_plot <- commands$plot_ROBMED
+    if (!is.null(command_plot) && exists("robust_boot", envir = session_env)) {
+      eval(command_plot, envir = session_env)
+    }
+  }, width = function() {
+    req(values$width)
+    values$width * 150
+  }, height = function() {
+    req(values$height)
+    values$height * 150
+  }, res = 150)
 
 })
