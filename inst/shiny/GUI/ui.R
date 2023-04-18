@@ -244,6 +244,7 @@ shinyUI(fluidPage(
                        choices = c("cm", "inches"),
                        selected = "inches"),
           numericInput("width", "Width", value = 5, min = 0),
+          # TODO: allow default height to scale with the number of regressions
           numericInput("height", "Height", value = 5, min = 0),
           uiOutput("select_resolution"),
           uiOutput("button_plot"),

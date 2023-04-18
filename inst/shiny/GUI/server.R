@@ -365,6 +365,7 @@ shinyServer(function(input, output, session) {
   ## Render outputs for the 'ROBMED' tab -----
 
   # show diagnostic plot for ROBMED in main panel
+  # TODO: allow plot height to scale with the number of regressions
   output$plot_ROBMED <- renderPlot({
     command_plot <- commands$plot_ROBMED
     if (!is.null(command_plot) && exists("robust_boot", envir = session_env)) {
