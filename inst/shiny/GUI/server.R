@@ -6,10 +6,18 @@
 # ************************************
 
 
+# Load required packages -----
+library("shiny")
+library("DT")
+library("robmed")
+library("robmedExtra")
+
+
 # Server-side logic for GUI -----
 
 #' @import shiny
 #' @importFrom DT renderDataTable
+#' @import robmed
 
 shinyServer(function(input, output, session) {
 
@@ -32,8 +40,15 @@ shinyServer(function(input, output, session) {
   # create a separate environment for safely conducting analyses
   session_env <- new.env()
 
-  # initialize reactive values
+  # initialize reactive values (used for names of data frame and variables)
   values <- reactiveValues()
+
+  # initialize reactive values for commands
+  command_robmed <- call("library", "robmed")
+  command_robmedExtra <- call("library", "robmedExtra")
+  commands <- reactiveValues(
+    packages = list(command_robmed, command_robmedExtra)
+  )
 
   # reactive expression to get the selected data source
   get_data_source <- reactive({
@@ -287,6 +302,64 @@ shinyServer(function(input, output, session) {
   observeEvent(input$RNG_version_OLS_boot, {
     updateNumericInput(session, "RNG_version_ROBMED",
                        value = input$RNG_version_OLS_boot)
+  })
+
+  # observer for button to run ROBMED
+  observeEvent(input$run_ROBMED, {
+    # construct command to set the version of the random number generator
+    command_RNG_version <- call("RNGversion", input$RNG_version_ROBMED)
+    eval(command_RNG_version, envir = session_env)
+    # construct command to set the seed of the random number generator
+    seed <- input$seed_ROBMED
+    have_seed <- isTruthy(seed)
+    if (have_seed) {
+      command_seed <- call("set.seed", seed)
+      eval(command_seed, envir = session_env)
+    }
+    # construct command for control object for MM-estimator
+    command_reg_control <- call("reg_control",
+                            efficiency = input$efficiency,
+                            max_iterations = input$max_iterations)
+    command_ctrl <- call("<-", as.name("ctrl"), command_reg_control)
+    eval(command_ctrl, envir = session_env)
+    # construct command to perform ROBMED
+    m <- input$m
+    covariates <- input$covariates
+    command_test_mediation <- call("test_mediation",
+                                   as.name(values$df_name),
+                                   x = input$x,
+                                   y = input$y,
+                                   m = input$m)
+    if (length(covariates) > 0L) command_test_mediation$covariates <- covariates
+    command_test_mediation$R <- input$R_ROBMED
+    command_test_mediation$level <- input$level_ROBMED
+    command_test_mediation$robust <- TRUE
+    if (length(m) > 1L) command_test_mediation$model = input$model
+    command_test_mediation$control <- as.name("ctrl")
+    command_robust_boot <- call("<-", as.name("robust_boot"),
+                                command_test_mediation)
+    eval(command_robust_boot, envir = session_env)
+    # update reactive value with list of commands to perform ROBMED
+    if (have_seed) {
+      commands$ROBMED <- list(command_RNG_version, command_seed,
+                              command_ctrl, command_robust_boot)
+    } else {
+      commands$ROBMED <- list(command_RNG_version, command_ctrl,
+                              command_robust_boot)
+    }
+    # TODO: construct command to show diagnostic plot
+    # construct command to show summary
+    command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
+    commands$summary_ROBMED <- command_summary
+  })
+
+
+  ## Render outputs for the 'ROBMED' tab -----
+
+  # show summary for ROBMED in main panel
+  output$summary_ROBMED <- renderPrint({
+    command_summary <- commands$summary_ROBMED
+    if (!is.null(command_summary)) eval(command_summary, envir = session_env)
   })
 
 

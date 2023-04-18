@@ -6,6 +6,13 @@
 # ************************************
 
 
+# Load required packages -----
+library("shiny")
+library("DT")
+library("robmed")
+library("robmedExtra")
+
+
 # Internal functions -----
 
 # function to construct labels for variable selection inputs
@@ -167,6 +174,10 @@ shinyUI(fluidPage(
         ),
         # output panel on right hand side
         mainPanel(
+          h2('Diagnostic plot'),
+          plotOutput("plot_ROBMED"),
+          h2('Model and test summary'),
+          verbatimTextOutput('summary_ROBMED')
         )
       )
     ),
@@ -217,10 +228,16 @@ shinyUI(fluidPage(
     # tab for information on the shiny app
     tabPanel(
       "Info",
-      fillPage(
+      sidebarLayout(
+        # input panel on left hand side
+        sidebarPanel(
+        ),
+        # output panel on right hand side
+        mainPanel(
           h2("Package versions"),
           p(strong("robmed:"), toString(packageVersion("robmed"))),
           p(strong("robmedExtra:"), toString(packageVersion("robmedExtra")))
+        )
       )
     )
 
