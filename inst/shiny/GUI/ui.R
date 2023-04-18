@@ -227,9 +227,17 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+
+          h2("Table"),
+          # button to preview table
+          uiOutput("select_orientation"),
+          uiOutput("button_table"),
+
         ),
         # output panel on right hand side
         mainPanel(
+          h2("Table"),
+          uiOutput("flextable")
         )
       )
     ),

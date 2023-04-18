@@ -9,6 +9,7 @@
 # Load required packages -----
 library("shiny")
 library("DT")
+library("flextable")
 library("robmed")
 library("robmedExtra")
 
@@ -17,6 +18,7 @@ library("robmedExtra")
 
 #' @import shiny
 #' @importFrom DT renderDataTable
+#' @importFrom flextable htmltools_value
 #' @import robmed
 
 shinyServer(function(input, output, session) {
@@ -365,13 +367,17 @@ shinyServer(function(input, output, session) {
   # show diagnostic plot for ROBMED in main panel
   output$plot_ROBMED <- renderPlot({
     command_plot <- commands$plot_ROBMED
-    if (!is.null(command_plot)) eval(command_plot, envir = session_env)
+    if (!is.null(command_plot) && exists("robust_boot", envir = session_env)) {
+      eval(command_plot, envir = session_env)
+    }
   })
 
   # show summary for ROBMED in main panel
   output$summary_ROBMED <- renderPrint({
     command_summary <- commands$summary_ROBMED
-    if (!is.null(command_summary)) eval(command_summary, envir = session_env)
+    if (!is.null(command_summary) && exists("robust_boot", envir = session_env)) {
+      eval(command_summary, envir = session_env)
+    }
   })
 
 
@@ -458,7 +464,66 @@ shinyServer(function(input, output, session) {
   # show summary for the OLS bootstrap in main panel
   output$summary_OLS_boot <- renderPrint({
     command_summary <- commands$summary_OLS_boot
-    if (!is.null(command_summary)) eval(command_summary, envir = session_env)
+    if (!is.null(command_summary) && exists("ols_boot", envir = session_env)) {
+      eval(command_summary, envir = session_env)
+    }
+  })
+
+
+  ## update inputs for the 'Export' tab
+
+  # create UI input for orientation of the table
+  output$select_orientation <- renderUI({
+    if (isTruthy(commands$ROBMED) && isTruthy(commands$OLS_boot)) {
+      # show the input if both ROBMED and OLS bootstrap have been run
+      selectInput("orientation", "Orientation",
+                  choices = c("portrait", "landscape"),
+                  selected = isolate(input$orientation),
+                  multiple = FALSE)
+    }
+  })
+
+  # create UI button to preview the table
+  output$button_table <- renderUI({
+    if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
+      # show the button if ROBMED or OLS bootstrap have been run
+      actionButton("preview_table", "Preview")
+    } else {
+      # otherwise show help text that variables need to be selected
+      helpText("Run ROBMED or the OLS Bootstrap in the respective tabs.")
+    }
+  })
+
+  # observer for button to preview the table
+  observeEvent(input$preview_table, {
+    # initializations
+    have_ROBMED <- exists("robust_boot", envir = session_env)
+    have_OLS_boot <- exists("ols_boot", envir = session_env)
+    # construct command to create the flextable
+    if (have_ROBMED && have_OLS_boot) {
+      command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
+      command_to_flextable <- call("to_flextable", command_list,
+                                   orientation = input$orientation)
+    } else if (have_ROBMED) {
+      command_to_flextable <- call("to_flextable", as.name("robust_boot"))
+    } else if (have_OLS_boot) {
+      command_to_flextable <- call("to_flextable", as.name("ols_boot"))
+    }
+    command_ft <- call("<-", as.name("ft"), command_to_flextable)
+    eval(command_ft, envir = session_env)
+    # update reactive value with command to create flextable
+    commands$flextable <- command_ft
+  })
+
+
+  ## Render outputs for the 'Export' tab -----
+
+  # show preview of flextable
+  output$flextable <- renderUI({
+    command_flextable <- commands$flextable
+    if (!is.null(command_flextable) && exists("ft", envir = session_env)) {
+      flextable::htmltools_value(get("ft", envir = session_env))
+    }
   })
 
 })
