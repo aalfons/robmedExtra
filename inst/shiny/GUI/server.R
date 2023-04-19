@@ -347,10 +347,8 @@ shinyServer(function(input, output, session) {
     command_robust_boot <- call("<-", as.name("robust_boot"),
                                 command_test_mediation)
     eval(command_robust_boot, envir = session_env)
-    # update reactive value with list of commands to perform ROBMED
-    commands_ROBMED <- list(command_RNG_version, command_seed,
-                            command_ctrl, command_robust_boot)
-    commands$ROBMED <- commands_ROBMED[!sapply(commands_ROBMED, is.null)]
+    # construct command to show summary
+    command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
     # construct command to show diagnostic plot
     command_weight_plot <- call("weight_plot", as.name("robust_boot"))
     command_scale <- call("scale_color_manual", "",
@@ -358,10 +356,15 @@ shinyServer(function(input, output, session) {
     command_theme <- call("theme", legend.position = "top")
     command_plot <- call("+", call("+", command_weight_plot, command_scale),
                          command_theme)
-    commands$plot_ROBMED <- command_plot
-    # construct command to show summary
-    command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
-    commands$summary_ROBMED <- command_summary
+    # update reactive value with list of commands to perform ROBMED
+    commands_ROBMED <- list(RNG_version = command_RNG_version,
+                            RNG_seed = command_seed,
+                            control = command_ctrl,
+                            mediation = command_robust_boot,
+                            summary = command_summary,
+                            plot = command_plot)
+    attr(commands_ROBMED, "time_stamp") <- Sys.time()
+    commands$ROBMED <- commands_ROBMED
   })
 
 
@@ -369,22 +372,22 @@ shinyServer(function(input, output, session) {
 
   # show diagnostic plot for ROBMED in main panel
   output$plot_ROBMED_header <- renderUI({
-    req(commands$plot_ROBMED)
+    req(commands$ROBMED)
     h2("Diagnostic plot")
   })
   output$plot_ROBMED <- renderPlot({
-    req(commands$plot_ROBMED)
-    eval(commands$plot_ROBMED, envir = session_env)
+    req(commands$ROBMED)
+    eval(commands$ROBMED$plot, envir = session_env)
   }, res = 100)
 
   # show summary for ROBMED in main panel
   output$summary_ROBMED_header <- renderUI({
-    req(commands$summary_ROBMED)
+    req(commands$ROBMED)
     h2("Model and test summaries")
   })
   output$summary_ROBMED <- renderPrint({
-    req(commands$summary_ROBMED)
-    eval(commands$summary_ROBMED, envir = session_env)
+    req(commands$ROBMED)
+    eval(commands$ROBMED$summary, envir = session_env)
   })
 
 
@@ -459,13 +462,15 @@ shinyServer(function(input, output, session) {
     if (length(m) > 1L) command_test_mediation$model = input$model
     command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
     eval(command_ols_boot, envir = session_env)
-    # update reactive value with list of commands to perform the OLS bootstrap
-    commands_OLS_boot <- list(command_RNG_version, command_seed,
-                              command_ols_boot)
-    commands$OLS_boot <- commands_OLS_boot[!sapply(commands_OLS_boot, is.null)]
     # construct command to show summary
     command_summary <- call("summary", as.name("ols_boot"))
-    commands$summary_OLS_boot <- command_summary
+    # update reactive value with list of commands to perform the OLS bootstrap
+    commands_OLS_boot <- list(RNG_version = command_RNG_version,
+                              RNG_seed = command_seed,
+                              mediation = command_ols_boot,
+                              summary = command_summary)
+    attr(commands_OLS_boot, "time_stamp") <- Sys.time()
+    commands$OLS_boot <- commands_OLS_boot
   })
 
 
@@ -473,12 +478,12 @@ shinyServer(function(input, output, session) {
 
   # show summary for the OLS bootstrap in main panel
   output$summary_OLS_boot_header <- renderUI({
-    req(commands$summary_OLS_boot)
+    req(commands$OLS_boot)
     h2("Model and test summaries")
   })
   output$summary_OLS_boot <- renderPrint({
-    req(commands$summary_OLS_boot)
-    eval(commands$summary_OLS_boot, envir = session_env)
+    req(commands$OLS_boot)
+    eval(commands$OLS_boot$summary, envir = session_env)
   })
 
 
@@ -486,12 +491,11 @@ shinyServer(function(input, output, session) {
 
   # create UI input for orientation of the table
   output$select_orientation <- renderUI({
-    if (isTruthy(commands$ROBMED) && isTruthy(commands$OLS_boot)) {
-      # show the input if both ROBMED and OLS bootstrap have been run
-      radioButtons("orientation", "Orientation",
-                  choices = c("portrait", "landscape"),
-                  selected = isolate(input$orientation))
-    }
+    # show the input if both ROBMED and OLS bootstrap have been run
+    req(commands$ROBMED, commands$OLS_boot)
+    radioButtons("orientation", "Orientation",
+                 choices = c("portrait", "landscape"),
+                 selected = isolate(input$orientation))
   })
 
   # create UI button to preview the table
@@ -510,7 +514,7 @@ shinyServer(function(input, output, session) {
     # initializations
     have_ROBMED <- exists("robust_boot", envir = session_env)
     have_OLS_boot <- exists("ols_boot", envir = session_env)
-    # construct command to create the flextable
+    # construct command to generate the flextable
     if (have_ROBMED && have_OLS_boot) {
       command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
       command_to_flextable <- call("to_flextable", command_list,
@@ -528,15 +532,19 @@ shinyServer(function(input, output, session) {
     }
     command_ft <- call("<-", as.name("ft"), command_to_flextable)
     eval(command_ft, envir = session_env)
-    # TODO: add command to export flextable to Microsoft Word document
-    # update reactive value with command to create flextable
-    commands$flextable <- command_ft
+    # construct command to export the flextable to Microsoft Word document
+    command_export <- call("export_docx", as.name("ft"), file = "table.docx")
+    # update reactive value with commands to generate and export the flextable
+    commands_flextable <- list(generate = command_ft,
+                               export = command_export)
+    attr(commands_flextable, "time_stamp") <- Sys.time()
+    commands$flextable <- commands_flextable
   })
 
   # create UI input for orientation of the table
   output$select_resolution <- renderUI({
     if (input$file_type == "png") {
-      numericInput("resolution", "Resolution (ppi)",
+      numericInput("resolution", "Resolution (pixels per inch)",
                    value = 300, min = 0, step = 50)
     }
   })
@@ -597,8 +605,10 @@ shinyServer(function(input, output, session) {
     values$width <- width
     values$height <- height
     # update reactive value with commands for graphics device
-    commands$plot_device <- list(open = command_device,
+    commands_plot_device <- list(open = command_device,
                                  close = call("dev.off"))
+    attr(commands_plot_device, "time_stamp") <- Sys.time()
+    commands$plot_device <- commands_plot_device
   })
 
 
@@ -616,15 +626,17 @@ shinyServer(function(input, output, session) {
 
   # show diagnostic plot for ROBMED in main panel
   output$plot_preview_header <- renderUI({
-    req(commands$plot_ROBMED, values$width, values$height)
+    command_ROBMED <- isolate(commands$ROBMED)
+    req(command_ROBMED, commands$plot_device, values$width, values$height)
     h2("File preview for diagnostic plot")
   })
   # Note: The size in the shiny app may vary due to the resolution of the
   #       browser/monitor, but the proportions and size of the annotations
   #       relatively to the plot size should be fine.
   output$plot_preview <- renderPlot({
-    req(commands$plot_ROBMED)
-    eval(commands$plot_ROBMED, envir = session_env)
+    command_ROBMED <- isolate(commands$ROBMED)
+    req(command_ROBMED, commands$plot_device, values$width, values$height)
+    eval(command_ROBMED$plot, envir = session_env)
   }, width = function() {
     req(values$width)
     values$width * 125
