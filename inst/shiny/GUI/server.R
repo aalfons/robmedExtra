@@ -483,9 +483,9 @@ shinyServer(function(input, output, session) {
   output$select_orientation <- renderUI({
     if (isTruthy(commands$ROBMED) && isTruthy(commands$OLS_boot)) {
       # show the input if both ROBMED and OLS bootstrap have been run
-      selectInput("orientation", "Orientation",
-                  selected = isolate(input$orientation),
-                  multiple = FALSE)
+      radioButtons("orientation", "Orientation",
+                  choices = c("portrait", "landscape"),
+                  selected = isolate(input$orientation))
     }
   })
 
@@ -493,7 +493,7 @@ shinyServer(function(input, output, session) {
   output$button_table <- renderUI({
     if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
       # show the button if ROBMED or OLS bootstrap have been run
-      actionButton("preview_table", "Preview")
+      actionButton("generate_table", "Generate")
     } else {
       # otherwise show help text that variables need to be selected
       helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
@@ -501,7 +501,7 @@ shinyServer(function(input, output, session) {
   })
 
   # observer for button to preview the table
-  observeEvent(input$preview_table, {
+  observeEvent(input$generate_table, {
     # initializations
     have_ROBMED <- exists("robust_boot", envir = session_env)
     have_OLS_boot <- exists("ols_boot", envir = session_env)
@@ -509,11 +509,17 @@ shinyServer(function(input, output, session) {
     if (have_ROBMED && have_OLS_boot) {
       command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
       command_to_flextable <- call("to_flextable", command_list,
-                                   orientation = input$orientation)
+                                   orientation = input$orientation,
+                                   p_value = input$p_value,
+                                   digits = input$digits)
     } else if (have_ROBMED) {
-      command_to_flextable <- call("to_flextable", as.name("robust_boot"))
+      command_to_flextable <- call("to_flextable", as.name("robust_boot"),
+                                   p_value = input$p_value,
+                                   digits = input$digits)
     } else if (have_OLS_boot) {
-      command_to_flextable <- call("to_flextable", as.name("ols_boot"))
+      command_to_flextable <- call("to_flextable", as.name("ols_boot"),
+                                   p_value = input$p_value,
+                                   digits = input$digits)
     }
     command_ft <- call("<-", as.name("ft"), command_to_flextable)
     eval(command_ft, envir = session_env)

@@ -243,8 +243,12 @@ shinyUI(fluidPage(
 
           # inputs for exporting table
           h2("Table"),
-          # TODO: other inputs such as checkbox whether to include p-values,
-          #       numeric input or slider for number of digits, etc.
+          sliderInput("digits", "Number of digits after decimal point",
+                      min = 2, max = 6, value = 3, step = 1),
+          checkboxInput("p_value",
+                        get_label(HTML("Include <em>p</em> values for indirect effects"),
+                                  "(may take time to compute)"),
+                        value = FALSE),
           uiOutput("select_orientation"),
           uiOutput("button_table"),
 
@@ -266,9 +270,9 @@ shinyUI(fluidPage(
         # output panel on right hand side
         mainPanel(
           # TODO: only show headers when there is actual output
-          h2("Table"),
+          h2("Table preview"),
           uiOutput("table_preview"),
-          h2('Diagnostic plot'),
+          h2('File preview for diagnostic plot'),
           plotOutput("plot_preview")
         )
       )
