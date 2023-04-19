@@ -169,8 +169,11 @@ shinyUI(fluidPage(
           h2("Random number generator"),
           numericInput("seed_ROBMED", "Seed",
                        value = get_default_seed()),
+          # TODO: show help text about reproducibility if seed is not set
           textInput(inputId = "RNG_version_ROBMED", "Version",
                     value = as.character(getRversion())),
+          # TODO: if not set, show help text that setting the version increases
+          #       reproducibility in the future
 
           # options for the MM-estimator
           h2("MM-estimator"),
@@ -215,8 +218,11 @@ shinyUI(fluidPage(
           h2("Random number generator"),
           numericInput("seed_OLS_boot", "Seed",
                        value = get_default_seed()),
+          # TODO: show help text about reproducibility if seed is not set
           textInput(inputId = "RNG_version_OLS_boot", "Version",
                     value = as.character(getRversion()))
+          # TODO: if not set, show help text that setting the version increases
+          #       reproducibility in the future
 
         ),
         # output panel on right hand side
