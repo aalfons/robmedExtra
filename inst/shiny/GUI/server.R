@@ -264,12 +264,14 @@ shinyServer(function(input, output, session) {
                       selected = isolate(input$covariates))
   })
 
-  # observer to clean up reactive values for commands on variable selection
+  # observer to clean up reactive values when variables are selected
   observeEvent(c(input$y, input$x, input$m, input$covariates), {
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
     commands$flextable <- NULL
     commands$plot_device <- NULL
+    values$width <- NULL
+    values$height <- NULL
   }, ignoreInit = TRUE)
 
   # create UI input for selecting the type of multiple mediator model
@@ -380,9 +382,11 @@ shinyServer(function(input, output, session) {
                             plot = command_plot)
     attr(commands_ROBMED, "time_stamp") <- Sys.time()
     commands$ROBMED <- commands_ROBMED
-    # clean up reactive values for commands
+    # clean up reactive values
     commands$flextable <- NULL
     commands$plot_device <- NULL
+    values$width <- NULL
+    values$height <- NULL
   })
 
 
@@ -489,7 +493,7 @@ shinyServer(function(input, output, session) {
                               summary = command_summary)
     attr(commands_OLS_boot, "time_stamp") <- Sys.time()
     commands$OLS_boot <- commands_OLS_boot
-    # clean up reactive values for commands
+    # clean up reactive values
     commands$flextable <- NULL
   })
 
@@ -522,7 +526,7 @@ shinyServer(function(input, output, session) {
   output$button_table <- renderUI({
     if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
       # show the button if ROBMED or OLS bootstrap have been run
-      actionButton("generate_table", "Preview")
+      actionButton("generate_table", "Generate")
     } else {
       # otherwise show help text that variables need to be selected
       helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
@@ -650,11 +654,8 @@ shinyServer(function(input, output, session) {
   })
 
   # show diagnostic plot for ROBMED in main panel
-  # FIXME: This is not working properly. Sometimes the header is not updated,
-  #        but the plot is, sometimes neither updates.
   output$plot_preview_header <- renderUI({
-    command_ROBMED <- isolate(commands$ROBMED)
-    req(command_ROBMED, commands$plot_device, values$width, values$height)
+    req(values$width, values$height)
     h2("File preview for diagnostic plot")
   })
   # Note: The size in the shiny app may vary due to the resolution of the
@@ -662,7 +663,6 @@ shinyServer(function(input, output, session) {
   #       relatively to the plot size should be fine.
   output$plot_preview <- renderPlot({
     command_ROBMED <- isolate(commands$ROBMED)
-    req(command_ROBMED, commands$plot_device, values$width, values$height)
     eval(command_ROBMED$plot, envir = session_env)
   }, width = function() {
     req(values$width)
