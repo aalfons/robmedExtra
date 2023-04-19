@@ -523,6 +523,7 @@ shinyServer(function(input, output, session) {
     }
     command_ft <- call("<-", as.name("ft"), command_to_flextable)
     eval(command_ft, envir = session_env)
+    # TODO: add command to export flextable to Microsoft Word document
     # update reactive value with command to create flextable
     commands$flextable <- command_ft
   })

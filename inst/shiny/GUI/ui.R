@@ -249,6 +249,7 @@ shinyUI(fluidPage(
                         get_label(HTML("Include <em>p</em> values for indirect effects"),
                                   "(may take time to compute)"),
                         value = FALSE),
+          # TODO: add input to select format (docx, pptx)
           uiOutput("select_orientation"),
           uiOutput("button_table"),
 
