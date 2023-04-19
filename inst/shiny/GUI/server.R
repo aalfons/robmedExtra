@@ -42,14 +42,13 @@ shinyServer(function(input, output, session) {
   # create a separate environment for safely conducting analyses
   session_env <- new.env()
 
-  # initialize reactive values (used for names of data frame and variables)
+  # initialize reactive values to be used for various things
   values <- reactiveValues()
 
   # initialize reactive values for commands
-  command_robmed <- call("library", "robmed")
-  command_robmedExtra <- call("library", "robmedExtra")
   commands <- reactiveValues(
-    packages = list(command_robmed, command_robmedExtra)
+    packages = list(robmed = call("library", "robmed"),
+                    robmedExtra = call("library", "robmedExtra"))
   )
 
   # reactive expression to get the selected data source
@@ -181,6 +180,11 @@ shinyServer(function(input, output, session) {
       values$variables <- variables
       values$numeric_variables <- numeric_variables
     }
+    # clean up reactive values for commands
+    commands$ROBMED <- NULL
+    commands$OLS_boot <- NULL
+    commands$flextable <- NULL
+    commands$plot_device <- NULL
   })
 
 
@@ -214,11 +218,14 @@ shinyServer(function(input, output, session) {
                       choices = c("", numeric_variables),
                       selected = NULL)
     updateSelectInput(session, inputId = "x",
-                      choices = variables, selected = NULL)
+                      choices = variables,
+                      selected = NULL)
     updateSelectInput(session, inputId = "m",
-                      choices = numeric_variables, selected = NULL)
+                      choices = numeric_variables,
+                      selected = NULL)
     updateSelectInput(session, inputId = "covariates",
-                      choices = variables, selected = NULL)
+                      choices = variables,
+                      selected = NULL)
   })
 
   # observer to update variables that can be selected as response variable
@@ -256,6 +263,14 @@ shinyServer(function(input, output, session) {
                       choices = setdiff(variables, remove),
                       selected = isolate(input$covariates))
   })
+
+  # observer to clean up reactive values for commands on variable selection
+  observeEvent(c(input$y, input$x, input$m, input$covariates), {
+    commands$ROBMED <- NULL
+    commands$OLS_boot <- NULL
+    commands$flextable <- NULL
+    commands$plot_device <- NULL
+  }, ignoreInit = TRUE)
 
   # create UI input for selecting the type of multiple mediator model
   output$select_model <- renderUI({
@@ -365,6 +380,9 @@ shinyServer(function(input, output, session) {
                             plot = command_plot)
     attr(commands_ROBMED, "time_stamp") <- Sys.time()
     commands$ROBMED <- commands_ROBMED
+    # clean up reactive values for commands
+    commands$flextable <- NULL
+    commands$plot_device <- NULL
   })
 
 
@@ -471,6 +489,8 @@ shinyServer(function(input, output, session) {
                               summary = command_summary)
     attr(commands_OLS_boot, "time_stamp") <- Sys.time()
     commands$OLS_boot <- commands_OLS_boot
+    # clean up reactive values for commands
+    commands$flextable <- NULL
   })
 
 
@@ -502,7 +522,7 @@ shinyServer(function(input, output, session) {
   output$button_table <- renderUI({
     if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
       # show the button if ROBMED or OLS bootstrap have been run
-      actionButton("generate_table", "Generate")
+      actionButton("generate_table", "Preview")
     } else {
       # otherwise show help text that variables need to be selected
       helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
@@ -512,8 +532,8 @@ shinyServer(function(input, output, session) {
   # observer for button to preview the table
   observeEvent(input$generate_table, {
     # initializations
-    have_ROBMED <- exists("robust_boot", envir = session_env)
-    have_OLS_boot <- exists("ols_boot", envir = session_env)
+    have_ROBMED <- isTruthy(commands$ROBMED)
+    have_OLS_boot <- isTruthy(commands$OLS_boot)
     # construct command to generate the flextable
     if (have_ROBMED && have_OLS_boot) {
       command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
@@ -611,6 +631,11 @@ shinyServer(function(input, output, session) {
     commands$plot_device <- commands_plot_device
   })
 
+  # TODO: export button should first run the expressions for generating the
+  #       table and the plot, create the replication script, and then save
+  #       everything in one zip-archive (also including an RData file with
+  #       the data set).
+
 
   ## Render outputs for the 'Export' tab -----
 
@@ -625,6 +650,8 @@ shinyServer(function(input, output, session) {
   })
 
   # show diagnostic plot for ROBMED in main panel
+  # FIXME: This is not working properly. Sometimes the header is not updated,
+  #        but the plot is, sometimes neither updates.
   output$plot_preview_header <- renderUI({
     command_ROBMED <- isolate(commands$ROBMED)
     req(command_ROBMED, commands$plot_device, values$width, values$height)
