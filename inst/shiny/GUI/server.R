@@ -184,7 +184,7 @@ shinyServer(function(input, output, session) {
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
     commands$flextable <- NULL
-    commands$plot_device <- NULL
+    commands$plot <- NULL
   })
 
 
@@ -269,7 +269,7 @@ shinyServer(function(input, output, session) {
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
     commands$flextable <- NULL
-    commands$plot_device <- NULL
+    commands$plot <- NULL
     values$width <- NULL
     values$height <- NULL
   }, ignoreInit = TRUE)
@@ -315,9 +315,9 @@ shinyServer(function(input, output, session) {
 
   # observer to ensure that seed of the random number generator is the same as
   # for OLS bootstrap
-  observeEvent(input$seed_OLS_boot, {
-    updateNumericInput(session, inputId = "seed_ROBMED",
-                       value = input$seed_OLS_boot)
+  observeEvent(input$RNG_seed_OLS_boot, {
+    updateNumericInput(session, inputId = "RNG_seed_ROBMED",
+                       value = input$RNG_seed_OLS_boot)
   })
 
   # observer to ensure that version of the random number generator is the same
@@ -336,11 +336,11 @@ shinyServer(function(input, output, session) {
       eval(command_RNG_version, envir = session_env)
     } else command_RNG_version <- NULL
     # construct command to set the seed of the random number generator
-    seed <- input$seed_ROBMED
-    if (isTruthy(seed)) {
-      command_seed <- call("set.seed", seed)
-      eval(command_seed, envir = session_env)
-    } else command_seed <- NULL
+    RNG_seed <- input$RNG_seed_ROBMED
+    if (isTruthy(RNG_seed)) {
+      command_RNG_seed <- call("set.seed", RNG_seed)
+      eval(command_RNG_seed, envir = session_env)
+    } else command_RNG_seed <- NULL
     # construct command for control object for MM-estimator
     command_reg_control <- call("reg_control",
                             efficiency = input$efficiency,
@@ -373,18 +373,20 @@ shinyServer(function(input, output, session) {
     command_theme <- call("theme", legend.position = "top")
     command_plot <- call("+", call("+", command_weight_plot, command_scale),
                          command_theme)
+    command_p <- call("<-", as.name("p"), command_plot)
+    eval(command_p, envir = session_env)
     # update reactive value with list of commands to perform ROBMED
     commands_ROBMED <- list(RNG_version = command_RNG_version,
-                            RNG_seed = command_seed,
+                            RNG_seed = command_RNG_seed,
                             control = command_ctrl,
                             mediation = command_robust_boot,
                             summary = command_summary,
-                            plot = command_plot)
+                            plot = command_p)
     attr(commands_ROBMED, "time_stamp") <- Sys.time()
     commands$ROBMED <- commands_ROBMED
     # clean up reactive values
     commands$flextable <- NULL
-    commands$plot_device <- NULL
+    commands$plot <- NULL
     values$width <- NULL
     values$height <- NULL
   })
@@ -399,7 +401,8 @@ shinyServer(function(input, output, session) {
   })
   output$plot_ROBMED <- renderPlot({
     req(commands$ROBMED)
-    eval(commands$ROBMED$plot, envir = session_env)
+    # eval(commands$ROBMED$plot, envir = session_env)
+    get("p", envir = session_env)
   }, res = 100)
 
   # show summary for ROBMED in main panel
@@ -443,9 +446,9 @@ shinyServer(function(input, output, session) {
 
   # observer to ensure that seed of the random number generator is the same as
   # for ROBMED
-  observeEvent(input$seed_ROBMED, {
-    updateNumericInput(session, inputId = "seed_OLS_boot",
-                       value = input$seed_ROBMED)
+  observeEvent(input$RNG_seed_ROBMED, {
+    updateNumericInput(session, inputId = "RNG_seed_OLS_boot",
+                       value = input$RNG_seed_ROBMED)
   })
 
   # observer to ensure that version of the random number generator is the same
@@ -464,11 +467,11 @@ shinyServer(function(input, output, session) {
       eval(command_RNG_version, envir = session_env)
     } else command_RNG_version <- NULL
     # construct command to set the seed of the random number generator
-    seed <- input$seed_OLS_boot
-    if (isTruthy(seed)) {
-      command_seed <- call("set.seed", seed)
-      eval(command_seed, envir = session_env)
-    } else command_seed <- NULL
+    RNG_seed <- input$RNG_seed_OLS_boot
+    if (isTruthy(RNG_seed)) {
+      command_RNG_seed <- call("set.seed", RNG_seed)
+      eval(command_RNG_seed, envir = session_env)
+    } else command_RNG_seed <- NULL
     # construct command to perform the OLS bootstrap
     m <- input$m
     covariates <- input$covariates
@@ -488,7 +491,7 @@ shinyServer(function(input, output, session) {
     command_summary <- call("summary", as.name("ols_boot"))
     # update reactive value with list of commands to perform the OLS bootstrap
     commands_OLS_boot <- list(RNG_version = command_RNG_version,
-                              RNG_seed = command_seed,
+                              RNG_seed = command_RNG_seed,
                               mediation = command_ols_boot,
                               summary = command_summary)
     attr(commands_OLS_boot, "time_stamp") <- Sys.time()
@@ -613,8 +616,8 @@ shinyServer(function(input, output, session) {
       width <- width / 2.54
       height <- height / 2.54
     }
-    # set resolution to be used for preview and construct command for opening
-    # the graphics device
+    # TODO: commands for generating plot should probably be moved somewhere else
+    # construct command for opening the graphics device
     if (input$file_type == "pdf") {
       # construct command
       command_device <- call("pdf", file = file_name, width = width,
@@ -625,20 +628,21 @@ shinyServer(function(input, output, session) {
                              height = input$height, units = units,
                              res = input$resolution)
     }
+    # update reactive value with commands to create file containing plot
+    commands_plot <- list(open = command_device,
+                          generate = call("print", as.name("p")),
+                          close = call("dev.off"))
+    attr(commands_plot, "time_stamp") <- Sys.time()
+    commands$plot <- commands_plot
     # set reactive values for preview
     values$width <- width
     values$height <- height
-    # update reactive value with commands for graphics device
-    commands_plot_device <- list(open = command_device,
-                                 close = call("dev.off"))
-    attr(commands_plot_device, "time_stamp") <- Sys.time()
-    commands$plot_device <- commands_plot_device
   })
 
-  # TODO: export button should first run the expressions for generating the
-  #       table and the plot, create the replication script, and then save
-  #       everything in one zip-archive (also including an RData file with
-  #       the data set).
+  # TODO: perhaps export button should first run the expressions for generating
+  #       the table and the plot, create the replication script, and then save
+  #       everything in one zip-archive (also including an RData file with the
+  #       data set).
 
 
   ## Render outputs for the 'Export' tab -----
@@ -662,8 +666,7 @@ shinyServer(function(input, output, session) {
   #       browser/monitor, but the proportions and size of the annotations
   #       relatively to the plot size should be fine.
   output$plot_preview <- renderPlot({
-    command_ROBMED <- isolate(commands$ROBMED)
-    eval(command_ROBMED$plot, envir = session_env)
+    get("p", envir = session_env)
   }, width = function() {
     req(values$width)
     values$width * 125
