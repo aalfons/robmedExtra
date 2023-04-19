@@ -401,7 +401,6 @@ shinyServer(function(input, output, session) {
   })
   output$plot_ROBMED <- renderPlot({
     req(commands$ROBMED)
-    # eval(commands$ROBMED$plot, envir = session_env)
     get("p", envir = session_env)
   }, res = 100)
 
@@ -616,7 +615,6 @@ shinyServer(function(input, output, session) {
       width <- width / 2.54
       height <- height / 2.54
     }
-    # TODO: commands for generating plot should probably be moved somewhere else
     # construct command for opening the graphics device
     if (input$file_type == "pdf") {
       # construct command
