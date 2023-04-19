@@ -285,25 +285,28 @@ shinyServer(function(input, output, session) {
 
   # observer to ensure that confidence level is the same as for OLS bootstrap
   observeEvent(input$level_OLS_boot, {
-    updateNumericInput(session, "level_ROBMED", value = input$level_OLS_boot)
+    updateNumericInput(session, inputId = "level_ROBMED",
+                       value = input$level_OLS_boot)
   })
 
   # observer to ensure that number of bootstrap samples is the same as for
   # OLS bootstrap
   observeEvent(input$R_OLS_boot, {
-    updateNumericInput(session, "R_ROBMED", value = input$R_OLS_boot)
+    updateNumericInput(session, inputId = "R_ROBMED",
+                       value = input$R_OLS_boot)
   })
 
   # observer to ensure that seed of the random number generator is the same as
   # for OLS bootstrap
   observeEvent(input$seed_OLS_boot, {
-    updateNumericInput(session, "seed_ROBMED", value = input$seed_OLS_boot)
+    updateNumericInput(session, inputId = "seed_ROBMED",
+                       value = input$seed_OLS_boot)
   })
 
   # observer to ensure that version of the random number generator is the same
   # as for OLS bootstrap
   observeEvent(input$RNG_version_OLS_boot, {
-    updateNumericInput(session, "RNG_version_ROBMED",
+    updateNumericInput(session, inputId = "RNG_version_ROBMED",
                        value = input$RNG_version_OLS_boot)
   })
 
@@ -399,25 +402,28 @@ shinyServer(function(input, output, session) {
 
   # observer to ensure that confidence level is the same as for ROBMED
   observeEvent(input$level_ROBMED, {
-    updateNumericInput(session, "level_OLS_boot", value = input$level_ROBMED)
+    updateNumericInput(session, inputId = "level_OLS_boot",
+                       value = input$level_ROBMED)
   })
 
   # observer to ensure that number of bootstrap samples is the same as for
   # ROBMED
   observeEvent(input$R_ROBMED, {
-    updateNumericInput(session, "R_OLS_boot", value = input$R_ROBMED)
+    updateNumericInput(session, inputId = "R_OLS_boot",
+                       value = input$R_ROBMED)
   })
 
   # observer to ensure that seed of the random number generator is the same as
   # for ROBMED
   observeEvent(input$seed_ROBMED, {
-    updateNumericInput(session, "seed_OLS_boot", value = input$seed_ROBMED)
+    updateNumericInput(session, inputId = "seed_OLS_boot",
+                       value = input$seed_ROBMED)
   })
 
   # observer to ensure that version of the random number generator is the same
   # as for ROBMED
   observeEvent(input$RNG_version_ROBMED, {
-    updateNumericInput(session, "RNG_version_OLS_boot",
+    updateNumericInput(session, inputId = "RNG_version_OLS_boot",
                        value = input$RNG_version_ROBMED)
   })
 
@@ -490,7 +496,7 @@ shinyServer(function(input, output, session) {
       actionButton("preview_table", "Preview")
     } else {
       # otherwise show help text that variables need to be selected
-      helpText("Run ROBMED or the OLS Bootstrap in the respective tabs.")
+      helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
     }
   })
 
@@ -533,6 +539,21 @@ shinyServer(function(input, output, session) {
       helpText("Run ROBMED in the respective tab.")
     }
   })
+
+  # observer for switching the units for width and height
+  observeEvent(input$units, {
+    if (input$units == "inches") {
+      width <- input$width / 2.54
+      height <- input$height / 2.54
+      step = 0.5
+    } else {
+      width <- input$width * 2.54
+      height <- input$height * 2.54
+      step = 1
+    }
+    updateNumericInput(session, inputId = "width", value = width, step = step)
+    updateNumericInput(session, inputId = "height", value = height, step = step)
+  }, ignoreInit = TRUE)
 
   # observer for button to preview the plot
   observeEvent(input$preview_plot, {
@@ -580,8 +601,9 @@ shinyServer(function(input, output, session) {
   })
 
   # show diagnostic plot for ROBMED in main panel
-  # FIXME: this is not sizing properly as the resolution displayed in the
-  #        browser is different from how the image scales on a device
+  # Note: The size in the shiny app may vary due to the resolution of the
+  #       browser/monitor, but the proportions and size of the annotations
+  #       relatively to the plot size should be fine.
   output$plot_preview <- renderPlot({
     command_plot <- commands$plot_ROBMED
     if (!is.null(command_plot) && exists("robust_boot", envir = session_env)) {

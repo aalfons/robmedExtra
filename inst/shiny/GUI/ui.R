@@ -155,6 +155,9 @@ shinyUI(fluidPage(
           # button to perform ROBMED
           uiOutput("button_ROBMED"),
 
+          # TODO: add a checkbox to show advanced options
+          #       (RNG version, MM-estimator)
+
           # options for the bootstrap confidence intervals
           h2("Options"),
           numericInput("level_ROBMED", "Confidence level", value = 0.95,
@@ -180,6 +183,7 @@ shinyUI(fluidPage(
         ),
         # output panel on right hand side
         mainPanel(
+          # TODO: only show headers when there is actual output
           h2('Diagnostic plot'),
           plotOutput("plot_ROBMED"),
           h2('Model and test summaries'),
@@ -198,6 +202,8 @@ shinyUI(fluidPage(
           # button to perform the OLS bootstrap
           uiOutput("button_OLS_boot"),
 
+          # TODO: add a checkbox to show advanced options (RNG version)
+
           # options for the bootstrap confidence intervals
           h2("Options"),
           numericInput("level_OLS_boot", "Confidence level", value = 0.95,
@@ -215,6 +221,7 @@ shinyUI(fluidPage(
         ),
         # output panel on right hand side
         mainPanel(
+          # TODO: only show header when there is actual output
           h2('Model and test summaries'),
           verbatimTextOutput('summary_OLS_boot')
         )
@@ -243,15 +250,16 @@ shinyUI(fluidPage(
           radioButtons("units", "Unit of width and height",
                        choices = c("cm", "inches"),
                        selected = "inches"),
-          numericInput("width", "Width", value = 5, min = 0),
+          numericInput("width", "Width", value = 5, min = 0, step = 0.5),
           # TODO: allow default height to scale with the number of regressions
-          numericInput("height", "Height", value = 5, min = 0),
+          numericInput("height", "Height", value = 5, min = 0, step = 0.5),
           uiOutput("select_resolution"),
           uiOutput("button_plot"),
 
         ),
         # output panel on right hand side
         mainPanel(
+          # TODO: only show headers when there is actual output
           h2("Table"),
           uiOutput("table_preview"),
           h2('Diagnostic plot'),
