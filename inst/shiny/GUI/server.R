@@ -368,20 +368,23 @@ shinyServer(function(input, output, session) {
   ## Render outputs for the 'ROBMED' tab -----
 
   # show diagnostic plot for ROBMED in main panel
-  # TODO: allow plot height to scale with the number of regressions
-  output$plot_ROBMED <- renderPlot({
-    command_plot <- commands$plot_ROBMED
-    if (!is.null(command_plot) && exists("robust_boot", envir = session_env)) {
-      eval(command_plot, envir = session_env)
-    }
+  output$plot_ROBMED_header <- renderUI({
+    req(commands$plot_ROBMED)
+    h2("Diagnostic plot")
   })
+  output$plot_ROBMED <- renderPlot({
+    req(commands$plot_ROBMED)
+    eval(commands$plot_ROBMED, envir = session_env)
+  }, res = 100)
 
   # show summary for ROBMED in main panel
+  output$summary_ROBMED_header <- renderUI({
+    req(commands$summary_ROBMED)
+    h2("Model and test summaries")
+  })
   output$summary_ROBMED <- renderPrint({
-    command_summary <- commands$summary_ROBMED
-    if (!is.null(command_summary) && exists("robust_boot", envir = session_env)) {
-      eval(command_summary, envir = session_env)
-    }
+    req(commands$summary_ROBMED)
+    eval(commands$summary_ROBMED, envir = session_env)
   })
 
 
@@ -469,11 +472,13 @@ shinyServer(function(input, output, session) {
   ## Render outputs for the 'OLS Bootstrap' tab -----
 
   # show summary for the OLS bootstrap in main panel
+  output$summary_OLS_boot_header <- renderUI({
+    req(commands$summary_OLS_boot)
+    h2("Model and test summaries")
+  })
   output$summary_OLS_boot <- renderPrint({
-    command_summary <- commands$summary_OLS_boot
-    if (!is.null(command_summary) && exists("ols_boot", envir = session_env)) {
-      eval(command_summary, envir = session_env)
-    }
+    req(commands$summary_OLS_boot)
+    eval(commands$summary_OLS_boot, envir = session_env)
   })
 
 
@@ -600,28 +605,32 @@ shinyServer(function(input, output, session) {
   ## Render outputs for the 'Export' tab -----
 
   # show preview of table in main panel
+  output$table_preview_header <- renderUI({
+    req(commands$flextable)
+    h2("Table preview")
+  })
   output$table_preview <- renderUI({
-    command_flextable <- commands$flextable
-    if (!is.null(command_flextable) && exists("ft", envir = session_env)) {
-      flextable::htmltools_value(get("ft", envir = session_env))
-    }
+    req(commands$flextable)
+    flextable::htmltools_value(get("ft", envir = session_env))
   })
 
   # show diagnostic plot for ROBMED in main panel
+  output$plot_preview_header <- renderUI({
+    req(commands$plot_ROBMED, values$width, values$height)
+    h2("File preview for diagnostic plot")
+  })
   # Note: The size in the shiny app may vary due to the resolution of the
   #       browser/monitor, but the proportions and size of the annotations
   #       relatively to the plot size should be fine.
   output$plot_preview <- renderPlot({
-    command_plot <- commands$plot_ROBMED
-    if (!is.null(command_plot) && exists("robust_boot", envir = session_env)) {
-      eval(command_plot, envir = session_env)
-    }
+    req(commands$plot_ROBMED)
+    eval(commands$plot_ROBMED, envir = session_env)
   }, width = function() {
     req(values$width)
-    values$width * 150
+    values$width * 125
   }, height = function() {
     req(values$height)
-    values$height * 150
-  }, res = 150)
+    values$height * 125
+  }, res = 125)
 
 })

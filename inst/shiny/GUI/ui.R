@@ -186,11 +186,13 @@ shinyUI(fluidPage(
         ),
         # output panel on right hand side
         mainPanel(
-          # TODO: only show headers when there is actual output
-          h2('Diagnostic plot'),
-          plotOutput("plot_ROBMED"),
-          h2('Model and test summaries'),
-          verbatimTextOutput('summary_ROBMED')
+          # diagnostic plot
+          uiOutput("plot_ROBMED_header"),
+          # TODO: allow plot height to scale with the number of regressions
+          plotOutput("plot_ROBMED", height = "450px"),
+          # model and test summaries
+          uiOutput("summary_ROBMED_header"),
+          verbatimTextOutput("summary_ROBMED")
         )
       )
     ),
@@ -227,9 +229,9 @@ shinyUI(fluidPage(
         ),
         # output panel on right hand side
         mainPanel(
-          # TODO: only show header when there is actual output
-          h2('Model and test summaries'),
-          verbatimTextOutput('summary_OLS_boot')
+          # model and test summaries
+          uiOutput("summary_OLS_boot_header"),
+          verbatimTextOutput("summary_OLS_boot")
         )
       )
     ),
@@ -244,7 +246,8 @@ shinyUI(fluidPage(
           # inputs for exporting table
           h2("Table"),
           sliderInput("digits", "Number of digits after decimal point",
-                      min = 2, max = 6, value = 3, step = 1),
+                      min = 2, max = 6, value = 3, step = 1, round = TRUE,
+                      ticks = FALSE),
           checkboxInput("p_value",
                         get_label(HTML("Include <em>p</em> values for indirect effects"),
                                   "(may take time to compute)"),
@@ -260,20 +263,21 @@ shinyUI(fluidPage(
                        selected = "pdf"),
           radioButtons("units", "Unit of width and height",
                        choices = c("cm", "inches"),
-                       selected = "inches"),
-          numericInput("width", "Width", value = 5, min = 0, step = 0.5),
+                       selected = "cm"),
+          numericInput("width", "Width", value = 13, min = 0, step = 0.5),
           # TODO: allow default height to scale with the number of regressions
-          numericInput("height", "Height", value = 5, min = 0, step = 0.5),
+          numericInput("height", "Height", value = 11.5, min = 0, step = 0.5),
           uiOutput("select_resolution"),
           uiOutput("button_plot"),
 
         ),
         # output panel on right hand side
         mainPanel(
-          # TODO: only show headers when there is actual output
-          h2("Table preview"),
+          # table preview
+          uiOutput("table_preview_header"),
           uiOutput("table_preview"),
-          h2('File preview for diagnostic plot'),
+          # file preview for diagnostic plot
+          uiOutput("plot_preview_header"),
           plotOutput("plot_preview")
         )
       )
