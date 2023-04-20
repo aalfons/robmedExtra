@@ -46,9 +46,11 @@ shinyServer(function(input, output, session) {
   values <- reactiveValues()
 
   # initialize reactive values for commands
+  RNG_kind <- RNGkind()
   commands <- reactiveValues(
     packages = list(robmed = call("library", "robmed"),
-                    robmedExtra = call("library", "robmedExtra"))
+                    robmedExtra = call("library", "robmedExtra")),
+    RNG = call("RNGkind", RNG_kind[1L], RNG_kind[2L], RNG_kind[3L])
   )
 
   # reactive expression to get the selected data source
@@ -328,21 +330,21 @@ shinyServer(function(input, output, session) {
                        value = input$RNG_seed_OLS_boot)
   })
 
-  # observer to ensure that version of the random number generator is the same
-  # as for OLS bootstrap
-  observeEvent(input$RNG_version_OLS_boot, {
-    updateNumericInput(session, inputId = "RNG_version_ROBMED",
-                       value = input$RNG_version_OLS_boot)
-  })
+  # # observer to ensure that version of the random number generator is the same
+  # # as for OLS bootstrap
+  # observeEvent(input$RNG_version_OLS_boot, {
+  #   updateNumericInput(session, inputId = "RNG_version_ROBMED",
+  #                      value = input$RNG_version_OLS_boot)
+  # })
 
   # observer for button to run ROBMED
   observeEvent(input$run_ROBMED, {
-    # construct command to set the version of the random number generator
-    RNG_version <- input$RNG_version_ROBMED
-    if (isTruthy(RNG_version)) {
-      command_RNG_version <- call("RNGversion", RNG_version)
-      eval(command_RNG_version, envir = session_env)
-    } else command_RNG_version <- NULL
+    # # construct command to set the version of the random number generator
+    # RNG_version <- input$RNG_version_ROBMED
+    # if (isTruthy(RNG_version)) {
+    #   command_RNG_version <- call("RNGversion", RNG_version)
+    #   eval(command_RNG_version, envir = session_env)
+    # } else command_RNG_version <- NULL
     # construct command to set the seed of the random number generator
     RNG_seed <- input$RNG_seed_ROBMED
     if (isTruthy(RNG_seed)) {
@@ -384,7 +386,7 @@ shinyServer(function(input, output, session) {
     command_p <- call("<-", as.name("p"), command_plot)
     eval(command_p, envir = session_env)
     # update reactive value with list of commands to perform ROBMED
-    commands_ROBMED <- list(RNG_version = command_RNG_version,
+    commands_ROBMED <- list(#RNG_version = command_RNG_version,
                             RNG_seed = command_RNG_seed,
                             control = command_ctrl,
                             mediation = command_robust_boot,
@@ -466,21 +468,21 @@ shinyServer(function(input, output, session) {
                        value = input$RNG_seed_ROBMED)
   })
 
-  # observer to ensure that version of the random number generator is the same
-  # as for ROBMED
-  observeEvent(input$RNG_version_ROBMED, {
-    updateNumericInput(session, inputId = "RNG_version_OLS_boot",
-                       value = input$RNG_version_ROBMED)
-  })
+  # # observer to ensure that version of the random number generator is the same
+  # # as for ROBMED
+  # observeEvent(input$RNG_version_ROBMED, {
+  #   updateNumericInput(session, inputId = "RNG_version_OLS_boot",
+  #                      value = input$RNG_version_ROBMED)
+  # })
 
   # observer for button to run the OLS bootstrap
   observeEvent(input$run_OLS_boot, {
-    # construct command to set the version of the random number generator
-    RNG_version <- input$RNG_version_OLS_boot
-    if (isTruthy(RNG_version)) {
-      command_RNG_version <- call("RNGversion", RNG_version)
-      eval(command_RNG_version, envir = session_env)
-    } else command_RNG_version <- NULL
+    # # construct command to set the version of the random number generator
+    # RNG_version <- input$RNG_version_OLS_boot
+    # if (isTruthy(RNG_version)) {
+    #   command_RNG_version <- call("RNGversion", RNG_version)
+    #   eval(command_RNG_version, envir = session_env)
+    # } else command_RNG_version <- NULL
     # construct command to set the seed of the random number generator
     RNG_seed <- input$RNG_seed_OLS_boot
     if (isTruthy(RNG_seed)) {
@@ -505,7 +507,7 @@ shinyServer(function(input, output, session) {
     # construct command to show summary
     command_summary <- call("summary", as.name("ols_boot"))
     # update reactive value with list of commands to perform the OLS bootstrap
-    commands_OLS_boot <- list(RNG_version = command_RNG_version,
+    commands_OLS_boot <- list(#RNG_version = command_RNG_version,
                               RNG_seed = command_RNG_seed,
                               mediation = command_ols_boot,
                               summary = command_summary)

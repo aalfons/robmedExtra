@@ -106,10 +106,10 @@ shinyUI(fluidPage(
             "with increasing number of mediators due to the combinatorial",
             "increase in indirect paths through the mediators. It is",
             "therefore only implemented for two and three mediators to",
-            "maintain a focus on easily interpretable models.",
+            "maintain a focus on easily interpretable models."
             # "The diagram below visualizes a serial multiple model with two",
             # "mediators."
-            ),
+          ),
           img(src = "mediation-serial-two.png"),
           img(src = "mediation-serial-three.png"),
 
@@ -155,8 +155,7 @@ shinyUI(fluidPage(
           # button to perform ROBMED
           uiOutput("button_ROBMED"),
 
-          # TODO: add a checkbox to show advanced options
-          #       (RNG version, MM-estimator)
+          # TODO: add a checkbox to show advanced options (MM-estimator)
 
           # options for the bootstrap confidence intervals
           h2("Options"),
@@ -164,16 +163,17 @@ shinyUI(fluidPage(
                        min = 0.9, max = 0.999, step = 0.01),
           numericInput("R_ROBMED", "Number of bootstrap samples",
                        value = 5000, min = 1000, step = 1000),
-
-          # options for the random number generator
-          h2("Random number generator"),
-          numericInput("RNG_seed_ROBMED", "Seed",
+          numericInput("RNG_seed_ROBMED", "Seed of the random number generator",
                        value = get_default_seed()),
           uiOutput("help_RNG_seed_ROBMED"),
-          textInput(inputId = "RNG_version_ROBMED", "Version",
-                    value = as.character(getRversion())),
-          # TODO: if not set, show help text that setting the version increases
-          #       reproducibility in the future
+
+          # # options for the random number generator
+          # h2("Random number generator"),
+          # numericInput("RNG_seed_ROBMED", "Seed",
+          #              value = get_default_seed()),
+          # uiOutput("help_RNG_seed_ROBMED"),
+          # textInput(inputId = "RNG_version_ROBMED", "Version",
+          #           value = as.character(getRversion())),
 
           # options for the MM-estimator
           h2("MM-estimator"),
@@ -207,24 +207,23 @@ shinyUI(fluidPage(
           # button to perform the OLS bootstrap
           uiOutput("button_OLS_boot"),
 
-          # TODO: add a checkbox to show advanced options (RNG version)
-
           # options for the bootstrap confidence intervals
           h2("Options"),
           numericInput("level_OLS_boot", "Confidence level", value = 0.95,
                        min = 0.9, max = 0.999, step = 0.01),
           numericInput("R_OLS_boot", "Number of bootstrap samples",
                        value = 5000, min = 1000, step = 1000),
-
-          # options for the random number generator
-          h2("Random number generator"),
-          numericInput("RNG_seed_OLS_boot", "Seed",
+          numericInput("RNG_seed_OLS_boot", "Seed of the random number generator",
                        value = get_default_seed()),
-          uiOutput("help_RNG_seed_OLS_boot"),
-          textInput(inputId = "RNG_version_OLS_boot", "Version",
-                    value = as.character(getRversion()))
-          # TODO: if not set, show help text that setting the version increases
-          #       reproducibility in the future
+          uiOutput("help_RNG_seed_OLS_boot")
+
+          # # options for the random number generator
+          # h2("Random number generator"),
+          # numericInput("RNG_seed_OLS_boot", "Seed",
+          #              value = get_default_seed()),
+          # uiOutput("help_RNG_seed_OLS_boot"),
+          # textInput(inputId = "RNG_version_OLS_boot", "Version",
+          #           value = as.character(getRversion()))
 
         ),
         # output panel on right hand side
@@ -258,9 +257,6 @@ shinyUI(fluidPage(
 
           # inputs for exporting diagnostic plot
           h2("Diagnostic Plot"),
-          # radioButtons("file_type", "File type",
-          #              choices = c("pdf", "png"),
-          #              selected = "pdf"),
           checkboxGroupInput("file_type", "File type",
                              choices = c("pdf", "png"),
                              selected = c("pdf", "png")),
@@ -271,7 +267,7 @@ shinyUI(fluidPage(
           # TODO: allow default height to scale with the number of regressions
           numericInput("height", "Height", value = 11.5, min = 0, step = 0.5),
           uiOutput("select_resolution"),
-          uiOutput("button_plot"),
+          uiOutput("button_plot")
 
         ),
         # output panel on right hand side
