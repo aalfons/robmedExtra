@@ -152,31 +152,23 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
 
+          # button to perform ROBMED
+          uiOutput("button_ROBMED"),
+
           # options for the bootstrap confidence intervals
-          # h2("Options"),
+          h2("Options"),
           numericInput("level_ROBMED", "Confidence level", value = 0.95,
                        min = 0.9, max = 0.999, step = 0.01),
           numericInput("R_ROBMED", "Number of bootstrap samples",
                        value = 5000, min = 1000, step = 1000),
-          numericInput("RNG_seed_ROBMED", "Seed of the random number generator",
+          numericInput("seed_ROBMED", "Seed of the random number generator",
                        value = get_default_seed()),
-          uiOutput("help_RNG_seed_ROBMED"),
-
-          # # options for the random number generator
-          # h2("Random number generator"),
-          # numericInput("RNG_seed_ROBMED", "Seed",
-          #              value = get_default_seed()),
-          # uiOutput("help_RNG_seed_ROBMED"),
-          # textInput(inputId = "RNG_version_ROBMED", "Version",
-          #           value = as.character(getRversion())),
+          uiOutput("help_seed_ROBMED"),
 
           # options for the MM-estimator
           checkboxInput("show_advanced_options", "Show advanced options",
                         value = FALSE),
-          uiOutput("MM_options"),
-
-          # button to perform ROBMED
-          uiOutput("button_ROBMED")
+          uiOutput("MM_options")
 
         ),
         # output panel on right hand side
@@ -199,26 +191,18 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
 
+          # button to perform the OLS bootstrap
+          uiOutput("button_OLS_boot"),
+
           # options for the bootstrap confidence intervals
-          # h2("Options"),
+          h2("Options"),
           numericInput("level_OLS_boot", "Confidence level", value = 0.95,
                        min = 0.9, max = 0.999, step = 0.01),
           numericInput("R_OLS_boot", "Number of bootstrap samples",
                        value = 5000, min = 1000, step = 1000),
-          numericInput("RNG_seed_OLS_boot", "Seed of the random number generator",
+          numericInput("seed_OLS_boot", "Seed of the random number generator",
                        value = get_default_seed()),
-          uiOutput("help_RNG_seed_OLS_boot"),
-
-          # # options for the random number generator
-          # h2("Random number generator"),
-          # numericInput("RNG_seed_OLS_boot", "Seed",
-          #              value = get_default_seed()),
-          # uiOutput("help_RNG_seed_OLS_boot"),
-          # textInput(inputId = "RNG_version_OLS_boot", "Version",
-          #           value = as.character(getRversion())),
-
-          # button to perform the OLS bootstrap
-          uiOutput("button_OLS_boot")
+          uiOutput("help_seed_OLS_boot")
 
         ),
         # output panel on right hand side

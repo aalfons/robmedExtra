@@ -182,11 +182,13 @@ shinyServer(function(input, output, session) {
       values$variables <- variables
       values$numeric_variables <- numeric_variables
     }
-    # clean up reactive values for commands
+    # clean up reactive values for commands and plot preview
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
     commands$flextable <- NULL
     commands$plot <- NULL
+    values$width <- NULL
+    values$height <- NULL
   })
 
 
@@ -268,10 +270,12 @@ shinyServer(function(input, output, session) {
 
   # observer to clean up reactive values when variables are selected
   observeEvent(c(input$y, input$x, input$m, input$covariates), {
+    # clean up reactive values for commands
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
     commands$flextable <- NULL
     commands$plot <- NULL
+    # clean up reactive values for plot preview
     values$width <- NULL
     values$height <- NULL
   }, ignoreInit = TRUE)
@@ -303,8 +307,8 @@ shinyServer(function(input, output, session) {
   })
 
   # show help text if no random number seed is selected
-  output$help_RNG_seed_ROBMED <- renderUI({
-    if (!isTruthy(input$RNG_seed_ROBMED)) {
+  output$help_seed_ROBMED <- renderUI({
+    if (!isTruthy(input$seed_ROBMED)) {
       helpText("The analysis is", strong("not reproducible"),
                "without setting a seed.")
     }
@@ -338,32 +342,19 @@ shinyServer(function(input, output, session) {
 
   # observer to ensure that seed of the random number generator is the same as
   # for OLS bootstrap
-  observeEvent(input$RNG_seed_OLS_boot, {
-    updateNumericInput(session, inputId = "RNG_seed_ROBMED",
-                       value = input$RNG_seed_OLS_boot)
+  observeEvent(input$seed_OLS_boot, {
+    updateNumericInput(session, inputId = "seed_ROBMED",
+                       value = input$seed_OLS_boot)
   })
-
-  # # observer to ensure that version of the random number generator is the same
-  # # as for OLS bootstrap
-  # observeEvent(input$RNG_version_OLS_boot, {
-  #   updateNumericInput(session, inputId = "RNG_version_ROBMED",
-  #                      value = input$RNG_version_OLS_boot)
-  # })
 
   # observer for button to run ROBMED
   observeEvent(input$run_ROBMED, {
-    # # construct command to set the version of the random number generator
-    # RNG_version <- input$RNG_version_ROBMED
-    # if (isTruthy(RNG_version)) {
-    #   command_RNG_version <- call("RNGversion", RNG_version)
-    #   eval(command_RNG_version, envir = session_env)
-    # } else command_RNG_version <- NULL
     # construct command to set the seed of the random number generator
-    RNG_seed <- input$RNG_seed_ROBMED
-    if (isTruthy(RNG_seed)) {
-      command_RNG_seed <- call("set.seed", RNG_seed)
-      eval(command_RNG_seed, envir = session_env)
-    } else command_RNG_seed <- NULL
+    seed <- input$seed_ROBMED
+    if (isTruthy(seed)) {
+      command_seed <- call("set.seed", seed)
+      eval(command_seed, envir = session_env)
+    } else command_seed <- NULL
     # construct command for control object for MM-estimator
     use_control <- isTruthy(input$efficiency) && isTruthy(input$max_iterations)
     if (use_control) {
@@ -403,14 +394,14 @@ shinyServer(function(input, output, session) {
     eval(command_p, envir = session_env)
     # update reactive value with list of commands to perform ROBMED
     commands_ROBMED <- list(#RNG_version = command_RNG_version,
-                            RNG_seed = command_RNG_seed,
+                            seed = command_seed,
                             control = command_ctrl,
                             mediation = command_robust_boot,
                             summary = command_summary,
                             plot = command_p)
     attr(commands_ROBMED, "time_stamp") <- Sys.time()
     commands$ROBMED <- commands_ROBMED
-    # clean up reactive values
+    # clean up reactive values for relevant commands and plot preview
     commands$flextable <- NULL
     commands$plot <- NULL
     values$width <- NULL
@@ -457,8 +448,8 @@ shinyServer(function(input, output, session) {
   })
 
   # show help text if no random number seed is selected
-  output$help_RNG_seed_OLS_boot <- renderUI({
-    if (!isTruthy(input$RNG_seed_OLS_boot)) {
+  output$help_seed_OLS_boot <- renderUI({
+    if (!isTruthy(input$seed_OLS_boot)) {
       helpText("The analysis is", strong("not reproducible"),
                "without setting a seed.")
     }
@@ -479,32 +470,19 @@ shinyServer(function(input, output, session) {
 
   # observer to ensure that seed of the random number generator is the same as
   # for ROBMED
-  observeEvent(input$RNG_seed_ROBMED, {
-    updateNumericInput(session, inputId = "RNG_seed_OLS_boot",
-                       value = input$RNG_seed_ROBMED)
+  observeEvent(input$seed_ROBMED, {
+    updateNumericInput(session, inputId = "seed_OLS_boot",
+                       value = input$seed_ROBMED)
   })
-
-  # # observer to ensure that version of the random number generator is the same
-  # # as for ROBMED
-  # observeEvent(input$RNG_version_ROBMED, {
-  #   updateNumericInput(session, inputId = "RNG_version_OLS_boot",
-  #                      value = input$RNG_version_ROBMED)
-  # })
 
   # observer for button to run the OLS bootstrap
   observeEvent(input$run_OLS_boot, {
-    # # construct command to set the version of the random number generator
-    # RNG_version <- input$RNG_version_OLS_boot
-    # if (isTruthy(RNG_version)) {
-    #   command_RNG_version <- call("RNGversion", RNG_version)
-    #   eval(command_RNG_version, envir = session_env)
-    # } else command_RNG_version <- NULL
     # construct command to set the seed of the random number generator
-    RNG_seed <- input$RNG_seed_OLS_boot
-    if (isTruthy(RNG_seed)) {
-      command_RNG_seed <- call("set.seed", RNG_seed)
-      eval(command_RNG_seed, envir = session_env)
-    } else command_RNG_seed <- NULL
+    seed <- input$seed_OLS_boot
+    if (isTruthy(seed)) {
+      command_seed <- call("set.seed", seed)
+      eval(command_seed, envir = session_env)
+    } else command_seed <- NULL
     # construct command to perform the OLS bootstrap
     m <- input$m
     covariates <- input$covariates
@@ -524,12 +502,12 @@ shinyServer(function(input, output, session) {
     command_summary <- call("summary", as.name("ols_boot"))
     # update reactive value with list of commands to perform the OLS bootstrap
     commands_OLS_boot <- list(#RNG_version = command_RNG_version,
-                              RNG_seed = command_RNG_seed,
+                              seed = command_seed,
                               mediation = command_ols_boot,
                               summary = command_summary)
     attr(commands_OLS_boot, "time_stamp") <- Sys.time()
     commands$OLS_boot <- commands_OLS_boot
-    # clean up reactive values
+    # clean up reactive values for relevant commands
     commands$flextable <- NULL
   })
 
