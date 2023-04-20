@@ -300,6 +300,14 @@ shinyServer(function(input, output, session) {
     }
   })
 
+  # show help text if no random number seed is selected
+  output$help_RNG_seed_ROBMED <- renderUI({
+    if (!isTruthy(input$RNG_seed_ROBMED)) {
+      helpText("The analysis is", strong("not reproducible"),
+               "without setting a seed.")
+    }
+  })
+
   # observer to ensure that confidence level is the same as for OLS bootstrap
   observeEvent(input$level_OLS_boot, {
     updateNumericInput(session, inputId = "level_ROBMED",
@@ -427,6 +435,14 @@ shinyServer(function(input, output, session) {
       helpText("Select a dependent variable, at least one independent",
                "variable, and at least one mediator in the", em("Model"),
                "tab.")
+    }
+  })
+
+  # show help text if no random number seed is selected
+  output$help_RNG_seed_OLS_boot <- renderUI({
+    if (!isTruthy(input$RNG_seed_OLS_boot)) {
+      helpText("The analysis is", strong("not reproducible"),
+               "without setting a seed.")
     }
   })
 

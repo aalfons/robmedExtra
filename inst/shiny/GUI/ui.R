@@ -169,7 +169,7 @@ shinyUI(fluidPage(
           h2("Random number generator"),
           numericInput("RNG_seed_ROBMED", "Seed",
                        value = get_default_seed()),
-          # TODO: show help text about reproducibility if seed is not set
+          uiOutput("help_RNG_seed_ROBMED"),
           textInput(inputId = "RNG_version_ROBMED", "Version",
                     value = as.character(getRversion())),
           # TODO: if not set, show help text that setting the version increases
@@ -220,7 +220,7 @@ shinyUI(fluidPage(
           h2("Random number generator"),
           numericInput("RNG_seed_OLS_boot", "Seed",
                        value = get_default_seed()),
-          # TODO: show help text about reproducibility if seed is not set
+          uiOutput("help_RNG_seed_OLS_boot"),
           textInput(inputId = "RNG_version_OLS_boot", "Version",
                     value = as.character(getRversion()))
           # TODO: if not set, show help text that setting the version increases
