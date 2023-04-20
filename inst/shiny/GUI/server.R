@@ -310,6 +310,19 @@ shinyServer(function(input, output, session) {
     }
   })
 
+  # show advanced options if selected
+  output$MM_options <- renderUI({
+    req(input$show_advanced_options)
+    div(
+      h2("MM-estimator"),
+      selectInput("efficiency", "Efficiency at normal distribution",
+                  choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85,
+                  multiple = FALSE),
+      numericInput("max_iterations", "Maximum number of iterations",
+                   value = 10000, min = 1000, step = 1000)
+    )
+  })
+
   # observer to ensure that confidence level is the same as for OLS bootstrap
   observeEvent(input$level_OLS_boot, {
     updateNumericInput(session, inputId = "level_ROBMED",
@@ -352,11 +365,14 @@ shinyServer(function(input, output, session) {
       eval(command_RNG_seed, envir = session_env)
     } else command_RNG_seed <- NULL
     # construct command for control object for MM-estimator
-    command_reg_control <- call("reg_control",
-                            efficiency = input$efficiency,
-                            max_iterations = input$max_iterations)
-    command_ctrl <- call("<-", as.name("ctrl"), command_reg_control)
-    eval(command_ctrl, envir = session_env)
+    use_control <- isTruthy(input$efficiency) && isTruthy(input$max_iterations)
+    if (use_control) {
+      command_reg_control <- call("reg_control",
+                                  efficiency = input$efficiency,
+                                  max_iterations = input$max_iterations)
+      command_ctrl <- call("<-", as.name("ctrl"), command_reg_control)
+      eval(command_ctrl, envir = session_env)
+    } else command_ctrl <- NULL
     # construct command to perform ROBMED
     m <- input$m
     covariates <- input$covariates
@@ -370,7 +386,7 @@ shinyServer(function(input, output, session) {
     command_test_mediation$level <- input$level_ROBMED
     command_test_mediation$robust <- TRUE
     if (length(m) > 1L) command_test_mediation$model = input$model
-    command_test_mediation$control <- as.name("ctrl")
+    if (use_control) command_test_mediation$control <- as.name("ctrl")
     command_robust_boot <- call("<-", as.name("robust_boot"),
                                 command_test_mediation)
     eval(command_robust_boot, envir = session_env)

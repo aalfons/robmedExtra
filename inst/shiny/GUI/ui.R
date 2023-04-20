@@ -152,13 +152,8 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
 
-          # button to perform ROBMED
-          uiOutput("button_ROBMED"),
-
-          # TODO: add a checkbox to show advanced options (MM-estimator)
-
           # options for the bootstrap confidence intervals
-          h2("Options"),
+          # h2("Options"),
           numericInput("level_ROBMED", "Confidence level", value = 0.95,
                        min = 0.9, max = 0.999, step = 0.01),
           numericInput("R_ROBMED", "Number of bootstrap samples",
@@ -176,12 +171,12 @@ shinyUI(fluidPage(
           #           value = as.character(getRversion())),
 
           # options for the MM-estimator
-          h2("MM-estimator"),
-          selectInput("efficiency", "Efficiency at normal distribution",
-                      choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85,
-                      multiple = FALSE),
-          numericInput("max_iterations", "Maximum number of iterations",
-                       value = 10000, min = 1000, step = 1000)
+          checkboxInput("show_advanced_options", "Show advanced options",
+                        value = FALSE),
+          uiOutput("MM_options"),
+
+          # button to perform ROBMED
+          uiOutput("button_ROBMED")
 
         ),
         # output panel on right hand side
@@ -204,18 +199,15 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
 
-          # button to perform the OLS bootstrap
-          uiOutput("button_OLS_boot"),
-
           # options for the bootstrap confidence intervals
-          h2("Options"),
+          # h2("Options"),
           numericInput("level_OLS_boot", "Confidence level", value = 0.95,
                        min = 0.9, max = 0.999, step = 0.01),
           numericInput("R_OLS_boot", "Number of bootstrap samples",
                        value = 5000, min = 1000, step = 1000),
           numericInput("RNG_seed_OLS_boot", "Seed of the random number generator",
                        value = get_default_seed()),
-          uiOutput("help_RNG_seed_OLS_boot")
+          uiOutput("help_RNG_seed_OLS_boot"),
 
           # # options for the random number generator
           # h2("Random number generator"),
@@ -223,7 +215,10 @@ shinyUI(fluidPage(
           #              value = get_default_seed()),
           # uiOutput("help_RNG_seed_OLS_boot"),
           # textInput(inputId = "RNG_version_OLS_boot", "Version",
-          #           value = as.character(getRversion()))
+          #           value = as.character(getRversion())),
+
+          # button to perform the OLS bootstrap
+          uiOutput("button_OLS_boot")
 
         ),
         # output panel on right hand side
