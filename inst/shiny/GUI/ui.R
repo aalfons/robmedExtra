@@ -258,9 +258,12 @@ shinyUI(fluidPage(
 
           # inputs for exporting diagnostic plot
           h2("Diagnostic Plot"),
-          radioButtons("file_type", "File type",
-                       choices = c("pdf", "png"),
-                       selected = "pdf"),
+          # radioButtons("file_type", "File type",
+          #              choices = c("pdf", "png"),
+          #              selected = "pdf"),
+          checkboxGroupInput("file_type", "File type",
+                             choices = c("pdf", "png"),
+                             selected = c("pdf", "png")),
           radioButtons("units", "Unit of width and height",
                        choices = c("cm", "inches"),
                        selected = "cm"),

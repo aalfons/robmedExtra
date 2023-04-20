@@ -530,7 +530,7 @@ shinyServer(function(input, output, session) {
       # show the button if ROBMED or OLS bootstrap have been run
       actionButton("generate_table", "Generate")
     } else {
-      # otherwise show help text that variables need to be selected
+      # otherwise show help text that a method needs to be run
       helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
     }
   })
@@ -569,7 +569,7 @@ shinyServer(function(input, output, session) {
 
   # create UI input for orientation of the table
   output$select_resolution <- renderUI({
-    if (input$file_type == "png") {
+    if ("png" %in% input$file_type) {
       numericInput("resolution", "Resolution (pixels per inch)",
                    value = 300, min = 0, step = 50)
     }
@@ -578,10 +578,16 @@ shinyServer(function(input, output, session) {
   # create UI button to preview the diagnostic plot
   output$button_plot <- renderUI({
     if (isTruthy(commands$ROBMED)) {
-      # show the button if ROBMED has been run
-      actionButton("preview_plot", "Preview")
+      # ROBMED has been run
+      if (isTruthy(input$file_type)) {
+        # show button if at least one file type is selected
+        actionButton("preview_plot", "Preview")
+      } else {
+        # otherwise show help text to select file type
+        helpText("Select at least one file type.")
+      }
     } else {
-      # otherwise show help text that variables need to be selected
+      # otherwise show help text that ROBMED needs to be run
       helpText("Run ROBMED in the respective tab.")
     }
   })
@@ -603,8 +609,6 @@ shinyServer(function(input, output, session) {
 
   # observer for button to preview the plot
   observeEvent(input$preview_plot, {
-    # construct file name
-    file_name <- paste("diagnostic_plot", input$file_type, sep = ".")
     # extract and convert some inputs
     width <- input$width
     height <- input$height
@@ -615,19 +619,23 @@ shinyServer(function(input, output, session) {
       width <- width / 2.54
       height <- height / 2.54
     }
+    # construct template for file name
+    file_name <- "diagnostic_plot.%s"
     # construct command for opening the graphics device
-    if (input$file_type == "pdf") {
+    if ("pdf" %in% input$file_type) {
       # construct command
-      command_device <- call("pdf", file = file_name, width = width,
-                             height = height)
-    } else {
+      command_pdf <- call("pdf", file = sprintf(file_name, "pdf"),
+                          width = width, height = height)
+    } else command_pdf <- NULL
+    if ("png" %in% input$file_type) {
       # construct command
-      command_device <- call("png", file = file_name, width = input$width,
-                             height = input$height, units = units,
-                             res = input$resolution)
-    }
+      command_png <- call("png", file = sprintf(file_name, "png"),
+                          width = input$width, height = input$height,
+                          units = units, res = input$resolution)
+    } else command_png <- NULL
     # update reactive value with commands to create file containing plot
-    commands_plot <- list(open = command_device,
+    commands_plot <- list(pdf = command_pdf,
+                          png = command_png,
                           generate = call("print", as.name("p")),
                           close = call("dev.off"))
     attr(commands_plot, "time_stamp") <- Sys.time()
@@ -657,13 +665,15 @@ shinyServer(function(input, output, session) {
 
   # show diagnostic plot for ROBMED in main panel
   output$plot_preview_header <- renderUI({
-    req(values$width, values$height)
-    h2("File preview for diagnostic plot")
+    req(input$file_type, values$width, values$height)
+    div(
+      h2("File preview for diagnostic plot"),
+      helpText("The size shown here depends on the resolution of the browser",
+               "and may differ from the size of the file to be generated.")
+    )
   })
-  # Note: The size in the shiny app may vary due to the resolution of the
-  #       browser/monitor, but the proportions and size of the annotations
-  #       relatively to the plot size should be fine.
   output$plot_preview <- renderPlot({
+    req(input$file_type)
     get("p", envir = session_env)
   }, width = function() {
     req(values$width)
