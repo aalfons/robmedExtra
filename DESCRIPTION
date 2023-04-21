@@ -2,19 +2,17 @@ Package: robmedExtra
 Type: Package
 Title: Extra Functionality for (Robust) Mediation Analysis
 Version: 0.1.0
-Date: 2022-10-20
+Date: 2023-04-21
 Depends:
     robmed (>= 0.10.0)
 Imports:
     shiny (>= 1.1.0),
-    shinythemes,
     DT,
     flextable,
     ggplot2 (>= 3.3.0),
     graphics,
     officer,
-    stats,
-    vroom
+    stats
 Description: This companion package extends package 'robmed' (Alfons, Ates & Groenen, 2022b; <doi:10.18637/jss.v103.i13>) in various ways.  Most notably, it provides a graphical user interface for the robust bootstrap test ROBMED (Alfons, Ates & Groenen, 2022a; <doi:10.1177/1094428121999096>) to make the method more accessible to less proficient R users, as well as a function to export the results as a Microsoft Word table. Furthermore, the package contains a shiny app to compare various bootstrap procedures for mediation analysis on simulated data.
 License: GPL (>= 3)
 URL: https://github.com/aalfons/robmedExtra
