@@ -158,12 +158,7 @@ shinyServer(function(input, output, session) {
     # make sure that the separate environment is empty
     rm(list = ls(envir = session_env, all.names = TRUE), envir = session_env)
     # check if a data frame is selected
-    if (is.null(df_name) || df_name == "") {
-      # reset relevant reactive values
-      values$df_name <- NULL
-      values$variables <- character()
-      values$numeric_variables <- character()
-    } else {
+    if (isTruthy(df_name)) {
       # obtain data frame for the source environment
       df <- get(df_name, envir = source_env)
       # make sure that column names are unique
@@ -178,9 +173,16 @@ shinyServer(function(input, output, session) {
         numeric_variables <- variables[is_numeric]
       }
       # update relevant reactive values
+      commands$data <- call("load", paste(df_name, "RData", sep = "."))
       values$df_name <- df_name
       values$variables <- variables
       values$numeric_variables <- numeric_variables
+    } else {
+      # reset relevant reactive values
+      commands$data <- NULL
+      values$df_name <- NULL
+      values$variables <- character()
+      values$numeric_variables <- character()
     }
     # clean up reactive values for commands and plot preview
     commands$ROBMED <- NULL
@@ -196,9 +198,8 @@ shinyServer(function(input, output, session) {
 
   # show data frame in main panel
   output$data_table <- DT::renderDataTable({
-    df_name <- values$df_name
-    if (is.null(df_name)) data.frame()
-    else get(df_name, envir = session_env)
+    req(values$df_name)
+    get(values$df_name, envir = session_env)
   })
 
 
@@ -206,7 +207,7 @@ shinyServer(function(input, output, session) {
 
   # create UI element to show help text
   output$help_data <- renderUI({
-    if (is.null(values$df_name)) {
+    if (!isTruthy(values$df_name)) {
       # if applicable, show help text that data frame needs to be selected
       helpText("Select a data frame in the", em("Data"), "tab.")
     }
@@ -350,9 +351,8 @@ shinyServer(function(input, output, session) {
   # observer for button to run ROBMED
   observeEvent(input$run_ROBMED, {
     # construct command to set the seed of the random number generator
-    seed <- input$seed_ROBMED
-    if (isTruthy(seed)) {
-      command_seed <- call("set.seed", seed)
+    if (isTruthy(input$seed_ROBMED)) {
+      command_seed <- call("set.seed", input$seed_ROBMED)
       eval(command_seed, envir = session_env)
     } else command_seed <- NULL
     # construct command for control object for MM-estimator
@@ -365,18 +365,18 @@ shinyServer(function(input, output, session) {
       eval(command_ctrl, envir = session_env)
     } else command_ctrl <- NULL
     # construct command to perform ROBMED
-    m <- input$m
-    covariates <- input$covariates
     command_test_mediation <- call("test_mediation",
                                    as.name(values$df_name),
                                    x = input$x,
                                    y = input$y,
                                    m = input$m)
-    if (length(covariates) > 0L) command_test_mediation$covariates <- covariates
+    if (length(input$covariates) > 0L) {
+      command_test_mediation$covariates <- input$covariates
+    }
     command_test_mediation$R <- input$R_ROBMED
     command_test_mediation$level <- input$level_ROBMED
     command_test_mediation$robust <- TRUE
-    if (length(m) > 1L) command_test_mediation$model = input$model
+    if (length(input$m) > 1L) command_test_mediation$model = input$model
     if (use_control) command_test_mediation$control <- as.name("ctrl")
     command_robust_boot <- call("<-", as.name("robust_boot"),
                                 command_test_mediation)
@@ -393,8 +393,7 @@ shinyServer(function(input, output, session) {
     command_p <- call("<-", as.name("p"), command_plot)
     eval(command_p, envir = session_env)
     # update reactive value with list of commands to perform ROBMED
-    commands_ROBMED <- list(#RNG_version = command_RNG_version,
-                            seed = command_seed,
+    commands_ROBMED <- list(seed = command_seed,
                             control = command_ctrl,
                             mediation = command_robust_boot,
                             summary = command_summary,
@@ -478,31 +477,29 @@ shinyServer(function(input, output, session) {
   # observer for button to run the OLS bootstrap
   observeEvent(input$run_OLS_boot, {
     # construct command to set the seed of the random number generator
-    seed <- input$seed_OLS_boot
-    if (isTruthy(seed)) {
-      command_seed <- call("set.seed", seed)
+    if (isTruthy(input$seed_OLS_boot)) {
+      command_seed <- call("set.seed", input$seed_OLS_boot)
       eval(command_seed, envir = session_env)
     } else command_seed <- NULL
     # construct command to perform the OLS bootstrap
-    m <- input$m
-    covariates <- input$covariates
     command_test_mediation <- call("test_mediation",
                                    as.name(values$df_name),
                                    x = input$x,
                                    y = input$y,
                                    m = input$m)
-    if (length(covariates) > 0L) command_test_mediation$covariates <- covariates
+    if (length(input$covariates) > 0L) {
+      command_test_mediation$covariates <- input$covariates
+    }
     command_test_mediation$R <- input$R_OLS_boot
     command_test_mediation$level <- input$level_OLS_boot
     command_test_mediation$robust <- FALSE
-    if (length(m) > 1L) command_test_mediation$model = input$model
+    if (length(input$m) > 1L) command_test_mediation$model = input$model
     command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
     eval(command_ols_boot, envir = session_env)
     # construct command to show summary
     command_summary <- call("summary", as.name("ols_boot"))
     # update reactive value with list of commands to perform the OLS bootstrap
-    commands_OLS_boot <- list(#RNG_version = command_RNG_version,
-                              seed = command_seed,
+    commands_OLS_boot <- list(seed = command_seed,
                               mediation = command_ols_boot,
                               summary = command_summary)
     attr(commands_OLS_boot, "time_stamp") <- Sys.time()
