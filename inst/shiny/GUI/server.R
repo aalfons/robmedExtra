@@ -623,6 +623,17 @@ shinyServer(function(input, output, session) {
 
   ## update inputs for the 'Export' tab
 
+  # create UI button to export files
+  output$button_export <- renderUI({
+    if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
+      # show the button if ROBMED or OLS bootstrap have been run
+      actionButton("export_files", "Export files")
+    } else {
+      # otherwise show help text that a method needs to be run
+      helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
+    }
+  })
+
   # create UI input for orientation of the table
   output$select_orientation <- renderUI({
     # show the input if both ROBMED and OLS bootstrap have been run
@@ -636,7 +647,7 @@ shinyServer(function(input, output, session) {
   output$button_table <- renderUI({
     if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
       # show the button if ROBMED or OLS bootstrap have been run
-      actionButton("generate_table", "Generate")
+      actionButton("preview_table", "Preview")
     } else {
       # otherwise show help text that a method needs to be run
       helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
@@ -644,7 +655,7 @@ shinyServer(function(input, output, session) {
   })
 
   # observer for button to preview the table
-  observeEvent(input$generate_table, {
+  observeEvent(input$preview_table, {
     # initializations
     have_ROBMED <- isTruthy(commands$ROBMED)
     have_OLS_boot <- isTruthy(commands$OLS_boot)

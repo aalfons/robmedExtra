@@ -221,6 +221,9 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
 
+          # button to export files
+          uiOutput("button_export"),
+
           # inputs for exporting table
           h2("Table"),
           sliderInput("digits", "Number of digits after decimal point",
