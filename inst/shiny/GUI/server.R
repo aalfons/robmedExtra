@@ -16,8 +16,87 @@ library("robmedExtra")
 
 # Internal functions -----
 
+# function to get the names of data frames in a given environment
+get_data_frames <- function(env = .GlobalEnv) {
+  is_df <- sapply(env, is.data.frame, simplify = TRUE, USE.NAMES = TRUE)
+  if (any(is_df)) names(is_df)[is_df]
+  else character()
+}
+
+# function to construct commands for flextable
+get_flextable_commands <- function(input, commands) {
+  # initializations
+  have_ROBMED <- isTruthy(commands$ROBMED)
+  have_OLS_boot <- isTruthy(commands$OLS_boot)
+  # construct command to generate the flextable
+  if (have_ROBMED && have_OLS_boot) {
+    command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
+    command_to_flextable <- call("to_flextable", command_list,
+                                 orientation = input$orientation,
+                                 p_value = input$p_value,
+                                 digits = input$digits)
+  } else if (have_ROBMED) {
+    command_to_flextable <- call("to_flextable", as.name("robust_boot"),
+                                 p_value = input$p_value,
+                                 digits = input$digits)
+  } else if (have_OLS_boot) {
+    command_to_flextable <- call("to_flextable", as.name("ols_boot"),
+                                 p_value = input$p_value,
+                                 digits = input$digits)
+  }
+  command_ft <- call("<-", as.name("ft"), command_to_flextable)
+  # construct command to export the flextable to Microsoft Word document
+  command_export <- call("export_docx", as.name("ft"), file = "table.docx")
+  # return list of commands to generate and export the flextable
+  commands_flextable <- list(generate = command_ft,
+                             export = command_export)
+  attr(commands_flextable, "time_stamp") <- Sys.time()
+  commands_flextable
+}
+
+# function to construct commands for diagnostic plot
+# (as well as values for plot dimensions)
+get_plot_commands <- function(input, commands) {
+  # extract and convert some inputs
+  width <- input$width
+  height <- input$height
+  units <- input$units
+  if (units == "inches") units <- "in"
+  else {
+    # convert width and height to inches
+    width <- width / 2.54
+    height <- height / 2.54
+  }
+  # construct template for file name
+  file_name <- "diagnostic_plot.%s"
+  # construct command for opening the graphics device
+  if ("pdf" %in% input$file_type) {
+    # construct command
+    command_pdf <- call("pdf", file = sprintf(file_name, "pdf"),
+                        width = width, height = height)
+  } else command_pdf <- NULL
+  if ("png" %in% input$file_type) {
+    # construct command
+    command_png <- call("png", file = sprintf(file_name, "png"),
+                        width = input$width, height = input$height,
+                        units = units, res = input$resolution)
+  } else command_png <- NULL
+  # construct list of commands to export the diagnostic plot
+  commands_plot <- list(pdf = command_pdf,
+                        png = command_png,
+                        generate = call("print", as.name("p")),
+                        close = call("dev.off"))
+  attr(commands_plot, "time_stamp") <- Sys.time()
+  # construct list with plot dimensions
+  values_plot <- list(width = width, height = height)
+  # return list with commands to export plot and values for plot dimensions
+  list(commands = commands_plot, values = values_plot)
+}
+
 # wrapper function to deparse command with certain arguments
 deparse_command <- function(expr) {
+  # TODO: replace this with something that produces nicer looking code
+  #       (e.g., formatR::tidy_source() or something from package 'styler')
   deparse(expr, width.cutoff = 80L, backtick = FALSE, control = "niceNames")
 }
 
@@ -31,9 +110,9 @@ generate_replication_script <- function(commands, file) {
   have_OLS_boot <- !is.null(commands_OLS_boot)
   commands_flextable <- commands$flextable
 
-  # construct vector containing lines to apply ROBMED
+  # construct vector containing lines to apply ROBMED and export diagnostic plot
   if (have_ROBMED) {
-    commands_plot <- commands$plot
+    # construct vector containing lines to apply ROBMED
     lines_ROBMED <- c(
       "",
       if (!is.null(commands_ROBMED$seed)) {
@@ -48,21 +127,30 @@ generate_replication_script <- function(commands, file) {
       "# show a summary of the results",
       deparse_command(commands_ROBMED$summary),
       "# generate the diagnostic plot",
-      deparse_command(commands_ROBMED$plot),
+      deparse_command(commands_ROBMED$plot)
+    )
+    # construct vector containing lines to export diagnostic plot
+    commands_plot <- commands$plot
+    lines_plot <- c(
       if (!is.null(commands_plot$pdf)) {
-        c("# generate a pdf file containing the diagnostic plot",
+        c("",
+          "# generate a pdf file containing the diagnostic plot for ROBMED",
           deparse_command(commands_plot$pdf),
           deparse_command(commands_plot$generate),
           deparse_command(commands_plot$close))
       },
       if (!is.null(commands_plot$png)) {
-        c("# generate a png image containing the diagnostic plot",
+        c("",
+          "# generate a png image containing the diagnostic plot for ROBMED",
           deparse_command(commands_plot$png),
           deparse_command(commands_plot$generate),
           deparse_command(commands_plot$close))
       }
     )
-  } else lines_ROBMED <- NULL
+  } else {
+    lines_ROBMED <- NULL
+    lines_plot <- NULL
+  }
 
   # construct vector containing lines to apply the OLS bootstrap
   if (have_OLS_boot) {
@@ -100,11 +188,15 @@ generate_replication_script <- function(commands, file) {
     "",
     "# set version of the random number generator to improve future reproducibility",
     deparse_command(commands$RNG),
+    "",
+    "# load data",
+    deparse_command(commands$data$load),
     lines_methods,
     "",
     "# export a table of results to Microsoft Word",
     deparse_command(commands_flextable$generate),
-    deparse_command(commands_flextable$export)
+    deparse_command(commands_flextable$export),
+    lines_plot
   )
 
   # write lines of replication script to file
@@ -118,18 +210,12 @@ generate_replication_script <- function(commands, file) {
 #' @import shiny
 #' @importFrom DT renderDataTable
 #' @importFrom flextable htmltools_value
+#' @importFrom utils zip
 #' @import robmed
 
 shinyServer(function(input, output, session) {
 
   ## Define relevant objects and reactive expressions -----
-
-  # function to get the names of data frames in a given environment
-  get_data_frames <- function(env = .GlobalEnv) {
-    is_df <- sapply(env, is.data.frame, simplify = TRUE, USE.NAMES = TRUE)
-    if (any(is_df)) names(is_df)[is_df]
-    else character()
-  }
 
   # check if there are any data frames in global environment
   df_global <- get_data_frames()
@@ -271,8 +357,12 @@ shinyServer(function(input, output, session) {
         is_numeric <- sapply(df, is.numeric)
         numeric_variables <- variables[is_numeric]
       }
+      # construct commands to save and load the data
+      RData_file <- paste(df_name, "RData", sep = ".")
+      command_save <- call("save", as.name(df_name), file = RData_file)
+      command_load <- call("load", RData_file)
       # update relevant reactive values
-      commands$data <- call("load", paste(df_name, "RData", sep = "."))
+      commands$data <- list(save = command_save, load = command_load)
       values$df_name <- df_name
       values$variables <- variables
       values$numeric_variables <- numeric_variables
@@ -625,9 +715,18 @@ shinyServer(function(input, output, session) {
 
   # create UI button to export files
   output$button_export <- renderUI({
-    if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
-      # show the button if ROBMED or OLS bootstrap have been run
-      actionButton("export_files", "Export files")
+    if (isTruthy(commands$ROBMED)) {
+      # ROBMED has been run
+      if (isTruthy(input$file_type)) {
+        # show button if at least one file type is selected
+        downloadButton("export_files", "Export files")
+      } else {
+        # otherwise show help text to select file type
+        helpText("Select at least one file type for the diagnostic plot.")
+      }
+    } else if (isTruthy(commands$OLS_boot)) {
+      # OLS bootstrap has been run
+      downloadButton("export_files", "Export files")
     } else {
       # otherwise show help text that a method needs to be run
       helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
@@ -656,33 +755,11 @@ shinyServer(function(input, output, session) {
 
   # observer for button to preview the table
   observeEvent(input$preview_table, {
-    # initializations
-    have_ROBMED <- isTruthy(commands$ROBMED)
-    have_OLS_boot <- isTruthy(commands$OLS_boot)
-    # construct command to generate the flextable
-    if (have_ROBMED && have_OLS_boot) {
-      command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
-      command_to_flextable <- call("to_flextable", command_list,
-                                   orientation = input$orientation,
-                                   p_value = input$p_value,
-                                   digits = input$digits)
-    } else if (have_ROBMED) {
-      command_to_flextable <- call("to_flextable", as.name("robust_boot"),
-                                   p_value = input$p_value,
-                                   digits = input$digits)
-    } else if (have_OLS_boot) {
-      command_to_flextable <- call("to_flextable", as.name("ols_boot"),
-                                   p_value = input$p_value,
-                                   digits = input$digits)
-    }
-    command_ft <- call("<-", as.name("ft"), command_to_flextable)
-    eval(command_ft, envir = session_env)
-    # construct command to export the flextable to Microsoft Word document
-    command_export <- call("export_docx", as.name("ft"), file = "table.docx")
-    # update reactive value with commands to generate and export the flextable
-    commands_flextable <- list(generate = command_ft,
-                               export = command_export)
-    attr(commands_flextable, "time_stamp") <- Sys.time()
+    # obtain commands to generate and export flextable
+    commands_flextable <- get_flextable_commands(input, commands)
+    # evaluate command to generate the flextable
+    eval(commands_flextable$generate, envir = session_env)
+    # update reactive value with commands to trigger table preview
     commands$flextable <- commands_flextable
   })
 
@@ -728,49 +805,88 @@ shinyServer(function(input, output, session) {
 
   # observer for button to preview the plot
   observeEvent(input$preview_plot, {
-    # extract and convert some inputs
-    width <- input$width
-    height <- input$height
-    units <- input$units
-    if (units == "inches") units <- "in"
-    else {
-      # convert width and height to inches
-      width <- width / 2.54
-      height <- height / 2.54
-    }
-    # construct template for file name
-    file_name <- "diagnostic_plot.%s"
-    # construct command for opening the graphics device
-    if ("pdf" %in% input$file_type) {
-      # construct command
-      command_pdf <- call("pdf", file = sprintf(file_name, "pdf"),
-                          width = width, height = height)
-    } else command_pdf <- NULL
-    if ("png" %in% input$file_type) {
-      # construct command
-      command_png <- call("png", file = sprintf(file_name, "png"),
-                          width = input$width, height = input$height,
-                          units = units, res = input$resolution)
-    } else command_png <- NULL
-    # update reactive value with commands to create file containing plot
-    commands_plot <- list(pdf = command_pdf,
-                          png = command_png,
-                          generate = call("print", as.name("p")),
-                          close = call("dev.off"))
-    attr(commands_plot, "time_stamp") <- Sys.time()
-    commands$plot <- commands_plot
-    # set reactive values for preview
-    values$width <- width
-    values$height <- height
+    # obtain list with commands to export plot and values for plot dimensions
+    commands_plot <- get_plot_commands(input, commands)
+    # update reactive values to trigger file preview
+    commands$plot <- commands_plot$commands
+    values$width <- commands_plot$values$width
+    values$height <- commands_plot$values$height
   })
-
-  # TODO: perhaps export button should first run the expressions for generating
-  #       the table and the plot, create the replication script, and then save
-  #       everything in one zip-archive (also including an RData file with the
-  #       data set).
 
 
   ## Render outputs for the 'Export' tab -----
+
+  # download zip archive of all files
+  output$export_files <- downloadHandler(
+    filename = function() {
+      date <- format(Sys.Date(), "%Y-%m-%d")
+      sprintf("mediation_analysis_%s_%s.zip", values$df_name, date)
+    },
+    content = function(file) {
+      # if user didn't preview the table, then commands need to be generated
+      # FIXME: in addition to checking whether the commands exist, we also need
+      #        to check whether any inputs have changed since the preview was
+      #        generated
+      if (!isTruthy(commands$flextable)) {
+        # obtain commands to generate and export flextable
+        commands_flextable <- get_flextable_commands(input, commands)
+        # evaluate command to generate the flextable
+        eval(commands_flextable$generate, envir = session_env)
+        # update reactive value with commands to trigger table preview
+        commands$flextable <- commands_flextable
+      }
+      # obtain list with commands to export plot and values for plot dimensions
+      commands_plot <- get_plot_commands(input, commands)
+      # update reactive values to trigger file preview
+      commands$plot <- commands_plot$commands
+      values$width <- commands_plot$values$width
+      values$height <- commands_plot$values$height
+      # switch to temporary directory to save files
+      working_directory <- setwd(tempdir())
+      on.exit(setwd(working_directory))
+      # save data set to RData file
+      RData_file <- paste(values$df_name, "RData", sep = ".")
+      command_save <- call("save", as.name(values$df_name), file = RData_file)
+      eval(commands$data$save, envir = session_env)
+      # save table to Microsoft Word document
+      eval(commands$flextable$export, envir = session_env)
+      # save diagnostic plot to file(s)
+      commands_plot <- commands$plot
+      if (isTruthy(commands_plot)) {
+        # if requested, plot to pdf file
+        command_pdf <- commands_plot$pdf
+        have_pdf <- !is.null(command_pdf)
+        if (have_pdf) {
+          eval(command_pdf, envir = session_env)
+          eval(commands_plot$generate, envir = session_env)
+          eval(commands_plot$close, envir = session_env)
+        }
+        # if requested, plot to png image
+        command_png <- commands_plot$png
+        have_png <- !is.null(command_png)
+        if (have_png) {
+          eval(command_png, envir = session_env)
+          eval(commands_plot$generate, envir = session_env)
+          eval(commands_plot$close, envir = session_env)
+        }
+      } else {
+        have_pdf <- FALSE
+        have_png <- FALSE
+      }
+      # generate replication script and save to file
+      script_file <- "replication_script.R"
+      generate_replication_script(commands, file = script_file)
+      # download zip file containing all the above files
+      files_to_zip <- c(RData_file,
+                        if (have_pdf) command_pdf$file,
+                        if (have_png) command_png$file,
+                        commands$flextable$export$file,
+                        script_file)
+      print(files_to_zip)
+      zip(zipfile = file, files = files_to_zip)
+    },
+    contentType = "application/zip"
+  )
 
   # show preview of table in main panel
   output$table_preview_header <- renderUI({
