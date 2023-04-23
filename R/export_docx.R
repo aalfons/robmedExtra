@@ -15,8 +15,6 @@ export_docx <- function(object, ...) UseMethod("export_docx")
 export_docx.flextable <- function(object, file, size = c("A4", "letter"), ...) {
   # initializations
   size <- match.arg(size)
-  have_landscape <- inherits(object, "mediation_flextable") &&
-    !is.null(object$orientation) && object$orientation == "landscape"
   # define page size (in inches)
   if (size == "A4") {
     width <- 210 / 25.4
@@ -29,8 +27,8 @@ export_docx.flextable <- function(object, file, size = c("A4", "letter"), ...) {
   # mode, make sure that the document is in landscape mode as well
   if (inherits(object, "mediation_flextable")) {
     orientation <- object$orientation
-    if (is.null(orientation)) orientation <- "landscape"
-  } else orientation <- "landscape"
+    if (is.null(orientation)) orientation <- "portrait"
+  } else orientation <- "portrait"
   # create object specifying document properties
   properties <- properties_section(width = width, height = height,
                                    orientation = orientation, ...)
