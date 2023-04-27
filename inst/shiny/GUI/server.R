@@ -16,6 +16,7 @@ library("robmedExtra")
 
 # Internal functions -----
 
+
 # function to get the names of data frames in a given environment
 get_data_frames <- function(env = .GlobalEnv) {
   is_df <- sapply(env, is.data.frame, simplify = TRUE, USE.NAMES = TRUE)
@@ -23,75 +24,263 @@ get_data_frames <- function(env = .GlobalEnv) {
   else character()
 }
 
-# function to construct commands for flextable
-get_flextable_commands <- function(input, commands) {
-  # initializations
-  have_ROBMED <- isTruthy(commands$ROBMED)
-  have_OLS_boot <- isTruthy(commands$OLS_boot)
-  # construct command to generate the flextable
-  if (have_ROBMED && have_OLS_boot) {
-    command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
-    command_to_flextable <- call("to_flextable", command_list,
-                                 orientation = input$orientation,
-                                 p_value = input$p_value,
-                                 digits = input$digits)
-  } else if (have_ROBMED) {
-    command_to_flextable <- call("to_flextable", as.name("robust_boot"),
-                                 p_value = input$p_value,
-                                 digits = input$digits)
-  } else if (have_OLS_boot) {
-    command_to_flextable <- call("to_flextable", as.name("ols_boot"),
-                                 p_value = input$p_value,
-                                 digits = input$digits)
-  }
-  command_ft <- call("<-", as.name("ft"), command_to_flextable)
-  # construct command to export the flextable to Microsoft Word document
-  command_export <- call("export_docx", as.name("ft"), file = "table.docx")
-  # return list of commands to generate and export the flextable
-  commands_flextable <- list(generate = command_ft,
-                             export = command_export)
-  attr(commands_flextable, "time_stamp") <- Sys.time()
-  commands_flextable
+
+# function to create a help text element
+# This is defined to have more control over the style compared to the built-in
+# function shiny::helpText(). In particular, we can make sure that the color is
+# matched in function get_label() and that the the to and bottom margins are
+# matched in function error_message().
+help_text <- function(...) {
+  # FIXME: this is hard-coded to be the same as CSS class "help-block" in
+  #        bootstrap theme
+  css <- "color: #737373; display: block; margin-top: 5px; margin-bottom: 10px;"
+  span(style = css, ...)
 }
 
-# function to construct commands for diagnostic plot
-# (as well as values for plot dimensions)
-get_plot_commands <- function(input, commands) {
-  # extract and convert some inputs
-  width <- input$width
-  height <- input$height
-  units <- input$units
-  if (units == "inches") units <- "in"
-  else {
-    # convert width and height to inches
-    width <- width / 2.54
-    height <- height / 2.54
-  }
-  # construct template for file name
-  file_name <- "diagnostic_plot.%s"
-  # construct command for opening the graphics device
-  if ("pdf" %in% input$file_type) {
-    # construct command
-    command_pdf <- call("pdf", file = sprintf(file_name, "pdf"),
-                        width = width, height = height)
-  } else command_pdf <- NULL
-  if ("png" %in% input$file_type) {
-    # construct command
-    command_png <- call("png", file = sprintf(file_name, "png"),
-                        width = input$width, height = input$height,
-                        units = units, res = input$resolution)
-  } else command_png <- NULL
-  # construct list of commands to export the diagnostic plot
-  commands_plot <- list(pdf = command_pdf,
-                        png = command_png,
-                        generate = call("print", as.name("p")),
-                        close = call("dev.off"))
-  attr(commands_plot, "time_stamp") <- Sys.time()
-  # construct list with plot dimensions
-  values_plot <- list(width = width, height = height)
-  # return list with commands to export plot and values for plot dimensions
-  list(commands = commands_plot, values = values_plot)
+# function to create an error text element
+error_text <- function(...) {
+  # FIXME: color is hard-coded to be the same as in error messages in
+  #        bootstrap theme
+  css <- "color: #a94442; display: block; margin-top: 5px; margin-bottom: 10px;"
+  span(style = css, ...)
 }
+
+
+# generic function to show errors as (list of) text elements
+show_errors <- function(errors) UseMethod("show_errors")
+
+# the default method is intended for a character vector
+show_errors.default <- function(errors) {
+  # call error_text() with vector elements as different arguments
+  if (length(errors) > 1L) do.call(error_text, as.list(errors))
+  else error_text(errors)
+}
+
+# for a list of error messages, call the method for each list element
+show_errors.list <- function(errors) {
+  if (length(errors) == 1L) show_errors(errors[[1L]])
+  else do.call(tagList, lapply(errors, show_errors))
+}
+
+
+# function to generate error message for missing variable selection
+get_variable_selection_error <- function(have_y, have_x, have_m) {
+  # define pieces of text for missing variable selection
+  text_y <- if (!have_y) "a dependent variable"
+  text_x <- if (!have_x) "at least one independent variable"
+  text_m <- if (!have_m) "at least one mediator"
+  # put text for missing variable selection together
+  n_yx <- sum(have_y, have_x)
+  if (n_yx == 2L) text_select <- text_m
+  else {
+    text_yx <- paste(c(text_y, text_x), collapse = ", ")
+    sep <- if (n_yx == 1L) " and " else ", and"
+    text_select <- paste(c(text_yx, text_m), collapse = sep)
+  }
+  # put everything into a nice message
+  error <- paste("Select", text_select, "in the <em>Model</em> tab.")
+  # mark error message as HTML
+  HTML(error)
+}
+
+# # function to construct commands for flextable
+# get_flextable_commands <- function(input, commands) {
+#   # initializations
+#   have_ROBMED <- isTruthy(commands$ROBMED)
+#   have_OLS_boot <- isTruthy(commands$OLS_boot)
+#   # construct command to generate the flextable
+#   if (have_ROBMED && have_OLS_boot) {
+#     command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
+#     command_to_flextable <- call("to_flextable", command_list,
+#                                  orientation = input$orientation,
+#                                  p_value = input$p_value,
+#                                  digits = input$digits)
+#   } else if (have_ROBMED) {
+#     command_to_flextable <- call("to_flextable", as.name("robust_boot"),
+#                                  p_value = input$p_value,
+#                                  digits = input$digits)
+#   } else if (have_OLS_boot) {
+#     command_to_flextable <- call("to_flextable", as.name("ols_boot"),
+#                                  p_value = input$p_value,
+#                                  digits = input$digits)
+#   }
+#   command_ft <- call("<-", as.name("ft"), command_to_flextable)
+#   # construct command to export the flextable to Microsoft Word document
+#   command_export <- call("export_docx", as.name("ft"), file = "table.docx")
+#   # return list of commands to generate and export the flextable
+#   commands_flextable <- list(generate = command_ft,
+#                              export = command_export)
+#   attr(commands_flextable, "time_stamp") <- Sys.time()
+#   commands_flextable
+# }
+#
+#
+
+
+# function to prepare export or preview of the table
+# It returns a list with some of the following components:
+# commands ... list of commands to generate the table
+# values ..... list containing the options for the table
+# errors ..... (list of) error messages to be displayed
+prepare_table <- function(input, commands, values) {
+  # initializations
+  have_ROBMED <- isTruthy(commands$ROBMED) && isTruthy(values$ROBMED)
+  have_OLS_boot <- isTruthy(commands$OLS_boot) && isTruthy(values$OLS_boot)
+  have_both <- have_ROBMED && have_OLS_boot
+  # check if we can generate the table
+  if (!have_ROBMED && !have_OLS_boot) {
+    # neither ROBMED nor the OLS bootstrap have been run
+    commands_table <- NULL
+    values_table <- NULL
+    errors_table <- list(
+      preview_table = "Run ROBMED or the OLS bootstrap in the respective tabs."
+    )
+  } else if (have_both && !identical(values$ROBMED, values$OLS_boot)) {
+    # both ROBMED and the OLS bootstrap have been run but with different options
+    commands_table <- NULL
+    values_table <- NULL
+    errors_table <- list(
+      preview_table = c("ROBMED and the OLS bootstrap use different options.",
+                        "Re-run the methods with the same options.")
+    )
+  } else {
+    # construct command to generate the flextable
+    if (have_both) {
+      command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
+      command_to_flextable <- call("to_flextable", command_list,
+                                   orientation = input$orientation,
+                                   p_value = input$p_value,
+                                   digits = input$digits)
+    } else if (have_ROBMED) {
+      command_to_flextable <- call("to_flextable", as.name("robust_boot"),
+                                   p_value = input$p_value,
+                                   digits = input$digits)
+    } else if (have_OLS_boot) {
+      command_to_flextable <- call("to_flextable", as.name("ols_boot"),
+                                   p_value = input$p_value,
+                                   digits = input$digits)
+    }
+    command_ft <- call("<-", as.name("ft"), command_to_flextable)
+    # construct command to export the flextable to Microsoft Word document
+    command_export <- call("export_docx", as.name("ft"), file = "table.docx")
+    # return list of commands to generate and export the flextable
+    commands_table <- list(generate = command_ft,
+                           export = command_export)
+    attr(commands_table, "time_stamp") <- Sys.time()
+    # construct list of options
+    values_table <- list(digits = input$digits, p_value = input$p_value,
+                         orientation = if (have_both) input$orientation)
+    # indicate that there are no errors
+    errors_table <- NULL
+  }
+  # return list
+  list(commands = commands_table, values = values_table, errors = errors_table)
+}
+
+
+# # function to construct commands for diagnostic plot
+# # (as well as values for plot dimensions)
+# get_plot_commands <- function(input, commands) {
+#   # extract and convert some inputs
+#   width <- input$width
+#   height <- input$height
+#   units <- input$units
+#   if (units == "inches") units <- "in"
+#   else {
+#     # convert width and height to inches
+#     width <- width / 2.54
+#     height <- height / 2.54
+#   }
+#   # construct template for file name
+#   file_name <- "diagnostic_plot.%s"
+#   # construct command for opening the graphics device
+#   if ("pdf" %in% input$file_type) {
+#     # construct command
+#     command_pdf <- call("pdf", file = sprintf(file_name, "pdf"),
+#                         width = width, height = height)
+#   } else command_pdf <- NULL
+#   if ("png" %in% input$file_type) {
+#     # construct command
+#     command_png <- call("png", file = sprintf(file_name, "png"),
+#                         width = input$width, height = input$height,
+#                         units = units, res = input$resolution)
+#   } else command_png <- NULL
+#   # construct list of commands to export the diagnostic plot
+#   commands_plot <- list(pdf = command_pdf,
+#                         png = command_png,
+#                         generate = call("print", as.name("p")),
+#                         close = call("dev.off"))
+#   attr(commands_plot, "time_stamp") <- Sys.time()
+#   # construct list with plot dimensions
+#   values_plot <- list(width = width, height = height)
+#   # return list with commands to export plot and values for plot dimensions
+#   list(commands = commands_plot, values = values_plot)
+# }
+
+
+# function to prepare export or preview of the diagnostic plot
+# (as specified by argument 'preview')
+# It returns a list with some of the following components:
+# commands ... list of commands to generate files containing the plot
+#              (only if preview = FALSE)
+# values ..... list containing the width and height of the plot in inches
+# errors ..... (list of) error messages to be displayed
+prepare_plot <- function(input, commands, values, preview = FALSE) {
+  # check if file type has been selected and ROBMED has been run
+  have_file_type <- isTruthy(input$file_type)
+  have_ROBMED <- isTruthy(commands$ROBMED) && isTruthy(values$ROBMED)
+  if (have_file_type && have_ROBMED) {
+    # extract and convert some inputs
+    width <- input$width
+    height <- input$height
+    units <- input$units
+    if (units == "inches") units <- "in"
+    else {
+      # convert width and height to inches
+      width <- width / 2.54
+      height <- height / 2.54
+    }
+    # if relevant, construct list of commands to export the diagnostic plot
+    if (preview) commands_plot <- NULL
+    else {
+      # construct template for file name
+      file_name <- "diagnostic_plot.%s"
+      # construct command for opening the graphics device
+      if ("pdf" %in% input$file_type) {
+        # construct command
+        command_pdf <- call("pdf", file = sprintf(file_name, "pdf"),
+                            width = width, height = height)
+      } else command_pdf <- NULL
+      if ("png" %in% input$file_type) {
+        # construct command
+        command_png <- call("png", file = sprintf(file_name, "png"),
+                            width = input$width, height = input$height,
+                            units = units, res = input$resolution)
+      } else command_png <- NULL
+      # construct list of commands to export the diagnostic plot
+      commands_plot <- list(pdf = command_pdf,
+                            png = command_png,
+                            generate = call("print", as.name("p")),
+                            close = call("dev.off"))
+      attr(commands_plot, "time_stamp") <- Sys.time()
+    }
+    # construct list with plot dimensions
+    values_plot <- list(width = width, height = height)
+    # indicate that there are no errors
+    errors_plot <- NULL
+  } else {
+    # construct error messages
+    commands_plot <- NULL
+    values_plot <- NULL
+    errors_plot <- list(
+      file_type = if (!have_file_type) "Select at least one file type",
+      preview_plot = if (!have_ROBMED) "Run ROBMED in the respective tab."
+    )
+  }
+  # return list
+  list(commands = commands_plot, values = values_plot, errors = errors_plot)
+}
+
 
 # wrapper function to deparse command with certain arguments
 deparse_command <- function(expr) {
@@ -108,7 +297,7 @@ generate_replication_script <- function(commands, file) {
   have_ROBMED <- !is.null(commands_ROBMED)
   commands_OLS_boot <- commands$OLS_boot
   have_OLS_boot <- !is.null(commands_OLS_boot)
-  commands_flextable <- commands$flextable
+  commands_table <- commands$table
 
   # construct vector containing lines to apply ROBMED and export diagnostic plot
   if (have_ROBMED) {
@@ -194,8 +383,8 @@ generate_replication_script <- function(commands, file) {
     lines_methods,
     "",
     "# export a table of results to Microsoft Word",
-    deparse_command(commands_flextable$generate),
-    deparse_command(commands_flextable$export),
+    deparse_command(commands_table$generate),
+    deparse_command(commands_table$export),
     lines_plot
   )
 
@@ -237,6 +426,9 @@ shinyServer(function(input, output, session) {
                     robmedExtra = call("library", "robmedExtra")),
     RNG = call("RNGkind", RNG_kind[1L], RNG_kind[2L], RNG_kind[3L])
   )
+
+  # initialize reactive values for error messages
+  errors <- reactiveValues()
 
   # reactive expression to get the selected data source
   get_data_source <- reactive({
@@ -310,7 +502,7 @@ shinyServer(function(input, output, session) {
       # create UI input
       if (n_df_RData == 0L) {
         # let user know if there are no data frames in the selected RData file
-        helpText("There are no data frames in the selected RData file.")
+        error_text("There are no data frames in the selected RData file.")
       } else if (n_df_RData == 1L) {
         # if there is only one data set in the selected RData file, it is
         # selected automatically
@@ -374,12 +566,17 @@ shinyServer(function(input, output, session) {
       values$numeric_variables <- character()
     }
     # clean up reactive values for commands and plot preview
+    # (which is used to clear output)
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
-    commands$flextable <- NULL
+    commands$table <- NULL
     commands$plot <- NULL
-    values$width <- NULL
-    values$height <- NULL
+    values$ROBMED <- NULL
+    values$OLS_boot <- NULL
+    values$plot <- NULL
+    errors$ROBMED <- NULL
+    errors$OLS_boot <- NULL
+    errors$export <- NULL
   })
 
 
@@ -395,10 +592,10 @@ shinyServer(function(input, output, session) {
   ## Update inputs for the 'Model' tab -----
 
   # create UI element to show help text
-  output$help_data <- renderUI({
+  output$error_data <- renderUI({
     if (!isTruthy(values$df_name)) {
       # if applicable, show help text that data frame needs to be selected
-      helpText("Select a data frame in the", em("Data"), "tab.")
+      error_text("Select a data frame in the", em("Data"), "tab.")
     }
   })
 
@@ -459,15 +656,21 @@ shinyServer(function(input, output, session) {
   })
 
   # observer to clean up reactive values when variables are selected
+  # (which is used to clear output)
   observeEvent(c(input$y, input$x, input$m, input$covariates), {
     # clean up reactive values for commands
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
-    commands$flextable <- NULL
+    commands$table <- NULL
     commands$plot <- NULL
     # clean up reactive values for plot preview
-    values$width <- NULL
-    values$height <- NULL
+    values$ROBMED <- NULL
+    values$OLS_boot <- NULL
+    values$plot <- NULL
+    # clean up reactive values for error messages
+    errors$ROBMED <- NULL
+    errors$OLS_boot <- NULL
+    errors$export <- NULL
   }, ignoreInit = TRUE)
 
   # create UI input for selecting the type of multiple mediator model
@@ -483,17 +686,92 @@ shinyServer(function(input, output, session) {
 
   ## update inputs for the 'ROBMED' tab
 
-  # create UI button to perform ROBMED
-  output$button_ROBMED <- renderUI({
-    if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
-      # if the necessary variables are selected, show the button
-      actionButton("run_ROBMED", "Run")
+  # observer for button to run ROBMED
+  observeEvent(input$run_ROBMED, {
+
+    # check if necessary inputs are selected
+    have_y <- isTruthy(input$y)
+    have_x <- isTruthy(input$x)
+    have_m <- isTruthy(input$m)
+    if (have_y && have_x && have_m) {
+
+      # construct command to set the seed of the random number generator
+      if (isTruthy(input$seed_ROBMED)) {
+        command_seed <- call("set.seed", input$seed_ROBMED)
+        eval(command_seed, envir = session_env)
+      } else command_seed <- NULL
+      # construct command for control object for MM-estimator
+      use_control <- isTruthy(input$efficiency) && isTruthy(input$max_iterations)
+      if (use_control) {
+        command_reg_control <- call("reg_control",
+                                    efficiency = input$efficiency,
+                                    max_iterations = input$max_iterations)
+        command_ctrl <- call("<-", as.name("ctrl"), command_reg_control)
+        eval(command_ctrl, envir = session_env)
+      } else command_ctrl <- NULL
+      # construct command to perform ROBMED
+      command_test_mediation <- call("test_mediation",
+                                     as.name(values$df_name),
+                                     x = input$x,
+                                     y = input$y,
+                                     m = input$m)
+      if (length(input$covariates) > 0L) {
+        command_test_mediation$covariates <- input$covariates
+      }
+      command_test_mediation$R <- input$R_ROBMED
+      command_test_mediation$level <- input$level_ROBMED
+      command_test_mediation$robust <- TRUE
+      if (length(input$m) > 1L) command_test_mediation$model = input$model
+      if (use_control) command_test_mediation$control <- as.name("ctrl")
+      command_robust_boot <- call("<-", as.name("robust_boot"),
+                                  command_test_mediation)
+      eval(command_robust_boot, envir = session_env)
+      # construct command to show summary
+      command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
+      # construct command to show diagnostic plot
+      command_weight_plot <- call("weight_plot", as.name("robust_boot"))
+      command_scale <- call("scale_color_manual", "",
+                            values = c("black", "#00BFC4"))
+      command_theme <- call("theme", legend.position = "top")
+      command_plot <- call("+", call("+", command_weight_plot, command_scale),
+                           command_theme)
+      command_p <- call("<-", as.name("p"), command_plot)
+      eval(command_p, envir = session_env)
+      # update reactive value with list of commands to perform ROBMED
+      # (which are evaluated to create output and written to replication script)
+      commands_ROBMED <- list(seed = command_seed,
+                              control = command_ctrl,
+                              mediation = command_robust_boot,
+                              summary = command_summary,
+                              plot = command_p)
+      attr(commands_ROBMED, "time_stamp") <- Sys.time()
+      commands$ROBMED <- commands_ROBMED
+      # update reactive values with list of options
+      # (which are used to check if options are the same for ROBMED and OLS
+      # bootstrap, or if inputs have changed since output was generated)
+      values$ROBMED <- list(level = input$level_ROBMED, R = input$R_ROBMED,
+                            seed = input$seed_ROBMED)
+      # clean up reactive values for relevant commands and plot preview
+      # (which is used to clear output)
+      commands$table <- NULL
+      commands$plot <- NULL
+      values$plot <- NULL
+      errors$export <- NULL
+
     } else {
-      # otherwise show help text that variables need to be selected
-      helpText("Select a dependent variable, at least one independent",
-               "variable, and at least one mediator in the", em("Model"),
-               "tab.")
+
+      # construct error message that variables need to be selected
+      errors$ROBMED <- get_variable_selection_error(have_y = have_y,
+                                                    have_x = have_x,
+                                                    have_m = have_m)
+
     }
+
+  })
+
+  # show error messages for ROBMED
+  output$error_run_ROBMED <- renderUI({
+    show_errors(errors$ROBMED)
   })
 
   # show help text if no random number seed is selected
@@ -507,7 +785,7 @@ shinyServer(function(input, output, session) {
   # show advanced options if selected
   output$MM_options <- renderUI({
     req(input$show_advanced_options)
-    div(
+    tagList(
       h2("MM-estimator"),
       selectInput("efficiency", "Efficiency at normal distribution",
                   choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85,
@@ -537,65 +815,6 @@ shinyServer(function(input, output, session) {
                        value = input$seed_OLS_boot)
   })
 
-  # observer for button to run ROBMED
-  observeEvent(input$run_ROBMED, {
-    # construct command to set the seed of the random number generator
-    if (isTruthy(input$seed_ROBMED)) {
-      command_seed <- call("set.seed", input$seed_ROBMED)
-      eval(command_seed, envir = session_env)
-    } else command_seed <- NULL
-    # construct command for control object for MM-estimator
-    use_control <- isTruthy(input$efficiency) && isTruthy(input$max_iterations)
-    if (use_control) {
-      command_reg_control <- call("reg_control",
-                                  efficiency = input$efficiency,
-                                  max_iterations = input$max_iterations)
-      command_ctrl <- call("<-", as.name("ctrl"), command_reg_control)
-      eval(command_ctrl, envir = session_env)
-    } else command_ctrl <- NULL
-    # construct command to perform ROBMED
-    command_test_mediation <- call("test_mediation",
-                                   as.name(values$df_name),
-                                   x = input$x,
-                                   y = input$y,
-                                   m = input$m)
-    if (length(input$covariates) > 0L) {
-      command_test_mediation$covariates <- input$covariates
-    }
-    command_test_mediation$R <- input$R_ROBMED
-    command_test_mediation$level <- input$level_ROBMED
-    command_test_mediation$robust <- TRUE
-    if (length(input$m) > 1L) command_test_mediation$model = input$model
-    if (use_control) command_test_mediation$control <- as.name("ctrl")
-    command_robust_boot <- call("<-", as.name("robust_boot"),
-                                command_test_mediation)
-    eval(command_robust_boot, envir = session_env)
-    # construct command to show summary
-    command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
-    # construct command to show diagnostic plot
-    command_weight_plot <- call("weight_plot", as.name("robust_boot"))
-    command_scale <- call("scale_color_manual", "",
-                          values = c("black", "#00BFC4"))
-    command_theme <- call("theme", legend.position = "top")
-    command_plot <- call("+", call("+", command_weight_plot, command_scale),
-                         command_theme)
-    command_p <- call("<-", as.name("p"), command_plot)
-    eval(command_p, envir = session_env)
-    # update reactive value with list of commands to perform ROBMED
-    commands_ROBMED <- list(seed = command_seed,
-                            control = command_ctrl,
-                            mediation = command_robust_boot,
-                            summary = command_summary,
-                            plot = command_p)
-    attr(commands_ROBMED, "time_stamp") <- Sys.time()
-    commands$ROBMED <- commands_ROBMED
-    # clean up reactive values for relevant commands and plot preview
-    commands$flextable <- NULL
-    commands$plot <- NULL
-    values$width <- NULL
-    values$height <- NULL
-  })
-
 
   ## Render outputs for the 'ROBMED' tab -----
 
@@ -622,17 +841,68 @@ shinyServer(function(input, output, session) {
 
   ## update inputs for the 'OLS Bootstrap' tab
 
-  # create UI button to perform the OLS Bootstrap
-  output$button_OLS_boot <- renderUI({
-    if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
-      # if the necessary variables are selected, show the button
-      actionButton("run_OLS_boot", "Run")
+  # observer for button to run the OLS bootstrap
+  observeEvent(input$run_OLS_boot, {
+
+    # check if necessary inputs are selected
+    have_y <- isTruthy(input$y)
+    have_x <- isTruthy(input$x)
+    have_m <- isTruthy(input$m)
+    if (have_y && have_x && have_m) {
+
+      # construct command to set the seed of the random number generator
+      if (isTruthy(input$seed_OLS_boot)) {
+        command_seed <- call("set.seed", input$seed_OLS_boot)
+        eval(command_seed, envir = session_env)
+      } else command_seed <- NULL
+      # construct command to perform the OLS bootstrap
+      command_test_mediation <- call("test_mediation",
+                                     as.name(values$df_name),
+                                     x = input$x,
+                                     y = input$y,
+                                     m = input$m)
+      if (length(input$covariates) > 0L) {
+        command_test_mediation$covariates <- input$covariates
+      }
+      command_test_mediation$R <- input$R_OLS_boot
+      command_test_mediation$level <- input$level_OLS_boot
+      command_test_mediation$robust <- FALSE
+      if (length(input$m) > 1L) command_test_mediation$model = input$model
+      command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
+      eval(command_ols_boot, envir = session_env)
+      # construct command to show summary
+      command_summary <- call("summary", as.name("ols_boot"))
+      # update reactive value with list of commands to perform the OLS bootstrap
+      # (which are evaluated to create output and written to replication script)
+      commands_OLS_boot <- list(seed = command_seed,
+                                mediation = command_ols_boot,
+                                summary = command_summary)
+      attr(commands_OLS_boot, "time_stamp") <- Sys.time()
+      commands$OLS_boot <- commands_OLS_boot
+      # update reactive values with list of options
+      # (which are used to check if options are the same for ROBMED and OLS
+      # bootstrap, or if inputs have changed since output was generated)
+      values$OLS_boot <- list(level = input$level_OLS_boot, R = input$R_OLS_boot,
+                              seed = input$seed_OLS_boot)
+      # clean up reactive values for relevant commands
+      # (which is used to clear output)
+      commands$table <- NULL
+      errors$export <- NULL
+
     } else {
-      # otherwise show help text that variables need to be selected
-      helpText("Select a dependent variable, at least one independent",
-               "variable, and at least one mediator in the", em("Model"),
-               "tab.")
+
+      # construct error message that variables need to be selected
+      errors$OLS_boot <- get_variable_selection_error(have_y = have_y,
+                                                      have_x = have_x,
+                                                      have_m = have_m)
+
     }
+
+  })
+
+  # show error messages for the OLS Bootstrap
+  output$error_run_OLS_boot <- renderUI({
+    show_errors(errors$OLS_boot)
   })
 
   # show help text if no random number seed is selected
@@ -663,40 +933,6 @@ shinyServer(function(input, output, session) {
                        value = input$seed_ROBMED)
   })
 
-  # observer for button to run the OLS bootstrap
-  observeEvent(input$run_OLS_boot, {
-    # construct command to set the seed of the random number generator
-    if (isTruthy(input$seed_OLS_boot)) {
-      command_seed <- call("set.seed", input$seed_OLS_boot)
-      eval(command_seed, envir = session_env)
-    } else command_seed <- NULL
-    # construct command to perform the OLS bootstrap
-    command_test_mediation <- call("test_mediation",
-                                   as.name(values$df_name),
-                                   x = input$x,
-                                   y = input$y,
-                                   m = input$m)
-    if (length(input$covariates) > 0L) {
-      command_test_mediation$covariates <- input$covariates
-    }
-    command_test_mediation$R <- input$R_OLS_boot
-    command_test_mediation$level <- input$level_OLS_boot
-    command_test_mediation$robust <- FALSE
-    if (length(input$m) > 1L) command_test_mediation$model = input$model
-    command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
-    eval(command_ols_boot, envir = session_env)
-    # construct command to show summary
-    command_summary <- call("summary", as.name("ols_boot"))
-    # update reactive value with list of commands to perform the OLS bootstrap
-    commands_OLS_boot <- list(seed = command_seed,
-                              mediation = command_ols_boot,
-                              summary = command_summary)
-    attr(commands_OLS_boot, "time_stamp") <- Sys.time()
-    commands$OLS_boot <- commands_OLS_boot
-    # clean up reactive values for relevant commands
-    commands$flextable <- NULL
-  })
-
 
   ## Render outputs for the 'OLS Bootstrap' tab -----
 
@@ -713,24 +949,86 @@ shinyServer(function(input, output, session) {
 
   ## update inputs for the 'Export' tab
 
-  # create UI button to export files
-  output$button_export <- renderUI({
-    if (isTruthy(commands$ROBMED)) {
-      # ROBMED has been run
-      if (isTruthy(input$file_type)) {
-        # show button if at least one file type is selected
-        downloadButton("export_files", "Export files")
-      } else {
-        # otherwise show help text to select file type
-        helpText("Select at least one file type for the diagnostic plot.")
-      }
-    } else if (isTruthy(commands$OLS_boot)) {
-      # OLS bootstrap has been run
-      downloadButton("export_files", "Export files")
-    } else {
-      # otherwise show help text that a method needs to be run
-      helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
-    }
+  # # observer to determine whether to show buttons or help text
+  # observe({
+  #   # initializations
+  #   have_ROBMED <- isTruthy(commands$ROBMED) && isTruthy(values$ROBMED)
+  #   have_OLS_boot <- isTruthy(commands$OLS_boot) && isTruthy(values$OLS_boot)
+  #
+  #
+  #
+  #   have_no_method <- !have_ROBMED && !have_OLS_boot
+  #   have_different_options <- have_ROBMED && have_OLS_boot &&
+  #     isolate(!identical(values$ROBMED, values$OLS_boot))
+  #   have_no_file_type <- have_ROBMED && !isTruthy(input$file_type)
+  #
+  #
+  #   # determine whether to show button to export files
+  #   show_button_table <- !have_no_method && !have_different_options &&
+  #     !have_no_file_type
+  #   if (show_button_table) help_text_button_export <- NULL
+  #   else {
+  #     help_text_button_export <- c(
+  #       if (have_no_method) "Run ROBMED or the OLS bootstrap in the respective tabs.",
+  #       if (have_different_options) "",
+  #       if (have_no_file_type) ""
+  #     )
+  #   }
+  #   # determine whether to show preview button for table
+  #   # (note that we don't need to show a help text if the button is not
+  #   # shown, as there will be a help text instead of the export button)
+  #   show_button_table <- !have_no_method && !have_different_options
+  #   # determine whether to show preview button for diagnostic plot
+  #   show_button_plot <- have_ROBMED
+  #   if (!show_button_plot && have_OLS_boot) {
+  #     # If no method has been run, there will be a help text instead of the
+  #     # export button.  But if the OLS bootstrap has been run, the export
+  #     # button is active, and we need to show a help text specific for the
+  #     # preview button for the diagnostic plot.
+  #     help_text_button_plot <- "Run ROBMED in the respective tab."
+  #   } else help_text_button_plot <- NULL
+  #
+  # })
+  #
+
+  # # create UI button to export files
+  # output$button_export <- renderUI({
+  #   # initializations
+  #   have_ROBMED <- isTruthy(commands$ROBMED) && isTruthy(values$ROBMED)
+  #   have_OLS_boot <- isTruthy(commands$OLS_boot) && isTruthy(values$OLS_boot)
+  #   ok <- TRUE
+  #   # show help text if no method has been run
+  #   if (have_ROBMED || have_OLS_boot) help_text_no_method <- NULL
+  #   else {
+  #     ok <- FALSE
+  #     help_text_no_method <- helpText("Run ROBMED or the OLS bootstrap in the",
+  #                                     "respective tabs.")
+  #   }
+  #   # show help text if ROBMED has been run but no file type for diagnostic
+  #   # plot is selected
+  #   if (have_ROBMED && !isTruthy(input$file_type)) {
+  #     ok <- FALSE
+  #     help_text_no_file_type <- helpText("Select at least one file type for",
+  #                                        "the diagnostic plot.")
+  #   } else help_text_no_file_type <- NULL
+  #   # show help text if ROBMED and OLS bootstrap use different options
+  #   if (have_ROBMED && have_OLS_boot &&
+  #       isolate(!identical(values$ROBMED, values$OLS_boot))) {
+  #     ok <- FALSE
+  #     help_text_options <- helpText("ROBMED and the OLS bootstrap use",
+  #                                   "different options. Re-run the methods",
+  #                                   "with the same options.")
+  #   } else help_text_options <- NULL
+  #   # show button to export files if requirements are met
+  #   if (ok) downloadButton("export_files", "Export files")
+  #   else {
+  #     tagList(help_text_no_method, help_text_no_file_type, help_text_options)
+  #   }
+  # })
+
+  # show error messages for the file export
+  output$error_export_files <- renderUI({
+    show_errors(errors$export$export)
   })
 
   # create UI input for orientation of the table
@@ -742,50 +1040,42 @@ shinyServer(function(input, output, session) {
                  selected = isolate(input$orientation))
   })
 
-  # create UI button to preview the table
-  output$button_table <- renderUI({
-    if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
-      # show the button if ROBMED or OLS bootstrap have been run
-      actionButton("preview_table", "Preview")
-    } else {
-      # otherwise show help text that a method needs to be run
-      helpText("Run ROBMED or the OLS bootstrap in the respective tabs.")
-    }
-  })
+  # # create UI button to preview the table
+  # output$button_table <- renderUI({
+  #   if (isTruthy(commands$ROBMED) || isTruthy(commands$OLS_boot)) {
+  #     # Show the button if ROBMED or OLS bootstrap have been run.  Note that
+  #     # otherwise we don't need to show a help text, as there is already a
+  #     # help text in place instead of the export button.
+  #     actionButton("preview_table", "Preview")
+  #   }
+  # })
 
   # observer for button to preview the table
   observeEvent(input$preview_table, {
-    # obtain commands to generate and export flextable
-    commands_flextable <- get_flextable_commands(input, commands)
+    # obtain list containing commands and options or errors
+    table_preview <- prepare_table(input = input, commands = commands,
+                                   values = values)
     # evaluate command to generate the flextable
-    eval(commands_flextable$generate, envir = session_env)
-    # update reactive value with commands to trigger table preview
-    commands$flextable <- commands_flextable
+    commands_table <- table_preview$commands
+    if (isTruthy(commands_table)) {
+      eval(commands_table$generate, envir = session_env)
+    }
+    # update reactive values to trigger table preview
+    commands$table <- commands_table
+    values$table <- table_preview$values
+    errors$export <- table_preview$errors
   })
 
-  # create UI input for orientation of the table
-  output$select_resolution <- renderUI({
-    if ("png" %in% input$file_type) {
-      numericInput("resolution", "Resolution (pixels per inch)",
-                   value = 300, min = 0, step = 50)
-    }
+  # show error messages for the table preview
+  output$error_preview_table <- renderUI({
+    req(errors$export$preview_table)
+    show_errors(errors$export$preview_table)
   })
 
-  # create UI button to preview the diagnostic plot
-  output$button_plot <- renderUI({
-    if (isTruthy(commands$ROBMED)) {
-      # ROBMED has been run
-      if (isTruthy(input$file_type)) {
-        # show button if at least one file type is selected
-        actionButton("preview_plot", "Preview")
-      } else {
-        # otherwise show help text to select file type
-        helpText("Select at least one file type.")
-      }
-    } else {
-      # otherwise show help text that ROBMED needs to be run
-      helpText("Run ROBMED in the respective tab.")
-    }
+  # show error messages for the file type for the diagnostic plot
+  output$error_file_type <- renderUI({
+    req(errors$export$file_type)
+    show_errors(errors$export$file_type)
   })
 
   # observer for switching the units for width and height
@@ -803,18 +1093,49 @@ shinyServer(function(input, output, session) {
     updateNumericInput(session, inputId = "height", value = height, step = step)
   }, ignoreInit = TRUE)
 
-  # observer for button to preview the plot
+  # create UI input for resulution of the png image
+  output$select_resolution <- renderUI({
+    if ("png" %in% input$file_type) {
+      numericInput("resolution", "Resolution (pixels per inch)",
+                   value = 300, min = 0, step = 50)
+    }
+  })
+
+  # # create UI button to preview the diagnostic plot
+  # output$button_plot <- renderUI({
+  #   if (isTruthy(commands$ROBMED)) {
+  #     # show button if ROBMED has been run
+  #     actionButton("preview_plot", "Preview")
+  #   } else if (isTruthy(commands$OLS_boot)) {
+  #     # If no method has been run, there is already a help text in place
+  #     # instead of the export button.  But if the OLS bootstrap has been run,
+  #     # the export button is active, so we need to show a help text specific
+  #     # for the preview button.
+  #     helpText("Run ROBMED in the respective tab.")
+  #   }
+  # })
+
+  # observer for button to preview the diagnostic plot
   observeEvent(input$preview_plot, {
-    # obtain list with commands to export plot and values for plot dimensions
-    commands_plot <- get_plot_commands(input, commands)
+    # obtain list with values for plot dimensions or error messages
+    plot_preview <- prepare_plot(input = input, commands = commands,
+                                 values = values, preview = TRUE)
     # update reactive values to trigger file preview
-    commands$plot <- commands_plot$commands
-    values$width <- commands_plot$values$width
-    values$height <- commands_plot$values$height
+    values$plot <- plot_preview$values
+    errors$export <- plot_preview$error
+  })
+
+  # show error messages for the preview of the diagnostic plot
+  output$error_preview_plot <- renderUI({
+    req(errors$export$preview_plot)
+    show_errors(errors$export$preview_plot)
   })
 
 
   ## Render outputs for the 'Export' tab -----
+
+  # FIXME: This is currently a mess and interface and buttons do not work
+  #        as they should.
 
   # download zip archive of all files
   output$export_files <- downloadHandler(
@@ -827,20 +1148,34 @@ shinyServer(function(input, output, session) {
       # FIXME: in addition to checking whether the commands exist, we also need
       #        to check whether any inputs have changed since the preview was
       #        generated
-      if (!isTruthy(commands$flextable)) {
-        # obtain commands to generate and export flextable
-        commands_flextable <- get_flextable_commands(input, commands)
+      if (!isTruthy(commands$table)) {
+        # # obtain commands to generate and export flextable
+        # commands_table <- get_flextable_commands(input, commands)
+        # # evaluate command to generate the flextable
+        # eval(commands_table$generate, envir = session_env)
+        # # update reactive value with commands to trigger table preview
+        # commands$table <- commands_table
+        # obtain list containing commands and options or errors
+        table_preview <- prepare_table(input = input, commands = commands,
+                                       values = values)
         # evaluate command to generate the flextable
-        eval(commands_flextable$generate, envir = session_env)
-        # update reactive value with commands to trigger table preview
-        commands$flextable <- commands_flextable
+        commands_table <- table_preview$commands
+        if (isTruthy(commands_table)) {
+          eval(commands_table$generate, envir = session_env)
+        } else {
+          errors$export <- table_preview$errors
+          stop("something happend")
+        }
+        # update reactive values to trigger table preview
+        commands$table <- commands_table
+        values$table <- table_preview$values
+        errors$export <- table_preview$errors
       }
       # obtain list with commands to export plot and values for plot dimensions
       commands_plot <- get_plot_commands(input, commands)
       # update reactive values to trigger file preview
       commands$plot <- commands_plot$commands
-      values$width <- commands_plot$values$width
-      values$height <- commands_plot$values$height
+      values$plot <- commands_plot$values
       # switch to temporary directory to save files
       working_directory <- setwd(tempdir())
       on.exit(setwd(working_directory))
@@ -849,7 +1184,7 @@ shinyServer(function(input, output, session) {
       command_save <- call("save", as.name(values$df_name), file = RData_file)
       eval(commands$data$save, envir = session_env)
       # save table to Microsoft Word document
-      eval(commands$flextable$export, envir = session_env)
+      eval(commands$table$export, envir = session_env)
       # save diagnostic plot to file(s)
       commands_plot <- commands$plot
       if (isTruthy(commands_plot)) {
@@ -880,7 +1215,7 @@ shinyServer(function(input, output, session) {
       files_to_zip <- c(RData_file,
                         if (have_pdf) command_pdf$file,
                         if (have_png) command_png$file,
-                        commands$flextable$export$file,
+                        commands$table$export$file,
                         script_file)
       print(files_to_zip)
       zip(zipfile = file, files = files_to_zip)
@@ -890,32 +1225,31 @@ shinyServer(function(input, output, session) {
 
   # show preview of table in main panel
   output$table_preview_header <- renderUI({
-    req(commands$flextable)
+    req(commands$table, values$table)
     h2("Table preview")
   })
   output$table_preview <- renderUI({
-    req(commands$flextable)
+    req(commands$table, values$table)
     flextable::htmltools_value(get("ft", envir = session_env))
   })
 
   # show diagnostic plot for ROBMED in main panel
   output$plot_preview_header <- renderUI({
-    req(input$file_type, values$width, values$height)
-    div(
+    req(values$plot)
+    tagList(
       h2("File preview for diagnostic plot"),
       helpText("The size shown here depends on the resolution of the browser",
                "and may differ from the size of the file to be generated.")
     )
   })
   output$plot_preview <- renderPlot({
-    req(input$file_type)
     get("p", envir = session_env)
   }, width = function() {
-    req(values$width)
-    values$width * 125
+    req(values$plot)
+    values$plot$width * 125
   }, height = function() {
-    req(values$height)
-    values$height * 125
+    req(values$plot)
+    values$plot$height * 125
   }, res = 125)
 
 })

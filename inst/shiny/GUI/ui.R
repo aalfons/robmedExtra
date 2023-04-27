@@ -17,7 +17,7 @@ library("robmedExtra")
 
 # function to construct labels for variable selection inputs
 get_label <- function(label, info) {
-  # FIXME: color is hard-coded to be the same as help text in in bootstrap theme
+  # FIXME: color is hard-coded to be the same as in help text in bootstrap theme
   p(label, span(info, style = "color: #737373; font-weight:normal;"))
 }
 
@@ -68,7 +68,7 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-          uiOutput("help_data"),
+          uiOutput("error_data"),
           selectInput("y", label = get_label("Dependent variable", "(Numeric)"),
                       choices = "", selected = NULL, multiple = FALSE),
           selectInput("x", label = "Independent variable(s)",
@@ -153,7 +153,8 @@ shinyUI(fluidPage(
         sidebarPanel(
 
           # button to perform ROBMED
-          uiOutput("button_ROBMED"),
+          actionButton("run_ROBMED", "Run"),
+          uiOutput("error_run_ROBMED"),
 
           # options for the bootstrap confidence intervals
           h2("Options"),
@@ -192,7 +193,8 @@ shinyUI(fluidPage(
         sidebarPanel(
 
           # button to perform the OLS bootstrap
-          uiOutput("button_OLS_boot"),
+          actionButton("run_OLS_boot", "Run"),
+          uiOutput("error_run_OLS_boot"),
 
           # options for the bootstrap confidence intervals
           h2("Options"),
@@ -222,7 +224,14 @@ shinyUI(fluidPage(
         sidebarPanel(
 
           # button to export files
-          uiOutput("button_export"),
+          actionButton("generate_files", "Generate files"),
+          # TODO: show export button only after files are successfully generated
+          # There is a solution so that the downloadButton can be fully hidden
+          # and automatically triggered when the files are successfully
+          # generated, but that solution requires JavaScript and package
+          # 'shinyjs'.
+          downloadButton("export_files", "Export files"),
+          uiOutput("error_export_files"),
 
           # inputs for exporting table
           h2("Table"),
@@ -235,13 +244,16 @@ shinyUI(fluidPage(
                         value = FALSE),
           # TODO: add input to select format (docx, pptx)
           uiOutput("select_orientation"),
-          uiOutput("button_table"),
+          actionButton("preview_table", "Preview"),
+          uiOutput("error_preview_table"),
 
           # inputs for exporting diagnostic plot
+          # TODO: show inputs for the diagnostic plot only when ROBMED was run
           h2("Diagnostic Plot"),
           checkboxGroupInput("file_type", "File type",
                              choices = c("pdf", "png"),
                              selected = c("pdf", "png")),
+          uiOutput("error_file_type"),
           radioButtons("units", "Unit of width and height",
                        choices = c("cm", "inches"),
                        selected = "cm"),
@@ -249,7 +261,8 @@ shinyUI(fluidPage(
           # TODO: allow default height to scale with the number of regressions
           numericInput("height", "Height", value = 11.5, min = 0, step = 0.5),
           uiOutput("select_resolution"),
-          uiOutput("button_plot")
+          actionButton("preview_plot", "Preview"),
+          uiOutput("error_preview_plot")
 
         ),
         # output panel on right hand side
