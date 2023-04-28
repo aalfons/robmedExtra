@@ -24,7 +24,6 @@ get_data_frames <- function(env = .GlobalEnv) {
   else character()
 }
 
-
 # function to create a help text element
 # This is defined to have more control over the style compared to the built-in
 # function shiny::helpText(). In particular, we can make sure that the color is
@@ -43,6 +42,29 @@ error_text <- function(...) {
   #        bootstrap theme
   css <- "color: #a94442; display: block; margin-top: 5px; margin-bottom: 10px;"
   span(style = css, ...)
+}
+
+# function to create a warning text element
+warning_text <- function(...) {
+  # FIXME: color is hard-coded to be the same as background color in warning
+  #        messages in bootstrap theme
+  css <- "color: #ec971f; display: block; margin-top: 5px; margin-bottom: 10px;"
+  span(style = css, ...)
+}
+
+
+# function to get the names of data frames in a given environment
+get_data_frames <- function(env = .GlobalEnv) {
+  is_df <- sapply(env, is.data.frame, simplify = TRUE, USE.NAMES = TRUE)
+  if (any(is_df)) names(is_df)[is_df]
+  else character()
+}
+
+
+# function to construct labels for variable selection inputs
+get_label <- function(label, info) {
+  # FIXME: color is hard-coded to be the same as in help text in bootstrap theme
+  p(label, span(info, style = "color: #737373; font-weight:normal;"))
 }
 
 
@@ -448,9 +470,8 @@ shinyServer(function(input, output, session) {
     # determine whether to show the UI input
     if (n_df_global == 0L) {
       # no data frames in the global environment
-      helpText(#"There are no data frames in your R environment.",
-               "If you have a data set that is not in RData format, you can",
-               "import it into your R session before (re)starting the GUI.")
+      help_text("If you have a data set that is not in RData format, you can",
+                "import it into your R session before (re)starting the GUI.")
     } else {
       # show the UI input if there are data frames in the global environment
       selectInput("data_source", "Data source",
@@ -592,32 +613,51 @@ shinyServer(function(input, output, session) {
   ## Update inputs for the 'Model' tab -----
 
   # create UI element to show help text
-  output$error_data <- renderUI({
-    if (!isTruthy(values$df_name)) {
-      # if applicable, show help text that data frame needs to be selected
+  output$select_variables <- renderUI({
+    # get variable names
+    variables <- values$variables
+    numeric_variables <- values$numeric_variables
+    if (isTruthy(variables) && isTruthy(numeric_variables)) {
+      # only show inputs if a data frame has been selected
+      tagList(
+        selectInput("y", label = get_label("Dependent variable", "(Numeric)"),
+                    choices = c("", numeric_variables), selected = NULL,
+                    multiple = FALSE),
+        selectInput("x", label = "Independent variable(s)",
+                    choices = variables, selected = NULL,
+                    multiple = TRUE),
+        selectInput("m", label = get_label("Mediator(s)", "(Numeric)"),
+                    choices = numeric_variables, selected = NULL,
+                    multiple = TRUE),
+        selectInput("covariates", label = "Covariate(s)",
+                    choices = variables, selected = NULL,
+                    multiple = TRUE),
+      )
+    } else {
+      # otherwise show error message that data frame needs to be selected
       error_text("Select a data frame in the", em("Data"), "tab.")
     }
   })
 
-  # observer to reset selected variables when data set is selected
-  observe({
-    # get variable names
-    variables <- values$variables
-    numeric_variables <- values$numeric_variables
-    # update UI inputs for selecting variables
-    updateSelectInput(session, inputId = "y",
-                      choices = c("", numeric_variables),
-                      selected = NULL)
-    updateSelectInput(session, inputId = "x",
-                      choices = variables,
-                      selected = NULL)
-    updateSelectInput(session, inputId = "m",
-                      choices = numeric_variables,
-                      selected = NULL)
-    updateSelectInput(session, inputId = "covariates",
-                      choices = variables,
-                      selected = NULL)
-  })
+  # # observer to reset selected variables when data set is selected
+  # observe({
+  #   # get variable names
+  #   variables <- values$variables
+  #   numeric_variables <- values$numeric_variables
+  #   # update UI inputs for selecting variables
+  #   updateSelectInput(session, inputId = "y",
+  #                     choices = c("", numeric_variables),
+  #                     selected = NULL)
+  #   updateSelectInput(session, inputId = "x",
+  #                     choices = variables,
+  #                     selected = NULL)
+  #   updateSelectInput(session, inputId = "m",
+  #                     choices = numeric_variables,
+  #                     selected = NULL)
+  #   updateSelectInput(session, inputId = "covariates",
+  #                     choices = variables,
+  #                     selected = NULL)
+  # })
 
   # observer to update variables that can be selected as response variable
   observe({
@@ -655,6 +695,16 @@ shinyServer(function(input, output, session) {
                       selected = isolate(input$covariates))
   })
 
+  # create UI input for selecting the type of multiple mediator model
+  output$select_model <- renderUI({
+    if (isTruthy(input$m) && length(input$m) > 1L) {
+      selectInput("model", "Multiple mediator model:",
+                  choices = c('parallel', 'serial'),
+                  selected = isolate(input$model),
+                  multiple = FALSE)
+    }
+  })
+
   # observer to clean up reactive values when variables are selected
   # (which is used to clear output)
   observeEvent(c(input$y, input$x, input$m, input$covariates), {
@@ -672,16 +722,6 @@ shinyServer(function(input, output, session) {
     errors$OLS_boot <- NULL
     errors$export <- NULL
   }, ignoreInit = TRUE)
-
-  # create UI input for selecting the type of multiple mediator model
-  output$select_model <- renderUI({
-    if (length(input$m) > 1L) {
-      selectInput("model", "Multiple mediator model:",
-                  choices = c('parallel', 'serial'),
-                  selected = isolate(input$model),
-                  multiple = FALSE)
-    }
-  })
 
 
   ## update inputs for the 'ROBMED' tab
@@ -777,8 +817,8 @@ shinyServer(function(input, output, session) {
   # show help text if no random number seed is selected
   output$help_seed_ROBMED <- renderUI({
     if (!isTruthy(input$seed_ROBMED)) {
-      helpText("The analysis is", strong("not reproducible"),
-               "without setting a seed.")
+      warning_text("The analysis is", strong("not reproducible"),
+                   "without setting a seed.")
     }
   })
 
@@ -908,8 +948,8 @@ shinyServer(function(input, output, session) {
   # show help text if no random number seed is selected
   output$help_seed_OLS_boot <- renderUI({
     if (!isTruthy(input$seed_OLS_boot)) {
-      helpText("The analysis is", strong("not reproducible"),
-               "without setting a seed.")
+      warning_text("The analysis is", strong("not reproducible"),
+                   "without setting a seed.")
     }
   })
 
@@ -1238,8 +1278,8 @@ shinyServer(function(input, output, session) {
     req(values$plot)
     tagList(
       h2("File preview for diagnostic plot"),
-      helpText("The size shown here depends on the resolution of the browser",
-               "and may differ from the size of the file to be generated.")
+      help_text("The size shown here depends on the resolution of the browser",
+                "and may differ from the size of the file to be generated.")
     )
   })
   output$plot_preview <- renderPlot({

@@ -68,15 +68,7 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-          uiOutput("error_data"),
-          selectInput("y", label = get_label("Dependent variable", "(Numeric)"),
-                      choices = "", selected = NULL, multiple = FALSE),
-          selectInput("x", label = "Independent variable(s)",
-                      choices = character(), selected = NULL, multiple = TRUE),
-          selectInput("m", label = get_label("Mediator(s)", "(Numeric)"),
-                      choices = character(), selected = NULL, multiple = TRUE),
-          selectInput("covariates", label = "Covariate(s)",
-                      choices = character(), selected = NULL, multiple = TRUE),
+          uiOutput("select_variables"),
           uiOutput("select_model")
         ),
         # output panel on right hand side
@@ -283,12 +275,55 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # TODO: implement functionality to download citations
+          selectInput("citation_format", "Citation format",
+                      choices = c("EndNote", "BibTeX"),
+                      selected = "EndNote", multiple = FALSE),
+          downloadButton("export_citation", "Export citation")
         ),
         # output panel on right hand side
         mainPanel(
-          h2("Package versions"),
-          p(strong("robmed:"), toString(packageVersion("robmed"))),
-          p(strong("robmedExtra:"), toString(packageVersion("robmedExtra")))
+
+          # information on software version
+          h2("Version"),
+          p("You are using", strong("R"),
+            paste0("version ",
+                   paste(R.Version()[c("major", "minor")], collapse = "."),
+                   ", package"),
+            strong("robmed"),
+            paste0( "version ", toString(packageVersion("robmed")),
+                    ", and package"),
+            strong("robmedExtra"),
+            paste0("version ", toString(packageVersion("robmedExtra")), ".")),
+
+          # citation information
+          h2("Citation"),
+          p("To cite the robust bootstrap test ROBMED, please use:"),
+          p("Alfons, A., Ates, N. Y., & Groenen, P. J. F. (2022).",
+            "A robust bootstrap test for mediation analysis.",
+            HTML("<em>Organizational Research Methods</em>, <em>25</em>(3),",
+                 "591&ndash;617."),
+            a("https://doi.org/10.1177/1094428121999096")),
+          p("To cite our software, please use:"),
+          p("Alfons, A., Ates, N. Y., & Groenen, P. J. F. (2022).",
+            HTML("Robust mediation analysis: The <strong>R</strong> package",
+                 "<strong>robmed</strong>."),
+            HTML("<em>Journal of Statistical Software</em>, <em>103</em>(13),",
+                 "1&ndash;45."),
+            a("https://doi.org/10.18637/jss.v103.i13")),
+          # FIXME: part of this is hardcoded to get it into APA format
+          #        It's better to generate this dynamically based on the
+          #        citation() information, but we may need a function to
+          #        get the information in APA format.
+          p(paste0("Alfons, A., Drenth, V., & Archimbaud, A. (",
+                   format(packageDate("robmedExtra"), "%Y"),")."),
+            HTML("<strong>robmedExtra</strong>:"),
+            "Extra functionality for (robust) mediation analysis.",
+            strong("R"),
+            paste0("package version ", toString(packageVersion("robmedExtra")),
+                   "."),
+            a("https://github.com/aalfons/robmedExtra"))
+
         )
       )
     )
