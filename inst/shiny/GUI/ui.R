@@ -21,11 +21,6 @@ get_label <- function(label, info) {
   p(label, span(info, style = "color: #737373; font-weight:normal;"))
 }
 
-# function to get default seed for random number generator based on the date
-get_default_seed <- function() {
-  format(Sys.Date(), "%Y%m%d")
-}
-
 
 # User interface definition for GUI -----
 
@@ -49,14 +44,19 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # input for selecting a data source
           uiOutput("select_data_source"),
-          uiOutput("select_Rdata_file"),
+          # input for selecting a data frame from the global environment
           uiOutput("select_df_global"),
-          uiOutput("select_df_RData")
+          # inputs for selecting a data frame from an RData file
+          uiOutput("select_Rdata_file"),
+          uiOutput("select_df_RData"),
+          # element to show any error messages for the selected data frame
+          uiOutput("error_data")
         ),
         # output panel on right hand side
         mainPanel(
-          # show selected data set
+          # show the selected data set
           DT::dataTableOutput("data_table")
         )
       )
@@ -68,6 +68,7 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # inputs for variables and type of mediation model
           uiOutput("select_variables"),
           uiOutput("select_model")
         ),
@@ -98,10 +99,7 @@ shinyUI(fluidPage(
             "with increasing number of mediators due to the combinatorial",
             "increase in indirect paths through the mediators. It is",
             "therefore only implemented for two and three mediators to",
-            "maintain a focus on easily interpretable models."
-            # "The diagram below visualizes a serial multiple model with two",
-            # "mediators."
-          ),
+            "maintain a focus on easily interpretable models."),
           img(src = "mediation-serial-two.png"),
           img(src = "mediation-serial-three.png"),
 
@@ -143,26 +141,9 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-
-          # button to perform ROBMED
-          actionButton("run_ROBMED", "Run"),
-          uiOutput("error_run_ROBMED"),
-
-          # options for the bootstrap confidence intervals
-          h2("Options"),
-          numericInput("level_ROBMED", "Confidence level", value = 0.95,
-                       min = 0.9, max = 0.999, step = 0.01),
-          numericInput("R_ROBMED", "Number of bootstrap samples",
-                       value = 5000, min = 1000, step = 1000),
-          numericInput("seed_ROBMED", "Seed of the random number generator",
-                       value = get_default_seed()),
-          uiOutput("help_seed_ROBMED"),
-
-          # options for the MM-estimator
-          checkboxInput("show_advanced_options", "Show advanced options",
-                        value = FALSE),
-          uiOutput("MM_options")
-
+          # inputs for various options
+          uiOutput("select_options_ROBMED"),
+          uiOutput("select_advanced_options_ROBMED")
         ),
         # output panel on right hand side
         mainPanel(
@@ -183,21 +164,8 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-
-          # button to perform the OLS bootstrap
-          actionButton("run_OLS_boot", "Run"),
-          uiOutput("error_run_OLS_boot"),
-
-          # options for the bootstrap confidence intervals
-          h2("Options"),
-          numericInput("level_OLS_boot", "Confidence level", value = 0.95,
-                       min = 0.9, max = 0.999, step = 0.01),
-          numericInput("R_OLS_boot", "Number of bootstrap samples",
-                       value = 5000, min = 1000, step = 1000),
-          numericInput("seed_OLS_boot", "Seed of the random number generator",
-                       value = get_default_seed()),
-          uiOutput("help_seed_OLS_boot")
-
+          # inputs for various options
+          uiOutput("select_options_OLS_boot")
         ),
         # output panel on right hand side
         mainPanel(

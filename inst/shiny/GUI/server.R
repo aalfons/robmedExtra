@@ -68,25 +68,35 @@ get_label <- function(label, info) {
 }
 
 
-# generic function to show errors as (list of) text elements
-show_errors <- function(errors) UseMethod("show_errors")
+# # generic function to show errors as (list of) text elements
+# show_errors <- function(errors) UseMethod("show_errors")
+#
+# # the default method is intended for a character vector
+# show_errors.default <- function(errors) {
+#   # call error_text() with vector elements as different arguments
+#   if (length(errors) > 1L) do.call(error_text, as.list(errors))
+#   else error_text(errors)
+# }
+#
+# # for a list of error messages, call the method for each list element
+# show_errors.list <- function(errors) {
+#   if (length(errors) == 1L) show_errors(errors[[1L]])
+#   else do.call(tagList, lapply(errors, show_errors))
+# }
 
-# the default method is intended for a character vector
-show_errors.default <- function(errors) {
-  # call error_text() with vector elements as different arguments
-  if (length(errors) > 1L) do.call(error_text, as.list(errors))
-  else error_text(errors)
-}
 
-# for a list of error messages, call the method for each list element
-show_errors.list <- function(errors) {
-  if (length(errors) == 1L) show_errors(errors[[1L]])
-  else do.call(tagList, lapply(errors, show_errors))
+# function to get default seed for random number generator based on the date
+get_default_seed <- function() {
+  format(Sys.Date(), "%Y%m%d")
 }
 
 
 # function to generate error message for missing variable selection
-get_variable_selection_error <- function(have_y, have_x, have_m) {
+get_variable_selection_error <- function(y, x, m) {
+  # initializations
+  have_y <- !is.null(y) && nchar(y) > 0L
+  have_x <- length(x) > 0L
+  have_m <- length(m) > 0L
   # define pieces of text for missing variable selection
   text_y <- if (!have_y) "a dependent variable"
   text_x <- if (!have_x) "at least one independent variable"
@@ -96,7 +106,7 @@ get_variable_selection_error <- function(have_y, have_x, have_m) {
   if (n_yx == 2L) text_select <- text_m
   else {
     text_yx <- paste(c(text_y, text_x), collapse = ", ")
-    sep <- if (n_yx == 1L) " and " else ", and"
+    sep <- if (n_yx == 1L) " and " else ", and "
     text_select <- paste(c(text_yx, text_m), collapse = sep)
   }
   # put everything into a nice message
@@ -448,6 +458,15 @@ shinyServer(function(input, output, session) {
   # create a separate environment for safely conducting analyses
   session_env <- new.env()
 
+  # initialize reactive values for sanitized versions of inputs
+  values <- reactiveValues(data_source = "RData file",
+                           df_name = "",
+                           variables = character(),
+                           numeric_variables = character(),
+                           level = 0.95,
+                           R = 5000,
+                           seed = get_default_seed())
+
   # initialize reactive values for commands
   RNG_kind <- RNGkind()
   commands <- reactiveValues(
@@ -456,12 +475,8 @@ shinyServer(function(input, output, session) {
     RNG = call("RNGkind", RNG_kind[1L], RNG_kind[2L], RNG_kind[3L])
   )
 
-  # initialize reactive values that contain for example sanitized versions of
-  # inputs, or snapshots of inputs when buttons are pressed
-  values <- reactiveValues()
-
-  # initialize reactive values for error messages
-  errors <- reactiveValues()
+  # initialize reactive values for snapshots of inputs when buttons are pressed
+  used_inputs <- reactiveValues()
 
 
   ## Render inputs for the 'Data' tab -----
@@ -482,75 +497,71 @@ shinyServer(function(input, output, session) {
     }
   })
 
-  # observer to make sure that data source is properly defined: if there are no
-  # data frames in the global environment, this input is NULL (since input for
-  # the data source is not shown), and the user can only select an RData file
+  # observer to make sure that the data source is properly defined
+  # If there are no data frames in the global environment, the input for the
+  # data source is not shown, and the user can only select an RData file.
+  # This is why we use the sanitized version 'values$data_source' (which is
+  # properly initialized) rather than the input 'input$data_source'.
   observeEvent(input$data_source, {
-    data_source <- input$data_source
-    if (is.null(data_source)) values$data_source <- "RData file"
-    else values$data_source <- data_source
-  }, ignoreNULL = FALSE)
-
-  # create UI input for selecting an RData file
-  output$select_Rdata_file <- renderUI({
-    # determine whether to show the UI input
-    if (values$data_source == "RData file") {
-      fileInput("RData_file", "RData file", multiple = FALSE, accept = ".RData")
-    }
+    values$data_source <- input$data_source
   })
 
   # create UI input for selecting a data frame from the global environment
   output$select_df_global <- renderUI({
-    # determine whether to show the UI input
-    if (values$data_source == "R environment") {
-      # there is at least one data frame in the global environment
-      if (n_df_global == 1L) {
-        # if there is only one data set in the global environment, it is
-        # selected automatically
-        selectInput("df_name_global", "Data frame", choices = df_global,
-                    selected = NULL, multiple = FALSE)
-      } else {
-        # if there are multiple data sets in the global environment, by default
-        # the previously selected data frame is selected again (if it exists)
-        selectInput("df_name_global", "Data frame", choices = c("", df_global),
-                    selected = isolate(input$df_name_global), multiple = FALSE)
-      }
+    # show UI input only if the data source is set accordingly
+    req(values$data_source == "R environment")
+    # there is at least one data frame in the global environment
+    if (n_df_global == 1L) {
+      # if there is only one data set in the global environment, it is
+      # selected automatically
+      selectInput("df_name_global", "Data frame", choices = df_global,
+                  selected = NULL, multiple = FALSE)
+    } else {
+      # if there are multiple data sets in the global environment, by default
+      # the previously selected data frame is selected again (if it exists)
+      selectInput("df_name_global", "Data frame", choices = c("", df_global),
+                  selected = isolate(input$df_name_global), multiple = FALSE)
     }
+  })
+
+  # create UI input for selecting an RData file
+  output$select_Rdata_file <- renderUI({
+    # show UI input only if the data source is set accordingly
+    req(values$data_source == "RData file")
+    fileInput("RData_file", "RData file", multiple = FALSE, accept = ".RData")
   })
 
   # create UI input for selecting a data frame from the selected RData file
   output$select_df_RData <- renderUI({
-    # determine whether to show the UI input
-    if (values$data_source == "RData file") {
-      # make sure that an RData file is selected
-      req(input$RData_file)
-      # load the selected RData file into the separate environment
-      # (make sure the environment is empty first)
-      rm(list = ls(envir = RData_env, all.names = TRUE), envir = RData_env)
-      load(input$RData_file$datapath, envir = RData_env)
-      # get data frames in the selected RData file
-      df_RData <- get_data_frames(RData_env)
-      n_df_RData <- length(df_RData)
-      # create UI input
-      if (n_df_RData == 0L) {
-        # let user know if there are no data frames in the selected RData file
-        error_text("There are no data frames in the selected RData file.")
-      } else if (n_df_RData == 1L) {
-        # if there is only one data set in the selected RData file, it is
-        # selected automatically
-        selectInput("df_name_RData", "Data frame", choices = df_RData,
-                    selected = NULL, multiple = FALSE)
-      } else {
-        # if there are multiple data sets in the selected RData file, there
-        # is no default selection
-        # TODO: Is there a way to check what change triggered the evaluation
-        #       of this expression? If the user changes the data source back
-        #       to "RData file", it would be nice to by select the previously
-        #       selected data frame by default.  But if the user selects a new
-        #       RData file, there should not be a default selection.
-        selectInput("df_name_RData", "Data frame", choices = c("", df_RData),
-                    selected = NULL, multiple = FALSE)
-      }
+    # show UI input only if the data source is set accordingly and an RData
+    # file is selected
+    req(values$data_source == "RData file", input$RData_file)
+    # load the selected RData file into the separate environment
+    # (make sure the environment is empty first)
+    rm(list = ls(envir = RData_env, all.names = TRUE), envir = RData_env)
+    load(input$RData_file$datapath, envir = RData_env)
+    # get data frames in the selected RData file
+    df_RData <- get_data_frames(RData_env)
+    n_df_RData <- length(df_RData)
+    # create UI input
+    if (n_df_RData == 0L) {
+      # let user know if there are no data frames in the selected RData file
+      error_text("There are no data frames in the selected RData file.")
+    } else if (n_df_RData == 1L) {
+      # if there is only one data set in the selected RData file, it is
+      # selected automatically
+      selectInput("df_name_RData", "Data frame", choices = df_RData,
+                  selected = NULL, multiple = FALSE)
+    } else {
+      # if there are multiple data sets in the selected RData file, there
+      # is no default selection
+      # TODO: Is there a way to check what change triggered the evaluation
+      #       of this expression? If the user changes the data source back
+      #       to "RData file", it would be nice to by select the previously
+      #       selected data frame by default.  But if the user selects a new
+      #       RData file, there should not be a default selection.
+      selectInput("df_name_RData", "Data frame", choices = c("", df_RData),
+                  selected = NULL, multiple = FALSE)
     }
   })
 
@@ -593,22 +604,33 @@ shinyServer(function(input, output, session) {
     } else {
       # reset relevant reactive values
       commands$data <- NULL
-      values$df_name <- NULL
+      values$df_name <- ""
       values$variables <- character()
       values$numeric_variables <- character()
     }
-    # clean up reactive values for commands and plot preview
-    # (which is used to clear output)
+    # clean up reactive values to clear output from other tabs
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
     commands$table <- NULL
     commands$plot <- NULL
-    values$ROBMED <- NULL
-    values$OLS_boot <- NULL
-    values$plot <- NULL
-    errors$ROBMED <- NULL
-    errors$OLS_boot <- NULL
-    errors$export <- NULL
+    used_inputs$ROBMED <- NULL
+    used_inputs$OLS_boot <- NULL
+    used_inputs$table <- NULL
+    used_inputs$plot <- NULL
+  })
+
+  # if relevant, show UI element with error messages for the selected data frame
+  output$error_data <- renderUI({
+    req(values$df_name)
+    if (length(values$variables) < 3L) {
+      error_text("The selected data frame must contain",
+                 HTML("<strong>at least 3 variables</strong>."))
+    } else if (length(values$numeric_variables) < 2L) {
+      error_text("The selected data frame must contain",
+                 strong("at least 2 numeric variables"),
+                 "(as currently only a numeric dependent variable",
+                 "and numeric mediators are supported).")
+    }
   })
 
 
@@ -623,12 +645,12 @@ shinyServer(function(input, output, session) {
 
   ## Update inputs for the 'Model' tab -----
 
-  # create UI element to show help text
+  # create UI element to show inputs for variable selection
   output$select_variables <- renderUI({
     # get variable names
     variables <- values$variables
     numeric_variables <- values$numeric_variables
-    if (isTruthy(variables) && isTruthy(numeric_variables)) {
+    if (length(variables) >= 3L && length(numeric_variables) >= 2L) {
       # only show inputs if a data frame has been selected
       tagList(
         selectInput("y", label = get_label("Dependent variable", "(Numeric)"),
@@ -642,7 +664,7 @@ shinyServer(function(input, output, session) {
                     multiple = TRUE),
         selectInput("covariates", label = "Covariate(s)",
                     choices = variables, selected = NULL,
-                    multiple = TRUE),
+                    multiple = TRUE)
       )
     } else {
       # otherwise show error message that data frame needs to be selected
@@ -688,12 +710,13 @@ shinyServer(function(input, output, session) {
 
   # create UI input for selecting the type of multiple mediator model
   output$select_model <- renderUI({
-    if (isTruthy(input$m) && length(input$m) > 1L) {
-      selectInput("model", "Multiple mediator model:",
-                  choices = c('parallel', 'serial'),
-                  selected = isolate(input$model),
-                  multiple = FALSE)
-    }
+    req(length(values$variables) >= 3L,
+        length(values$numeric_variables) >= 2L,
+        length(input$m) > 1L)
+    selectInput("model", "Multiple mediator model:",
+                choices = c("parallel", "serial"),
+                selected = isolate(input$model),
+                multiple = FALSE)
   })
 
   # observer to clean up reactive values when variables are selected
@@ -704,146 +727,160 @@ shinyServer(function(input, output, session) {
     commands$OLS_boot <- NULL
     commands$table <- NULL
     commands$plot <- NULL
-    # clean up reactive values for plot preview
-    values$ROBMED <- NULL
-    values$OLS_boot <- NULL
-    values$plot <- NULL
-    # clean up reactive values for error messages
-    errors$ROBMED <- NULL
-    errors$OLS_boot <- NULL
-    errors$export <- NULL
+    # clean up reactive values for used inputs
+    used_inputs$ROBMED <- NULL
+    used_inputs$OLS_boot <- NULL
+    used_inputs$table <- NULL
+    used_inputs$plot <- NULL
   }, ignoreInit = TRUE)
 
 
   ## update inputs for the 'ROBMED' tab
 
-  # observer for button to run ROBMED
-  observeEvent(input$run_ROBMED, {
-
-    # check if necessary inputs are selected
-    have_y <- isTruthy(input$y)
-    have_x <- isTruthy(input$x)
-    have_m <- isTruthy(input$m)
-    if (have_y && have_x && have_m) {
-
-      # construct command to set the seed of the random number generator
-      if (isTruthy(input$seed_ROBMED)) {
-        command_seed <- call("set.seed", input$seed_ROBMED)
-        eval(command_seed, envir = session_env)
-      } else command_seed <- NULL
-      # construct command for control object for MM-estimator
-      use_control <- isTruthy(input$efficiency) && isTruthy(input$max_iterations)
-      if (use_control) {
-        command_reg_control <- call("reg_control",
-                                    efficiency = input$efficiency,
-                                    max_iterations = input$max_iterations)
-        command_ctrl <- call("<-", as.name("ctrl"), command_reg_control)
-        eval(command_ctrl, envir = session_env)
-      } else command_ctrl <- NULL
-      # construct command to perform ROBMED
-      command_test_mediation <- call("test_mediation",
-                                     as.name(values$df_name),
-                                     x = input$x,
-                                     y = input$y,
-                                     m = input$m)
-      if (length(input$covariates) > 0L) {
-        command_test_mediation$covariates <- input$covariates
-      }
-      command_test_mediation$R <- input$R_ROBMED
-      command_test_mediation$level <- input$level_ROBMED
-      command_test_mediation$robust <- TRUE
-      if (length(input$m) > 1L) command_test_mediation$model = input$model
-      if (use_control) command_test_mediation$control <- as.name("ctrl")
-      command_robust_boot <- call("<-", as.name("robust_boot"),
-                                  command_test_mediation)
-      eval(command_robust_boot, envir = session_env)
-      # construct command to show summary
-      command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
-      # construct command to show diagnostic plot
-      command_weight_plot <- call("weight_plot", as.name("robust_boot"))
-      command_scale <- call("scale_color_manual", "",
-                            values = c("black", "#00BFC4"))
-      command_theme <- call("theme", legend.position = "top")
-      command_plot <- call("+", call("+", command_weight_plot, command_scale),
-                           command_theme)
-      command_p <- call("<-", as.name("p"), command_plot)
-      eval(command_p, envir = session_env)
-      # update reactive value with list of commands to perform ROBMED
-      # (which are evaluated to create output and written to replication script)
-      commands_ROBMED <- list(seed = command_seed,
-                              control = command_ctrl,
-                              mediation = command_robust_boot,
-                              summary = command_summary,
-                              plot = command_p)
-      attr(commands_ROBMED, "time_stamp") <- Sys.time()
-      commands$ROBMED <- commands_ROBMED
-      # update reactive values with list of options
-      # (which are used to check if options are the same for ROBMED and OLS
-      # bootstrap, or if inputs have changed since output was generated)
-      values$ROBMED <- list(level = input$level_ROBMED, R = input$R_ROBMED,
-                            seed = input$seed_ROBMED)
-      # clean up reactive values for relevant commands and plot preview
-      # (which is used to clear output)
-      commands$table <- NULL
-      commands$plot <- NULL
-      values$plot <- NULL
-      errors$export <- NULL
-
+  # create UI element to show inputs for ROBMED options
+  output$select_options_ROBMED <- renderUI({
+    # have_required_variables <- isTruthy
+    if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
+      # only show inputs if the required variables have been selected
+      tagList(
+        # button to perform ROBMED
+        actionButton("run_ROBMED", "Run"),
+        # options for the bootstrap confidence intervals
+        h2("Options"),
+        numericInput("level_ROBMED", "Confidence level",
+                     value = isolate(values$level),
+                     min = 0.9, max = 0.999, step = 0.01),
+        numericInput("R_ROBMED", "Number of bootstrap samples",
+                     value = isolate(values$R), min = 1000,
+                     step = 1000),
+        numericInput("seed_ROBMED", "Seed of the random number generator",
+                     value = isolate(values$seed)),
+        uiOutput("help_seed_ROBMED"),
+        # advanced options for the MM-estimator
+        checkboxInput("show_advanced_options_ROBMED", "Show advanced options",
+                      value = isolate(input$show_advanced_options_ROBMED))
+      )
     } else {
-
-      # construct error message that variables need to be selected
-      errors$ROBMED <- get_variable_selection_error(have_y = have_y,
-                                                    have_x = have_x,
-                                                    have_m = have_m)
-
+      # otherwise show an error message on which variables need to be selected
+      error_text(get_variable_selection_error(input$y, input$x, input$m))
     }
-
   })
 
-  # show error messages for ROBMED
-  output$error_run_ROBMED <- renderUI({
-    show_errors(errors$ROBMED)
-  })
-
-  # show help text if no random number seed is selected
+  # show warning text if no random number seed is selected
   output$help_seed_ROBMED <- renderUI({
-    if (!isTruthy(input$seed_ROBMED)) {
+    if (!isTruthy(values$seed)) {
       warning_text("The analysis is", strong("not reproducible"),
                    "without setting a seed.")
     }
   })
 
   # show advanced options if selected
-  output$MM_options <- renderUI({
-    req(input$show_advanced_options)
+  output$select_advanced_options_ROBMED <- renderUI({
+    req(input$y, input$x, input$m, input$show_advanced_options_ROBMED)
+    # use prevous values as defaults (if they exist)
+    default_efficiency <- isolate(input$efficiency)
+    if (is.null(default_efficiency)) default_efficiency <- 0.85
+    default_max_iterations <- isolate(input$max_iterations)
+    if (is.null(default_max_iterations)) default_max_iterations <- 10000
+    # create inputs
     tagList(
       h2("MM-estimator"),
       selectInput("efficiency", "Efficiency at normal distribution",
-                  choices = c(0.80, 0.85, 0.90, 0.95), selected = 0.85,
+                  choices = c(0.80, 0.85, 0.90, 0.95),
+                  selected = default_efficiency,
                   multiple = FALSE),
       numericInput("max_iterations", "Maximum number of iterations",
-                   value = 10000, min = 1000, step = 1000)
+                   value = default_max_iterations, min = 1000,
+                   step = 1000)
     )
+  })
+
+  # observer for button to run ROBMED
+  observeEvent(input$run_ROBMED, {
+    # construct command to set the seed of the random number generator
+    if (isTruthy(values$seed)) {
+      command_seed <- call("set.seed", values$seed)
+      eval(command_seed, envir = session_env)
+    } else command_seed <- NULL
+    # construct command for control object for MM-estimator
+    use_control <- isTruthy(input$efficiency) && isTruthy(input$max_iterations)
+    if (use_control) {
+      command_reg_control <- call("reg_control",
+                                  efficiency = input$efficiency,
+                                  max_iterations = input$max_iterations)
+      command_ctrl <- call("<-", as.name("ctrl"), command_reg_control)
+      eval(command_ctrl, envir = session_env)
+    } else command_ctrl <- NULL
+    # construct command to perform ROBMED
+    command_test_mediation <- call("test_mediation",
+                                   as.name(values$df_name),
+                                   x = input$x,
+                                   y = input$y,
+                                   m = input$m)
+    if (length(input$covariates) > 0L) {
+      command_test_mediation$covariates <- input$covariates
+    }
+    command_test_mediation$R <- values$R
+    command_test_mediation$level <- values$level
+    command_test_mediation$robust <- TRUE
+    if (length(input$m) > 1L) command_test_mediation$model = input$model
+    if (use_control) command_test_mediation$control <- as.name("ctrl")
+    command_robust_boot <- call("<-", as.name("robust_boot"),
+                                command_test_mediation)
+    eval(command_robust_boot, envir = session_env)
+    # construct command to show summary
+    command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
+    # construct command to show diagnostic plot
+    command_weight_plot <- call("weight_plot", as.name("robust_boot"))
+    command_scale <- call("scale_color_manual", "",
+                          values = c("black", "#00BFC4"))
+    command_theme <- call("theme", legend.position = "top")
+    command_plot <- call("+", call("+", command_weight_plot, command_scale),
+                         command_theme)
+    command_p <- call("<-", as.name("p"), command_plot)
+    eval(command_p, envir = session_env)
+    # update reactive value with list of commands to perform ROBMED
+    # (which are evaluated to create output and written to replication script)
+    commands_ROBMED <- list(seed = command_seed,
+                            control = command_ctrl,
+                            mediation = command_robust_boot,
+                            summary = command_summary,
+                            plot = command_p)
+    attr(commands_ROBMED, "time_stamp") <- Sys.time()
+    commands$ROBMED <- commands_ROBMED
+    # update reactive values with list of used inputs
+    # (which are used to check if options are the same for ROBMED and OLS
+    # bootstrap, or if inputs have changed since output was generated)
+    used_inputs$ROBMED <- list(level = values$level, R = values$R,
+                               seed = values$seed)
+    # clean up reactive values to clear output in export tab
+    commands$table <- NULL
+    commands$plot <- NULL
+    used_inputs$table <- NULL
+    used_inputs$plot <- NULL
   })
 
   # observer to ensure that confidence level is the same as for OLS bootstrap
   observeEvent(input$level_OLS_boot, {
+    values$level <- input$level_OLS_boot
     updateNumericInput(session, inputId = "level_ROBMED",
-                       value = input$level_OLS_boot)
+                       value = values$level)
   })
 
   # observer to ensure that number of bootstrap samples is the same as for
   # OLS bootstrap
   observeEvent(input$R_OLS_boot, {
+    values$R <- input$R_OLS_boot
     updateNumericInput(session, inputId = "R_ROBMED",
-                       value = input$R_OLS_boot)
+                       value = values$R)
   })
 
   # observer to ensure that seed of the random number generator is the same as
   # for OLS bootstrap
   observeEvent(input$seed_OLS_boot, {
+    values$seed <- input$seed_OLS_boot
     updateNumericInput(session, inputId = "seed_ROBMED",
-                       value = input$seed_OLS_boot)
+                       value = values$seed)
   })
 
 
@@ -872,96 +909,102 @@ shinyServer(function(input, output, session) {
 
   ## update inputs for the 'OLS Bootstrap' tab
 
-  # observer for button to run the OLS bootstrap
-  observeEvent(input$run_OLS_boot, {
-
-    # check if necessary inputs are selected
-    have_y <- isTruthy(input$y)
-    have_x <- isTruthy(input$x)
-    have_m <- isTruthy(input$m)
-    if (have_y && have_x && have_m) {
-
-      # construct command to set the seed of the random number generator
-      if (isTruthy(input$seed_OLS_boot)) {
-        command_seed <- call("set.seed", input$seed_OLS_boot)
-        eval(command_seed, envir = session_env)
-      } else command_seed <- NULL
-      # construct command to perform the OLS bootstrap
-      command_test_mediation <- call("test_mediation",
-                                     as.name(values$df_name),
-                                     x = input$x,
-                                     y = input$y,
-                                     m = input$m)
-      if (length(input$covariates) > 0L) {
-        command_test_mediation$covariates <- input$covariates
-      }
-      command_test_mediation$R <- input$R_OLS_boot
-      command_test_mediation$level <- input$level_OLS_boot
-      command_test_mediation$robust <- FALSE
-      if (length(input$m) > 1L) command_test_mediation$model = input$model
-      command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
-      eval(command_ols_boot, envir = session_env)
-      # construct command to show summary
-      command_summary <- call("summary", as.name("ols_boot"))
-      # update reactive value with list of commands to perform the OLS bootstrap
-      # (which are evaluated to create output and written to replication script)
-      commands_OLS_boot <- list(seed = command_seed,
-                                mediation = command_ols_boot,
-                                summary = command_summary)
-      attr(commands_OLS_boot, "time_stamp") <- Sys.time()
-      commands$OLS_boot <- commands_OLS_boot
-      # update reactive values with list of options
-      # (which are used to check if options are the same for ROBMED and OLS
-      # bootstrap, or if inputs have changed since output was generated)
-      values$OLS_boot <- list(level = input$level_OLS_boot, R = input$R_OLS_boot,
-                              seed = input$seed_OLS_boot)
-      # clean up reactive values for relevant commands
-      # (which is used to clear output)
-      commands$table <- NULL
-      errors$export <- NULL
-
+  # create UI element to show inputs for OLS bootstrap options
+  output$select_options_OLS_boot <- renderUI({
+    # have_required_variables <- isTruthy
+    if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
+      # only show inputs if the required variables have been selected
+      tagList(
+        # button to perform the OLS bootstrap
+        actionButton("run_OLS_boot", "Run"),
+        # options for the bootstrap confidence intervals
+        h2("Options"),
+        numericInput("level_OLS_boot", "Confidence level",
+                     value = isolate(values$level),
+                     min = 0.9, max = 0.999, step = 0.01),
+        numericInput("R_OLS_boot", "Number of bootstrap samples",
+                     value = isolate(values$R), min = 1000,
+                     step = 1000),
+        numericInput("seed_OLS_boot", "Seed of the random number generator",
+                     value = isolate(values$seed)),
+        uiOutput("help_seed_OLS_boot")
+      )
     } else {
-
-      # construct error message that variables need to be selected
-      errors$OLS_boot <- get_variable_selection_error(have_y = have_y,
-                                                      have_x = have_x,
-                                                      have_m = have_m)
-
+      # otherwise show an error message on which variables need to be selected
+      error_text(get_variable_selection_error(input$y, input$x, input$m))
     }
-
   })
 
-  # show error messages for the OLS Bootstrap
-  output$error_run_OLS_boot <- renderUI({
-    show_errors(errors$OLS_boot)
-  })
-
-  # show help text if no random number seed is selected
+  # show warning text if no random number seed is selected
   output$help_seed_OLS_boot <- renderUI({
-    if (!isTruthy(input$seed_OLS_boot)) {
+    if (!isTruthy(values$seed)) {
       warning_text("The analysis is", strong("not reproducible"),
                    "without setting a seed.")
     }
   })
 
+  # observer for button to run the OLS bootstrap
+  observeEvent(input$run_OLS_boot, {
+    # construct command to set the seed of the random number generator
+    if (isTruthy(values$seed)) {
+      command_seed <- call("set.seed", values$seed)
+      eval(command_seed, envir = session_env)
+    } else command_seed <- NULL
+    # construct command to perform the OLS bootstrap
+    command_test_mediation <- call("test_mediation",
+                                   as.name(values$df_name),
+                                   x = input$x,
+                                   y = input$y,
+                                   m = input$m)
+    if (length(input$covariates) > 0L) {
+      command_test_mediation$covariates <- input$covariates
+    }
+    command_test_mediation$R <- values$R
+    command_test_mediation$level <- values$level
+    command_test_mediation$robust <- FALSE
+    if (length(input$m) > 1L) command_test_mediation$model = input$model
+    command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
+    eval(command_ols_boot, envir = session_env)
+    # construct command to show summary
+    command_summary <- call("summary", as.name("ols_boot"))
+    # update reactive value with list of commands to perform the OLS bootstrap
+    # (which are evaluated to create output and written to replication script)
+    commands_OLS_boot <- list(seed = command_seed,
+                              mediation = command_ols_boot,
+                              summary = command_summary)
+    attr(commands_OLS_boot, "time_stamp") <- Sys.time()
+    commands$OLS_boot <- commands_OLS_boot
+    # update reactive values with list of used inputs
+    # (which are used to check if options are the same for ROBMED and OLS
+    # bootstrap, or if inputs have changed since output was generated)
+    used_inputs$OLS_boot <- list(level = values$level, R = values$R,
+                                 seed = values$seed)
+    # clean up reactive values to clear output in export tab
+    commands$table <- NULL
+    used_inputs$table <- NULL
+  })
+
   # observer to ensure that confidence level is the same as for ROBMED
   observeEvent(input$level_ROBMED, {
+    values$level <- input$level_ROBMED
     updateNumericInput(session, inputId = "level_OLS_boot",
-                       value = input$level_ROBMED)
+                       value = values$level)
   })
 
   # observer to ensure that number of bootstrap samples is the same as for
   # ROBMED
   observeEvent(input$R_ROBMED, {
+    values$R <- input$R_ROBMED
     updateNumericInput(session, inputId = "R_OLS_boot",
-                       value = input$R_ROBMED)
+                       value = values$R)
   })
 
   # observer to ensure that seed of the random number generator is the same as
   # for ROBMED
   observeEvent(input$seed_ROBMED, {
+    values$seed <- input$seed_ROBMED
     updateNumericInput(session, inputId = "seed_OLS_boot",
-                       value = input$seed_ROBMED)
+                       value = values$seed)
   })
 
 
