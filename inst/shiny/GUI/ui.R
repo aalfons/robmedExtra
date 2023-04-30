@@ -13,15 +13,6 @@ library("robmed")
 library("robmedExtra")
 
 
-# Internal functions -----
-
-# function to construct labels for variable selection inputs
-get_label <- function(label, info) {
-  # FIXME: color is hard-coded to be the same as in help text in bootstrap theme
-  p(label, span(info, style = "color: #737373; font-weight:normal;"))
-}
-
-
 # User interface definition for GUI -----
 
 #' @import shiny
@@ -142,8 +133,8 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
           # inputs for various options
-          uiOutput("select_options_ROBMED"),
-          uiOutput("select_advanced_options_ROBMED")
+          uiOutput("options_ROBMED"),
+          uiOutput("advanced_options_ROBMED")
         ),
         # output panel on right hand side
         mainPanel(
@@ -165,7 +156,7 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
           # inputs for various options
-          uiOutput("select_options_OLS_boot")
+          uiOutput("options_OLS_boot")
         ),
         # output panel on right hand side
         mainPanel(
@@ -182,48 +173,13 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-
-          # button to export files
-          actionButton("generate_files", "Generate files"),
-          # TODO: show export button only after files are successfully generated
-          # There is a solution so that the downloadButton can be fully hidden
-          # and automatically triggered when the files are successfully
-          # generated, but that solution requires JavaScript and package
-          # 'shinyjs'.
-          downloadButton("export_files", "Export files"),
-          uiOutput("error_export_files"),
-
-          # inputs for exporting table
-          h2("Table"),
-          sliderInput("digits", "Number of digits after decimal point",
-                      min = 2, max = 6, value = 3, step = 1, round = TRUE,
-                      ticks = FALSE),
-          checkboxInput("p_value",
-                        get_label(HTML("Include <em>p</em> values for indirect effects"),
-                                  "(may take time to compute)"),
-                        value = FALSE),
-          # TODO: add input to select format (docx, pptx)
+          # buttons to generate/downlaod files and inputs for table options
+          uiOutput("options_table"),
           uiOutput("select_orientation"),
-          actionButton("preview_table", "Preview"),
-          uiOutput("error_preview_table"),
-
-          # inputs for exporting diagnostic plot
-          # TODO: show inputs for the diagnostic plot only when ROBMED was run
-          h2("Diagnostic Plot"),
-          checkboxGroupInput("file_type", "File type",
-                             choices = c("pdf", "png"),
-                             selected = c("pdf", "png")),
-          uiOutput("error_file_type"),
-          radioButtons("units", "Unit of width and height",
-                       choices = c("cm", "inches"),
-                       selected = "cm"),
-          numericInput("width", "Width", value = 13, min = 0, step = 0.5),
-          # TODO: allow default height to scale with the number of regressions
-          numericInput("height", "Height", value = 11.5, min = 0, step = 0.5),
-          uiOutput("select_resolution"),
-          actionButton("preview_plot", "Preview"),
-          uiOutput("error_preview_plot")
-
+          # input for plot options
+          uiOutput("select_file_type"),
+          uiOutput("options_plot"),
+          uiOutput("select_resolution")
         ),
         # output panel on right hand side
         mainPanel(
