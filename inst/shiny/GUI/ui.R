@@ -199,26 +199,17 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
-          # TODO: implement functionality to download citations
           selectInput("citation_format", "Citation format",
                       choices = c("EndNote", "BibTeX"),
                       selected = "EndNote", multiple = FALSE),
-          downloadButton("export_citation", "Export citation")
+          downloadButton("download_references", "Download references")
         ),
         # output panel on right hand side
         mainPanel(
 
-          # information on software version
+          # information on software versions
           h2("Version"),
-          p("You are using", strong("R"),
-            paste0("version ",
-                   paste(R.Version()[c("major", "minor")], collapse = "."),
-                   ", package"),
-            strong("robmed"),
-            paste0( "version ", toString(packageVersion("robmed")),
-                    ", and package"),
-            strong("robmedExtra"),
-            paste0("version ", toString(packageVersion("robmedExtra")), ".")),
+          uiOutput("version_info"),
 
           # citation information
           h2("Citation"),
@@ -235,18 +226,7 @@ shinyUI(fluidPage(
             HTML("<em>Journal of Statistical Software</em>, <em>103</em>(13),",
                  "1&ndash;45."),
             a("https://doi.org/10.18637/jss.v103.i13")),
-          # FIXME: part of this is hardcoded to get it into APA format
-          #        It's better to generate this dynamically based on the
-          #        citation() information, but we may need a function to
-          #        get the information in APA format.
-          p(paste0("Alfons, A., Drenth, V., & Archimbaud, A. (",
-                   format(packageDate("robmedExtra"), "%Y"),")."),
-            HTML("<strong>robmedExtra</strong>:"),
-            "Extra functionality for (robust) mediation analysis.",
-            strong("R"),
-            paste0("package version ", toString(packageVersion("robmedExtra")),
-                   "."),
-            a("https://github.com/aalfons/robmedExtra"))
+          uiOutput("reference_robmedExtra")
 
         )
       )

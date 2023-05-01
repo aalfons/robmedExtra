@@ -107,6 +107,31 @@ deparse_command <- function(expr) {
 }
 
 
+# function to extract information for reference for a package
+package_info <- function(package) {
+  description <- packageDescription(package)
+  year <- format(packageDate(package), "%Y")
+  version <- toString(packageVersion(package))
+  # extract author information
+  # FIXME: currently hardcoded for 'robmedExtra'
+  author <- "Alfons, A., Drenth, V., & Archimbaud, A."
+  # convert package title to sentence case for APA style
+  # (The first group in the regex indicates that a space \\s or an opening
+  # parenthesis \\( should come before the string to be converted.  The second
+  # group indicates that we want to convert uppercase letters.  So we convert
+  # uppercase letters that come after a space or an opening parenthesis.)
+  title <- gsub("(\\s|\\()([A-Z])", "\\1\\L\\2", description$Title,
+                perl = TRUE, fixed = FALSE)
+  full_title <- paste0("<strong>", package, "</strong>: ", title)
+  # extract note
+  note <- paste("<strong>R</strong> package version", version)
+  # extract package URL
+  URL <- description$URL
+  # return list containing information
+  list(author = author, year = year, title = full_title, note = note,
+       version = version, URL = URL)
+}
+
 # Server-side logic for GUI -----
 
 #' @import shiny
@@ -150,6 +175,11 @@ shinyServer(function(input, output, session) {
 
   # initialize reactive values for snapshots of inputs when buttons are pressed
   used_inputs <- reactiveValues()
+
+  # information on R and relevant packages
+  R_version <- paste(R.Version()[c("major", "minor")], collapse = ".")
+  robmed_version <- toString(packageVersion("robmed"))
+  robmedExtra_info <- package_info("robmedExtra")
 
 
   ## Render inputs for the 'Data' tab -----
@@ -1166,5 +1196,25 @@ shinyServer(function(input, output, session) {
     if (used_inputs$plot$units == "cm") height <- height / 2.54
     height * 125
   }, res = 125)
+
+
+  ## Render outputs for the 'Info' tab -----
+
+  # render information on software versions
+  output$version_info <- renderUI({
+    p("You are using", strong("R"), paste0("version ", R_version, ", package"),
+      strong("robmed"), paste0( "version ", robmed_version, ", and package"),
+      strong("robmedExtra"), paste0("version ", robmedExtra_info$version, "."))
+  })
+
+  # render reference for package robmedExtra
+  output$reference_robmedExtra <- renderUI({
+    p(paste0(robmedExtra_info$author, " (", robmedExtra_info$year, ")."),
+      HTML(paste0(robmedExtra_info$title, ".")),
+      HTML(paste0(robmedExtra_info$note, ".")),
+      a(robmedExtra_info$URL))
+  })
+
+  # TODO: implement functionality to download references
 
 })
