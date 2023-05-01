@@ -137,7 +137,8 @@ shinyServer(function(input, output, session) {
                            level = 0.95,
                            R = 5000,
                            seed = get_default_seed(),
-                           file_type = c("pdf", "png"))
+                           file_type = c("pdf", "png"),
+                           units = "cm")
 
   # initialize reactive values for commands
   RNG_kind <- RNGkind()
@@ -471,6 +472,14 @@ shinyServer(function(input, output, session) {
 
   # observer for button to run ROBMED
   observeEvent(input$run_ROBMED, {
+    # clean up reactive values to clear output
+    commands$ROBMED <- NULL
+    commands$table <- NULL
+    commands$plot <- NULL
+    used_inputs$ROBMED <- NULL
+    used_inputs$table <- NULL
+    used_inputs$plot <- NULL
+    values$download <- NULL
     # construct command to set the seed of the random number generator
     if (isTruthy(values$seed)) {
       command_seed <- call("set.seed", values$seed)
@@ -528,12 +537,6 @@ shinyServer(function(input, output, session) {
     # bootstrap, or if inputs have changed since output was generated)
     used_inputs$ROBMED <- list(level = values$level, R = values$R,
                                seed = values$seed)
-    # clean up reactive values to clear output in export tab
-    commands$table <- NULL
-    commands$plot <- NULL
-    used_inputs$table <- NULL
-    used_inputs$plot <- NULL
-    values$download <- NULL
   })
 
   # observer to ensure that confidence level is the same as for OLS bootstrap
@@ -620,6 +623,14 @@ shinyServer(function(input, output, session) {
 
   # observer for button to run the OLS bootstrap
   observeEvent(input$run_OLS_boot, {
+    # clean up reactive values to clear output
+    commands$OLS_boot <- NULL
+    commands$table <- NULL
+    commands$plot <- NULL
+    used_inputs$OLS_boot <- NULL
+    used_inputs$table <- NULL
+    used_inputs$plot <- NULL
+    values$download <- NULL
     # construct command to set the seed of the random number generator
     if (isTruthy(values$seed)) {
       command_seed <- call("set.seed", values$seed)
@@ -654,12 +665,6 @@ shinyServer(function(input, output, session) {
     # bootstrap, or if inputs have changed since output was generated)
     used_inputs$OLS_boot <- list(level = values$level, R = values$R,
                                  seed = values$seed)
-    # clean up reactive values to clear output in export tab
-    commands$table <- NULL
-    commands$plot <- NULL
-    used_inputs$table <- NULL
-    used_inputs$plot <- NULL
-    values$download <- NULL
   })
 
   # observer to ensure that confidence level is the same as for ROBMED
@@ -751,9 +756,13 @@ shinyServer(function(input, output, session) {
     # (with the same options)
     req(commands$ROBMED, commands$OLS_boot,
         identical(used_inputs$ROBMED, used_inputs$OLS_boot))
-    radioButtons("orientation", "Page orientation",
-                 choices = c("portrait", "landscape"),
-                 selected = isolate(input$orientation))
+    # radioButtons("orientation", "Page orientation",
+    #              choices = c("portrait", "landscape"),
+    #              selected = isolate(input$orientation))
+    selectInput("orientation", "Page orientation",
+                choices = c("portrait", "landscape"),
+                selected = isolate(input$orientation),
+                multiple = FALSE)
   })
 
   # create UI input for file type for the diagnostic plot
@@ -782,10 +791,6 @@ shinyServer(function(input, output, session) {
   }, ignoreNULL = FALSE, ignoreInit = TRUE)
 
   # create UI inputs with inputs for options for the diagnostic plot
-  # FIXME: the default values for width and height are divided by 2.54 because
-  #        the observer below is executed also when the UI element is created
-  #        (argument 'ignoreInit = TRUE' of observeEvent() doesn't seem to work
-  #        as intended when the input is created dynamically with renderUI())
   output$options_plot <- renderUI({
     # show the input if ROBMED has been run and a file type has been selected,
     # and if the OLS bootstrap has been run as well the methods need to have
@@ -795,31 +800,59 @@ shinyServer(function(input, output, session) {
           identical(used_inputs$ROBMED, used_inputs$OLS_boot),
         values$file_type)
     # use previous values as defaults (if they exist)
-    default_units <- isolate(input$units)
-    if (is.null(default_units)) default_units <- "cm"
+    default_units <- isolate(values$units)
     default_width <- isolate(input$width)
-    if (is.null(default_width)) default_width <- 13 / 2.54
+    if (is.null(default_width)) default_width <- 13
     # TODO: allow default height to scale with the number of regressions
     default_height <- isolate(input$height)
-    if (is.null(default_height)) default_height <- 11.5 / 2.54
+    if (is.null(default_height)) default_height <- 11.5
     # create inputs
     tagList(
-      radioButtons("units", "Unit of width and height",
-                   choices = c("cm", "inches"),
-                   selected = default_units),
-      numericInput("width", "Width", value = default_width,
-                   min = 0, step = 1),
-      numericInput("height", "Height", value = default_height,
-                   min = 0, step = 1)
+      # radioButtons("units", "Unit of width and height",
+      #              choices = c("cm", "inches"),
+      #              selected = default_units),
+      # numericInput("width", "Width", value = default_width,
+      #              min = 0, step = 1),
+      # numericInput("height", "Height", value = default_height,
+      #              min = 0, step = 1)
+      fluidRow(
+        column(width = 7, style = "padding-right: 5px",
+               numericInput("width", "Width", value = default_width,
+                            min = 0, step = 1)),
+        column(width = 5, style = "padding-left: 5px",
+               selectInput("unit_width", "Unit", choices = c("cm", "inches"),
+                           selected = default_units, multiple = FALSE))
+      ),
+      fluidRow(
+        column( width = 7, style = "padding-right: 5px",
+                numericInput("height", "Height", value = default_height,
+                             min = 0, step = 1)),
+        column(width = 5, style = "padding-left: 5px",
+               selectInput("unit_height", "Unit", choices = c("cm", "inches"),
+                           selected = default_units, multiple = FALSE))
+      )
     )
   })
 
+  # observer to ensure that unit of height is the same as unit of width
+  observeEvent(input$unit_width, {
+    values$units <- input$unit_width
+    updateSelectInput(session, inputId = "unit_height",
+                      selected = values$units)
+  })
+
+  # observer to ensure that unit of width is the same as unit of height
+  observeEvent(input$unit_height, {
+    values$units <- input$unit_height
+    updateSelectInput(session, inputId = "unit_width",
+                      selected = values$units)
+  })
+
   # observer for switching the units for width and height
-  # FIXME: argument 'ignoreInit = TRUE' doesn't seem to work as intended when
-  #        the input is created dynamically with renderUI(), which is why we
-  #        need the above hack for the default value
-  observeEvent(input$units, {
-    if (input$units == "inches") {
+  # (argument 'ignoreInit = TRUE' prevents that the observer is executed when
+  # the reactive value is initialized so that the default values are correct)
+  observeEvent(values$units, {
+    if (values$units == "inches") {
       width <- input$width / 2.54
       height <- input$height / 2.54
       step = 0.5
@@ -830,7 +863,7 @@ shinyServer(function(input, output, session) {
     }
     updateNumericInput(session, inputId = "width", value = width, step = step)
     updateNumericInput(session, inputId = "height", value = height, step = step)
-  })
+  }, ignoreInit = TRUE)
 
   # create UI input for resolution of the png image for the diagnostic plot
   output$select_resolution <- renderUI({
@@ -851,6 +884,12 @@ shinyServer(function(input, output, session) {
 
   # observer for button to generate and preview files
   observeEvent(input$generate_files, {
+    ## clean up reactive values to clear output and download button
+    commands$table <- NULL
+    used_inputs$table <- NULL
+    commands$plot <- NULL
+    used_inputs$plot <- NULL
+    values$download <- NULL
     ## initializations
     commands_ROBMED <- commands$ROBMED
     have_ROBMED <- isTruthy(commands_ROBMED)
@@ -881,7 +920,8 @@ shinyServer(function(input, output, session) {
                            export = command_export)
     attr(commands_table, "time_stamp") <- Sys.time()
     # construct list of inputs used to generate the table
-    used_inputs_table <- list(digits = input$digits, p_value = input$p_value,
+    used_inputs_table <- list(digits = input$digits,
+                              p_value = input$p_value,
                               orientation = orientation)
     # evaluate command to generate flextable
     eval(commands_table$generate, envir = session_env)
@@ -890,12 +930,15 @@ shinyServer(function(input, output, session) {
       # extract and convert some inputs
       width <- input$width
       height <- input$height
-      units <- input$units
-      if (units == "inches") units <- "in"
-      else {
-        # convert width and height to inches
-        width <- width / 2.54
-        height <- height / 2.54
+      units <- values$units
+      if (units == "inches") {
+        # convert as required by png()
+        units <- "in"
+      } else {
+        # pdf() required width and height in inches: command looks nicer with
+        # a function call for the conversion instead of the converted values
+        width <- call("/", width, 2.54)
+        height <- call("/", height, 2.54)
       }
       # define file names for diagnostic plot
       plot_file <- "diagnostic_plot.%s"
@@ -910,10 +953,14 @@ shinyServer(function(input, output, session) {
       have_png <- "png" %in% values$file_type
       if (have_png) {
         # construct command
+        resolution <- input$resolution
         command_png <- call("png", file = sprintf(plot_file, "png"),
                             width = input$width, height = input$height,
-                            units = units, res = input$resolution)
-      } else command_png <- NULL
+                            units = units, res = resolution)
+      } else {
+        resolution <- NULL
+        command_png <- NULL
+      }
       # construct list of commands to export the diagnostic plot
       commands_plot <- list(pdf = command_pdf,
                             png = command_png,
@@ -921,10 +968,11 @@ shinyServer(function(input, output, session) {
                             close = call("dev.off"))
       attr(commands_plot, "time_stamp") <- Sys.time()
       # construct list with used inputs and plot dimensions for preview
-      used_inputs_plot <- list(file_type = values$file_type, units = units,
-                               width = input$width, height = input$height,
-                               width_inches = width, height_inches = height,
-                               resolution = if (have_png) input$resolution)
+      used_inputs_plot <- list(file_type = values$file_type,
+                               units = values$units,
+                               width = input$width,
+                               height = input$height,
+                               resolution = resolution)
     } else {
       have_pdf <- FALSE
       have_png <- FALSE
@@ -954,7 +1002,7 @@ shinyServer(function(input, output, session) {
     }
     ## generate replication script
     # construct initial lines to load packages and data
-    # TODO: add package version and sessionInfo() in the initial comment
+    # TODO: add sessionInfo() in the initial comment
     lines_initial <- c(
       "# generated by the graphical user interface for (robust) mediation analysis",
       "# from package 'robmedExtra'",
@@ -1080,8 +1128,6 @@ shinyServer(function(input, output, session) {
       # switch to temporary directory where files are saved
       working_directory <- setwd(values$download$path)
       on.exit(setwd(working_directory))
-      print(values$download$path)
-      print(values$download$files)
       # download zip file containing the files
       zip(zipfile = file, files = values$download$files)
     },
@@ -1111,10 +1157,14 @@ shinyServer(function(input, output, session) {
     get("p", envir = session_env)
   }, width = function() {
     req(used_inputs$plot)
-    used_inputs$plot$width_inches * 125
+    width <- used_inputs$plot$width
+    if (used_inputs$plot$units == "cm") width <- width / 2.54
+    width * 125
   }, height = function() {
     req(used_inputs$plot)
-    used_inputs$plot$height_inches * 125
+    height <- used_inputs$plot$height
+    if (used_inputs$plot$units == "cm") height <- height / 2.54
+    height * 125
   }, res = 125)
 
 })
