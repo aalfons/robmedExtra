@@ -17,14 +17,6 @@ library("robmedExtra")
 # Internal functions -----
 
 
-# function to get the names of data frames in a given environment
-get_data_frames <- function(env = .GlobalEnv) {
-  is_df <- sapply(env, is.data.frame, simplify = TRUE, USE.NAMES = TRUE)
-  if (any(is_df)) names(is_df)[is_df]
-  else character()
-}
-
-
 # function to create a help text element
 # This is defined to have more control over the style compared to the built-in
 # function shiny::helpText(). In particular, we can make sure that the color is
@@ -68,11 +60,6 @@ get_label <- function(label, info) {
   p(label, span(info, style = "color: #737373; font-weight:normal;"))
 }
 
-# function to get default seed for random number generator based on the date
-get_default_seed <- function() {
-  format(Sys.Date(), "%Y%m%d")
-}
-
 
 # function to generate error message for missing variable selection
 get_variable_selection_error <- function(y, x, m) {
@@ -107,30 +94,141 @@ deparse_command <- function(expr) {
 }
 
 
-# function to extract information for reference for a package
-package_info <- function(package) {
+# function to get references as HTML tags to be displayed in the GUI or as
+# lines to be written into a file for import into into a reference manager
+get_references <- function(format = "HTML") {
+  # FIXME: author information is currently hardcoded
+  # get information for package 'robmedExtra'
+  package <- "robmedExtra"
   description <- packageDescription(package)
-  year <- format(packageDate(package), "%Y")
   version <- toString(packageVersion(package))
-  # extract author information
-  # FIXME: currently hardcoded for 'robmedExtra'
-  author <- "Alfons, A., Drenth, V., & Archimbaud, A."
-  # convert package title to sentence case for APA style
-  # (The first group in the regex indicates that a space \\s or an opening
-  # parenthesis \\( should come before the string to be converted.  The second
-  # group indicates that we want to convert uppercase letters.  So we convert
-  # uppercase letters that come after a space or an opening parenthesis.)
+  year <- format(packageDate(package), "%Y")
   title <- gsub("(\\s|\\()([A-Z])", "\\1\\L\\2", description$Title,
                 perl = TRUE, fixed = FALSE)
-  full_title <- paste0("<strong>", package, "</strong>: ", title)
-  # extract note
-  note <- paste("<strong>R</strong> package version", version)
-  # extract package URL
+  note <- paste("package version", version)
   URL <- description$URL
-  # return list containing information
-  list(author = author, year = year, title = full_title, note = note,
-       version = version, URL = URL)
+  if (format == "HTML") {
+    title <- paste0("<strong>", package, "</strong>: ", title)
+    note <- paste("<strong>R</strong>", note)
+  } else {
+    title <- paste(package, title, sep = ": ")
+    note <- paste("R", note)
+  }
+  # construct references in requested format
+  if (format == "HTML") {
+    # author information for package 'robmedExtra'
+    author <- "Alfons, A., Drenth, V., & Archimbaud, A."
+    # return list of HTML tags
+    tagList(
+      # HTML tag for ORM paper
+      ROBMED = p(
+        HTML("Alfons, A., Ate&scedil;, N. Y., & Groenen, P. J. F. (2022)."),
+        "A robust bootstrap test for mediation analysis.",
+        HTML("<em>Organizational Research Methods</em>, <em>25</em>(3),",
+             "591&ndash;617."),
+        a("https://doi.org/10.1177/1094428121999096",
+          href = "https://doi.org/10.1177/1094428121999096")
+      ),
+      # HTML tag for package 'robmed'
+      robmed = p(
+        HTML("Alfons, A., Ate&scedil;, N. Y., & Groenen, P. J. F. (2022)."),
+        HTML("Robust mediation analysis: The <strong>R</strong> package",
+             "<strong>robmed</strong>."),
+        HTML("<em>Journal of Statistical Software</em>, <em>103</em>(13),",
+             "1&ndash;45."),
+        a("https://doi.org/10.18637/jss.v103.i13",
+          href = "https://doi.org/10.18637/jss.v103.i13")
+      ),
+      # HTML tag for package 'robmedExtra'
+      robmedExtra = p(
+        paste0(author, " (", year, ")."), HTML(paste0(title, ".")),
+        HTML(paste0(note, ".")), a(URL, href = URL)
+      )
+    )
+  } else if (format == "EndNote") {
+    # return vector of lines to be written to .enw file
+    c(
+      # EndNote reference for ORM paper
+      "%0 Journal Article",
+      "%A Alfons, A.",
+      "%A Ate\U015F, N. Y.",
+      "%A Groenen, P. J. F.",
+      "%D 2022",
+      "%T A Robust Bootstrap Test for Mediation Analysis",
+      "%J Organizational Research Methods",
+      "%V 25",
+      "%N 3",
+      "%P 591-617",
+      "%R 10.1177/1094428121999096",
+      "%U https://doi.org/10.1177/1094428121999096",
+      "",
+      # EndNote reference for package 'robmed'
+      "%0 Journal Article",
+      "%A Alfons, A.",
+      "%A Ate\U015F, N. Y.",
+      "%A Groenen, P. J. F.",
+      "%D 2022",
+      "%T Robust mediation analysis: The R package robmed",
+      "%J Journal of Statistical Software",
+      "%V 103",
+      "%N 13",
+      "%P 1-45",
+      "%R 10.18637/jss.v103.i13",
+      "%U https://doi.org/10.18637/jss.v103.i13",
+      "",
+      # EndNote reference for package 'robmedExtra'
+      "%0 Computer Program",
+      "%A Alfons, A.",
+      "%A Drenth, V.",
+      "%A Archimbaud, A.",
+      paste("%D", year),
+      paste("%T", title),
+      paste("%Z", note),
+      paste("%U", URL)
+    )
+  } else if (format == "BibTeX") {
+    # author information for package 'robmedExtra'
+    author <- "Alfons, A. and Drenth, V. and Archimbaud, A."
+    # return vector of lines to be written to .bib file
+    c(
+      # BibTeX entry for ORM paper
+      "@article{alfons2022a,",
+      "  author = {Alfons, A. and Ate\\c{s}, N. Y. and Groenen, P. J. F.},",
+      "  year = {2022},",
+      "  title = {A Robust Bootstrap Test for Mediation Analysis},",
+      "  journal = {Organizational Research Methods},",
+      "  volume = {25},",
+      "  number = {3},",
+      "  pages = {591--617},",
+      "  doi = {10.1177/1094428121999096},",
+      "  url = {https://doi.org/10.1177/1094428121999096}",
+      "}",
+      "",
+      # BibTeX entry for package 'robmed'
+      "@article{alfons2022b,",
+      "  author = {Alfons, A. and Ate\\c{s}, N. Y. and Groenen, P. J. F.},",
+      "  year = {2022},",
+      "  title = {Robust mediation analysis: The R package robmed},",
+      "  journal = {Journal of Statistical Software},",
+      "  volume = {103},",
+      "  number = {13},",
+      "  pages = {1--45},",
+      "  doi = {10.18637/jss.v103.i13},",
+      "  url = {https://doi.org/10.18637/jss.v103.i13}",
+      "}",
+      "",
+      # BibTeX entry for package 'robmedExtra'
+      sprintf("@manual{alfons%s,", year),
+      sprintf("  author = {%s}", author),
+      sprintf("  year = {%s}", year),
+      sprintf("  title = {%s}", title),
+      sprintf("  note = {%s}", note),
+      sprintf("  url = {%s}", URL),
+      "}"
+    )
+  }
 }
+
 
 # Server-side logic for GUI -----
 
@@ -161,7 +259,7 @@ shinyServer(function(input, output, session) {
                            numeric_variables = character(),
                            level = 0.95,
                            R = 5000,
-                           seed = get_default_seed(),
+                           seed = format(Sys.Date(), "%Y%m%d"),
                            file_type = c("pdf", "png"),
                            units = "cm")
 
@@ -179,7 +277,8 @@ shinyServer(function(input, output, session) {
   # information on R and relevant packages
   R_version <- paste(R.Version()[c("major", "minor")], collapse = ".")
   robmed_version <- toString(packageVersion("robmed"))
-  robmedExtra_info <- package_info("robmedExtra")
+  robmedExtra_version <- toString(packageVersion("robmedExtra"))
+  references <- get_references("HTML")
 
 
   ## Render inputs for the 'Data' tab -----
@@ -1032,7 +1131,7 @@ shinyServer(function(input, output, session) {
     }
     ## generate replication script
     # construct initial lines to load packages and data
-    # TODO: add sessionInfo() in the initial comment
+    # TODO: add time stamp and sessionInfo() in the initial comment
     lines_initial <- c(
       "# generated by the graphical user interface for (robust) mediation analysis",
       "# from package 'robmedExtra'",
@@ -1204,17 +1303,34 @@ shinyServer(function(input, output, session) {
   output$version_info <- renderUI({
     p("You are using", strong("R"), paste0("version ", R_version, ", package"),
       strong("robmed"), paste0( "version ", robmed_version, ", and package"),
-      strong("robmedExtra"), paste0("version ", robmedExtra_info$version, "."))
+      strong("robmedExtra"), paste0("version ", robmedExtra_version, "."))
   })
 
-  # render reference for package robmedExtra
-  output$reference_robmedExtra <- renderUI({
-    p(paste0(robmedExtra_info$author, " (", robmedExtra_info$year, ")."),
-      HTML(paste0(robmedExtra_info$title, ".")),
-      HTML(paste0(robmedExtra_info$note, ".")),
-      a(robmedExtra_info$URL))
+  # render citation information
+  output$citation_info <- renderUI({
+    tagList(
+      p("To cite the robust bootstrap test ROBMED, please use:"),
+      references$ROBMED,
+      p("To cite our software, please use:"),
+      references$robmed,
+      references$robmedExtra
+    )
   })
 
-  # TODO: implement functionality to download references
+  # download references in selected format
+  output$download_references <- downloadHandler(
+    filename = function() {
+      extension <- switch(input$citation_format,
+                          "EndNote" = "enw",
+                          "BibTeX" = "bib")
+      paste("ROBMED", extension, sep = ".")
+    },
+    content = function(file) {
+      # write lines to file of selected reference format
+      references <- get_references(input$citation_format)
+      writeLines(references, con = file)
+    },
+    contentType = "text/plain"
+  )
 
 })

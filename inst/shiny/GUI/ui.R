@@ -213,20 +213,7 @@ shinyUI(fluidPage(
 
           # citation information
           h2("Citation"),
-          p("To cite the robust bootstrap test ROBMED, please use:"),
-          p("Alfons, A., Ates, N. Y., & Groenen, P. J. F. (2022).",
-            "A robust bootstrap test for mediation analysis.",
-            HTML("<em>Organizational Research Methods</em>, <em>25</em>(3),",
-                 "591&ndash;617."),
-            a("https://doi.org/10.1177/1094428121999096")),
-          p("To cite our software, please use:"),
-          p("Alfons, A., Ates, N. Y., & Groenen, P. J. F. (2022).",
-            HTML("Robust mediation analysis: The <strong>R</strong> package",
-                 "<strong>robmed</strong>."),
-            HTML("<em>Journal of Statistical Software</em>, <em>103</em>(13),",
-                 "1&ndash;45."),
-            a("https://doi.org/10.18637/jss.v103.i13")),
-          uiOutput("reference_robmedExtra")
+          uiOutput("citation_info")
 
         )
       )
