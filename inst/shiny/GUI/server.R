@@ -260,6 +260,7 @@ shinyServer(function(input, output, session) {
                            level = 0.95,
                            R = 5000,
                            seed = format(Sys.Date(), "%Y%m%d"),
+                           type = "boot",
                            file_type = c("pdf", "png"),
                            units = "cm")
 
@@ -560,6 +561,10 @@ shinyServer(function(input, output, session) {
         numericInput("seed_ROBMED", "Seed of the random number generator",
                      value = isolate(values$seed)),
         uiOutput("help_seed_ROBMED"),
+        selectInput("type_ROBMED", "Inference for total and direct effects",
+                    choices = list("Normal theory t tests" = "data",
+                                   "Bootstrap z tests" = "boot"),
+                    selected = isolate(values$type), multiple = FALSE),
         # checkbox whether to show advanced options (for the MM-estimator)
         checkboxInput("show_advanced_options_ROBMED", "Show advanced options",
                       value = isolate(input$show_advanced_options_ROBMED))
@@ -641,7 +646,8 @@ shinyServer(function(input, output, session) {
                                 command_test_mediation)
     eval(command_robust_boot, envir = session_env)
     # construct command to show summary
-    command_summary <- call("summary", as.name("robust_boot"), plot = FALSE)
+    command_summary <- call("summary", as.name("robust_boot"),
+                            type = values$type, plot = FALSE)
     # construct command to show diagnostic plot
     command_weight_plot <- call("weight_plot", as.name("robust_boot"))
     command_scale <- call("scale_color_manual", "",
@@ -665,7 +671,7 @@ shinyServer(function(input, output, session) {
     # (which are used to check if options are the same for ROBMED and OLS
     # bootstrap, or if inputs have changed since output was generated)
     used_inputs$ROBMED <- list(level = values$level, R = values$R,
-                               seed = values$seed)
+                               seed = values$seed, type = values$type)
   })
 
   # observer to ensure that confidence level is the same as for OLS bootstrap
@@ -689,6 +695,13 @@ shinyServer(function(input, output, session) {
     values$seed <- input$seed_OLS_boot
     updateNumericInput(session, inputId = "seed_ROBMED",
                        value = values$seed)
+  })
+
+  # observer to ensure that inference type is the same as for OLS bootstrap
+  observeEvent(input$type_OLS_boot, {
+    values$type <- input$type_OLS_boot
+    updateNumericInput(session, inputId = "type_ROBMED",
+                       value = values$type)
   })
 
 
@@ -734,7 +747,11 @@ shinyServer(function(input, output, session) {
                      step = 1000),
         numericInput("seed_OLS_boot", "Seed of the random number generator",
                      value = isolate(values$seed)),
-        uiOutput("help_seed_OLS_boot")
+        uiOutput("help_seed_OLS_boot"),
+        selectInput("type_OLS_boot", "Inference for total and direct effects",
+                    choices = list("Normal theory t tests" = "data",
+                                   "Bootstrap z tests" = "boot"),
+                    selected = isolate(values$type), multiple = FALSE),
       )
     } else {
       # otherwise show an error message on which variables need to be selected
@@ -781,7 +798,7 @@ shinyServer(function(input, output, session) {
     command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
     eval(command_ols_boot, envir = session_env)
     # construct command to show summary
-    command_summary <- call("summary", as.name("ols_boot"))
+    command_summary <- call("summary", as.name("ols_boot"), type = values$type)
     # update reactive value with list of commands to perform the OLS bootstrap
     # (which are evaluated to create output and written to replication script)
     commands_OLS_boot <- list(seed = command_seed,
@@ -793,7 +810,7 @@ shinyServer(function(input, output, session) {
     # (which are used to check if options are the same for ROBMED and OLS
     # bootstrap, or if inputs have changed since output was generated)
     used_inputs$OLS_boot <- list(level = values$level, R = values$R,
-                                 seed = values$seed)
+                                 seed = values$seed, type = values$type)
   })
 
   # observer to ensure that confidence level is the same as for ROBMED
@@ -817,6 +834,13 @@ shinyServer(function(input, output, session) {
     values$seed <- input$seed_ROBMED
     updateNumericInput(session, inputId = "seed_OLS_boot",
                        value = values$seed)
+  })
+
+  # observer to ensure that inference type is the same as for ROBMED
+  observeEvent(input$type_ROBMED, {
+    values$type <- input$type_ROBMED
+    updateNumericInput(session, inputId = "type_OLS_boot",
+                       value = values$type)
   })
 
 
@@ -1031,14 +1055,21 @@ shinyServer(function(input, output, session) {
       orientation <- input$orientation
       command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
       command_to_flextable <- call("to_flextable", command_list,
-                                   orientation = orientation,
+                                   type = used_inputs$ROBMED$type,
                                    p_value = input$p_value,
+                                   orientation = orientation,
                                    digits = input$digits)
     } else {
       orientation <- NULL
-      object_name <- if (have_ROBMED) "robust_boot" else "ols_boot"
+      if (have_ROBMED) {
+        object_name <- "robust_boot"
+        type <- used_inputs$ROBMED$type
+      } else {
+        object_name <- "ols_boot"
+        type <- used_inputs$OLS_boot$type
+      }
       command_to_flextable <- call("to_flextable", as.name(object_name),
-                                   p_value = input$p_value,
+                                   type = type, p_value = input$p_value,
                                    digits = input$digits)
     }
     command_ft <- call("<-", as.name("ft"), command_to_flextable)
