@@ -562,8 +562,8 @@ shinyServer(function(input, output, session) {
                      value = isolate(values$seed)),
         uiOutput("help_seed_ROBMED"),
         selectInput("type_ROBMED", "Inference for total and direct effects",
-                    choices = list("Normal theory t tests" = "data",
-                                   "Bootstrap z tests" = "boot"),
+                    choices = c("Normal theory t tests" = "data",
+                                "Bootstrap z tests" = "boot"),
                     selected = isolate(values$type), multiple = FALSE),
         # checkbox whether to show advanced options (for the MM-estimator)
         checkboxInput("show_advanced_options_ROBMED", "Show advanced options",
@@ -749,8 +749,8 @@ shinyServer(function(input, output, session) {
                      value = isolate(values$seed)),
         uiOutput("help_seed_OLS_boot"),
         selectInput("type_OLS_boot", "Inference for total and direct effects",
-                    choices = list("Normal theory t tests" = "data",
-                                   "Bootstrap z tests" = "boot"),
+                    choices = c("Normal theory t tests" = "data",
+                                "Bootstrap z tests" = "boot"),
                     selected = isolate(values$type), multiple = FALSE),
       )
     } else {
@@ -973,16 +973,20 @@ shinyServer(function(input, output, session) {
                numericInput("width", "Width", value = default_width,
                             min = 0, step = 1)),
         column(width = 5, style = "padding-left: 5px",
-               selectInput("unit_width", "Unit", choices = c("cm", "inches"),
-                           selected = default_units, multiple = FALSE))
+               selectInput("unit_width", "Unit",
+                           choices = c("cm", "inches" = "in"),
+                           selected = default_units,
+                           multiple = FALSE))
       ),
       fluidRow(
         column( width = 7, style = "padding-right: 5px",
                 numericInput("height", "Height", value = default_height,
                              min = 0, step = 1)),
         column(width = 5, style = "padding-left: 5px",
-               selectInput("unit_height", "Unit", choices = c("cm", "inches"),
-                           selected = default_units, multiple = FALSE))
+               selectInput("unit_height", "Unit",
+                           choices = c("cm", "inches" = "in"),
+                           selected = default_units,
+                           multiple = FALSE))
       )
     )
   })
@@ -1005,7 +1009,7 @@ shinyServer(function(input, output, session) {
   # (argument 'ignoreInit = TRUE' prevents that the observer is executed when
   # the reactive value is initialized so that the default values are correct)
   observeEvent(values$units, {
-    if (values$units == "inches") {
+    if (values$units == "in") {
       width <- input$width / 2.54
       height <- input$height / 2.54
       step = 0.5
@@ -1091,10 +1095,7 @@ shinyServer(function(input, output, session) {
       width <- input$width
       height <- input$height
       units <- values$units
-      if (units == "inches") {
-        # convert as required by png()
-        units <- "in"
-      } else {
+      if (units == "cm") {
         # pdf() required width and height in inches: command looks nicer with
         # a function call for the conversion instead of the converted values
         width <- call("/", width, 2.54)
