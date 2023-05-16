@@ -156,7 +156,8 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
           # inputs for various options
-          uiOutput("options_OLS_boot")
+          uiOutput("options_OLS_boot"),
+          uiOutput("advanced_options_OLS_boot")
         ),
         # output panel on right hand side
         mainPanel(

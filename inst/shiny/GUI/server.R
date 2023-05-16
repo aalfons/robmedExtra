@@ -259,6 +259,7 @@ shinyServer(function(input, output, session) {
                            numeric_variables = character(),
                            level = 0.95,
                            R = 5000,
+                           show_advanced_options = FALSE,
                            seed = format(Sys.Date(), "%Y%m%d"),
                            type = "boot",
                            file_type = c("pdf", "png"),
@@ -558,16 +559,9 @@ shinyServer(function(input, output, session) {
         numericInput("R_ROBMED", "Number of bootstrap samples",
                      value = isolate(values$R), min = 1000,
                      step = 1000),
-        numericInput("seed_ROBMED", "Seed of the random number generator",
-                     value = isolate(values$seed)),
-        uiOutput("help_seed_ROBMED"),
-        selectInput("type_ROBMED", "Inference for total and direct effects",
-                    choices = c("Normal theory t tests" = "data",
-                                "Bootstrap z tests" = "boot"),
-                    selected = isolate(values$type), multiple = FALSE),
-        # checkbox whether to show advanced options (for the MM-estimator)
+        # checkbox whether to show advanced options
         checkboxInput("show_advanced_options_ROBMED", "Show advanced options",
-                      value = isolate(input$show_advanced_options_ROBMED))
+                      value = isolate(values$show_advanced_options))
       )
     } else {
       # otherwise show an error message on which variables need to be selected
@@ -575,24 +569,24 @@ shinyServer(function(input, output, session) {
     }
   })
 
-  # show warning text if no random number seed is selected
-  output$help_seed_ROBMED <- renderUI({
-    if (!isTruthy(values$seed)) {
-      warning_text("The analysis is", strong("not reproducible"),
-                   "without setting a seed.")
-    }
-  })
-
   # show advanced options if selected
   output$advanced_options_ROBMED <- renderUI({
-    req(input$y, input$x, input$m, input$show_advanced_options_ROBMED)
-    # use previous values as defaults (if they exist)
+    req(input$y, input$x, input$m, values$show_advanced_options)
+    # for MM-estimator use previous values as defaults if they exist
+    # (other inputs are synchronized with OLS bootstrap via 'values')
     default_efficiency <- isolate(input$efficiency)
     if (is.null(default_efficiency)) default_efficiency <- 0.85
     default_max_iterations <- isolate(input$max_iterations)
     if (is.null(default_max_iterations)) default_max_iterations <- 10000
     # create inputs
     tagList(
+      numericInput("seed_ROBMED", "Seed of the random number generator",
+                   value = isolate(values$seed)),
+      uiOutput("help_seed_ROBMED"),
+      selectInput("type_ROBMED", "Inference for total and direct effects",
+                  choices = c("Normal theory t tests" = "data",
+                              "Bootstrap z tests" = "boot"),
+                  selected = isolate(values$type), multiple = FALSE),
       h2("MM-estimator"),
       selectInput("efficiency", "Efficiency at normal distribution",
                   choices = c(0.80, 0.85, 0.90, 0.95),
@@ -602,6 +596,14 @@ shinyServer(function(input, output, session) {
                    value = default_max_iterations, min = 1000,
                    step = 1000)
     )
+  })
+
+  # show warning text if no random number seed is selected
+  output$help_seed_ROBMED <- renderUI({
+    if (!isTruthy(values$seed)) {
+      warning_text("The analysis is", strong("not reproducible"),
+                   "without setting a seed.")
+    }
   })
 
   # observer for button to run ROBMED
@@ -689,6 +691,13 @@ shinyServer(function(input, output, session) {
                        value = values$R)
   })
 
+  # observer to ensure advanced options are shown the same as for OLS bootstrap
+  observeEvent(input$show_advanced_options_OLS_boot, {
+    values$show_advanced_options <- input$show_advanced_options_OLS_boot
+    updateCheckboxInput(session, inputId = "show_advanced_options_ROBMED",
+                        value = values$show_advanced_options)
+  })
+
   # observer to ensure that seed of the random number generator is the same as
   # for OLS bootstrap
   observeEvent(input$seed_OLS_boot, {
@@ -745,18 +754,29 @@ shinyServer(function(input, output, session) {
         numericInput("R_OLS_boot", "Number of bootstrap samples",
                      value = isolate(values$R), min = 1000,
                      step = 1000),
-        numericInput("seed_OLS_boot", "Seed of the random number generator",
-                     value = isolate(values$seed)),
-        uiOutput("help_seed_OLS_boot"),
-        selectInput("type_OLS_boot", "Inference for total and direct effects",
-                    choices = c("Normal theory t tests" = "data",
-                                "Bootstrap z tests" = "boot"),
-                    selected = isolate(values$type), multiple = FALSE),
+        # checkbox whether to show advanced options
+        checkboxInput("show_advanced_options_OLS_boot", "Show advanced options",
+                      value = isolate(values$show_advanced_options))
       )
     } else {
       # otherwise show an error message on which variables need to be selected
       error_text(get_variable_selection_error(input$y, input$x, input$m))
     }
+  })
+
+  # show advanced options if selected
+  output$advanced_options_OLS_boot <- renderUI({
+    req(input$y, input$x, input$m, values$show_advanced_options)
+    # create inputs
+    tagList(
+      numericInput("seed_OLS_boot", "Seed of the random number generator",
+                   value = isolate(values$seed)),
+      uiOutput("help_seed_OLS_boot"),
+      selectInput("type_OLS_boot", "Inference for total and direct effects",
+                  choices = c("Normal theory t tests" = "data",
+                              "Bootstrap z tests" = "boot"),
+                  selected = isolate(values$type), multiple = FALSE)
+    )
   })
 
   # show warning text if no random number seed is selected
@@ -826,6 +846,13 @@ shinyServer(function(input, output, session) {
     values$R <- input$R_ROBMED
     updateNumericInput(session, inputId = "R_OLS_boot",
                        value = values$R)
+  })
+
+  # observer to ensure advanced options are shown the same as for ROBMED
+  observeEvent(input$show_advanced_options_ROBMED, {
+    values$show_advanced_options <- input$show_advanced_options_ROBMED
+    updateCheckboxInput(session, inputId = "show_advanced_options_OLS_boot",
+                        value = values$show_advanced_options)
   })
 
   # observer to ensure that seed of the random number generator is the same as
