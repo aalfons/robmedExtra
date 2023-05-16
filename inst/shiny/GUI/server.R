@@ -87,10 +87,66 @@ get_variable_selection_error <- function(y, x, m) {
 
 
 # wrapper function to deparse command with certain arguments
-deparse_command <- function(expr) {
-  # TODO: replace this with something that produces nicer looking code
-  #       (e.g., formatR::tidy_source() or something from package 'styler')
-  deparse(expr, width.cutoff = 80L, backtick = FALSE, control = "niceNames")
+# split ... character string for splitting the commands. Currently only ", "
+#           for splitting after arguments or " + " for splitting after the plus
+#           operator are supported (note the spaces).
+# limit ... integer giving desired maximum line width.  This is only used for
+#           splitting after arguments (split = ", ").  If this is set to NA,
+#           each argument is put on a new line.
+deparse_command <- function(expr, split = ", ", limit = 80L) {
+  # deparse the expression
+  # Note: 500 is the maximum that argument 'width.cutoff' allows, and setting
+  #       argument 'nlines' to a negative value implies no limit on the number
+  #       of lines to be produced
+  command <- deparse(expr, width.cutoff = 500L, backtick = FALSE,
+                     control = "niceNames", nlines = -1L)
+  # if deparse() returns multiple lines (as separate strings), remove any
+  # indentation and put everything back into one string
+  if (length(command) > 1L) {
+    command <- paste(gsub("^ +", "", command), collapse = "")
+  }
+  # split and format the command as requested to make the code more readable
+  if (split == ", ") {
+    # split the commands into parts after each occurrence of ", "
+    command <- gsub(", ", ",\n ", command, fixed = TRUE)
+    command <- strsplit(command, "\n", fixed = TRUE)[[1L]]
+    # align subsequent lines with the opening parenthesis of the function call
+    n_spaces <- nchar(strsplit(command[1], "(", fixed = TRUE)[[1L]][1L])
+    spaces <- strrep(" ", n_spaces)
+    # format command
+    if (is.na(limit)) command[-1L] <- paste0(spaces, command[-1L])
+    else {
+      # add parts to a line as long as there is space (given by 'limit'),
+      # and start a new line when running out of space
+      parts <- command
+      command <- character()
+      while(length(parts) > 0L) {
+        if (length(parts) == 1L) {
+          # only one part left, so add it as a new line and we're done
+          add <- 1L
+        } else {
+          # determine how many predictors have space
+          width <- nchar(parts)
+          add <- which(cumsum(width) <= limit)
+          # if the first part is too long it needs to be added anyway
+          if (length(add) == 0) add <- 1
+        }
+        # add a new line
+        command <- c(command, paste(parts[add], collapse = ""))
+        # remove the parts that have just been written to the new line
+        parts <- parts[-add]
+        # indent next line
+        if (length(parts) > 0L) parts[1L] <- paste0(spaces, parts[1L])
+      }
+    }
+  } else if (split == " + ") {
+    # put each part of the command after the '+' operator on a new line
+    # (indented by two spaces)
+    command <- gsub(" + ", " +\n  ", command, fixed = TRUE)
+    command <- strsplit(command, "\n", fixed = TRUE)[[1L]]
+  }
+  # return formatted lines of code for the command
+  command
 }
 
 
@@ -260,7 +316,7 @@ shinyServer(function(input, output, session) {
                            level = 0.95,
                            R = 5000,
                            show_advanced_options = FALSE,
-                           seed = format(Sys.Date(), "%Y%m%d"),
+                           seed = as.integer(format(Sys.Date(), "%Y%m%d")),
                            type = "boot",
                            file_type = c("pdf", "png"),
                            units = "cm")
@@ -1217,12 +1273,12 @@ shinyServer(function(input, output, session) {
         if (!is.null(commands_ROBMED$control)) {
           deparse_command(commands_ROBMED$control)
         },
-        deparse_command(commands_ROBMED$mediation),
+        deparse_command(commands_ROBMED$mediation, limit = NA),
         "# show a summary of the results",
         deparse_command(commands_ROBMED$summary),
         "# generate the diagnostic plot",
-        if (have_plot) deparse_command(commands_ROBMED$assign_plot)
-        else deparse_command(commands_ROBMED$generate_plot)
+        if (have_plot) deparse_command(commands_ROBMED$assign_plot, split = " + ")
+        else deparse_command(commands_ROBMED$generate_plot, split = " + ")
       )
       # construct lines to export diagnostic plot
       lines_plot <- c(
@@ -1254,7 +1310,7 @@ shinyServer(function(input, output, session) {
             deparse_command(commands_OLS_boot$seed))
         },
         "# apply the OLS bootstrap test",
-        deparse_command(commands_OLS_boot$mediation),
+        deparse_command(commands_OLS_boot$mediation, limit = NA),
         "# show a summary of the results",
         deparse_command(commands_OLS_boot$summary)
       )
