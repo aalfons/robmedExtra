@@ -110,13 +110,12 @@
 #'
 #' # construct LaTeX table of results from both procedures
 #' boot_list <- list(ols_boot, robust_boot)
-#' to_latex(boot_list, orientation = "landscape")
+#' to_latex(boot_list)
 #'
 #' # customize labels for procedures and number of digits
 #' boot_list_named <- list("Non-robust" = ols_boot,
 #'                         "Robust" = robust_boot)
-#' to_latex(boot_list_named, orientation = "landscape",
-#'          digits = 4)
+#' to_latex(boot_list_named, digits = 4)
 #'
 #' @export
 
@@ -186,17 +185,17 @@ to_latex.summary_test_mediation <- function(object, p_value = FALSE,
 #'
 #' @param orientation  a character string specifying how to arrange the results
 #' from different objects (list elements) in the \proglang{LaTeX} table.  If
+#' \code{"landscape"} (the default), results from two objects are arranged next
+#' to each other with the results from remaining objects underneath (in groups
+#' of two), which is intended for documents in landscape mode (or
+#' \proglang{LaTeX} table environments such as \code{sidewaystable}).  If
 #' \code{"portrait"}, results from different objects are arranged underneath
-#' one another, which is intended for documents in portrait mode.  If
-#' \code{"landscape"}, results from two objects are arranged next to each
-#' other with the results from remaining objects underneath (in groups of
-#' two), which is intended for documents in landscape mode (or \proglang{LaTeX}
-#' table environments such as \code{sidewaystable}).
+#' one another, which is intended for documents in portrait mode.
 #'
 #' @export
 
 to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
-                          orientation = c("portrait", "landscape"),
+                          orientation = c("landscape", "portrait"),
                           align = NULL, ...) {
   # check argument for orientation
   type <- match.arg(type)

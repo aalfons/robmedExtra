@@ -88,13 +88,12 @@
 #'
 #' # construct flextable of results from both procedures
 #' boot_list <- list(ols_boot, robust_boot)
-#' to_flextable(boot_list, orientation = "landscape")
+#' to_flextable(boot_list)
 #'
 #' # customize labels for procedures and number of digits
 #' boot_list_named <- list("Non-robust" = ols_boot,
 #'                         "Robust" = robust_boot)
-#' to_flextable(boot_list_named, orientation = "landscape",
-#'              digits = 4)
+#' to_flextable(boot_list_named, digits = 4)
 #'
 #' @export
 
@@ -153,16 +152,16 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
 #'
 #' @param orientation  a character string specifying how to arrange the results
 #' from different objects (list elements) in the \code{flextable}.  If
+#' \code{"landscape"} (the default), results from two objects are arranged next
+#' to each other with the results from remaining objects underneath (in groups
+#' of two), which is intended for documents in landscape mode.  If
 #' \code{"portrait"}, results from different objects are arranged underneath
-#' one another, which is intended for documents in portrait mode.  If
-#' \code{"landscape"}, results from two objects are arranged next to each
-#' other with the results from remaining objects underneath (in groups of
-#' two), which is intended for documents in landscape mode.
+#' one another, which is intended for documents in portrait mode.
 #'
 #' @export
 
 to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
-                              orientation = c("portrait", "landscape"), ...) {
+                              orientation = c("landscape", "portrait"), ...) {
 
   # check arguments
   type <- match.arg(type)
