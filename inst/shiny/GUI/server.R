@@ -7,9 +7,9 @@
 
 
 # Load required packages -----
+# we only load packages for which we don't use the :: operator to call functions
+# (to keep the namespace clean)
 library("shiny")
-library("DT")
-library("flextable")
 library("robmed")
 library("robmedExtra")
 
@@ -291,8 +291,10 @@ get_references <- function(format = "HTML") {
 #' @import shiny
 #' @importFrom DT renderDataTable
 #' @importFrom flextable htmltools_value
+#' @importFrom ggplot2 scale_color_manual theme
+#' @importFrom grDevices dev.off pdf png
+#' @importFrom robmed reg_control test_mediation weight_plot
 #' @importFrom utils zip
-#' @import robmed
 
 shinyServer(function(input, output, session) {
 

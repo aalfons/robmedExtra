@@ -7,10 +7,9 @@
 
 
 # Load required packages -----
+# we only load packages for which we don't use the :: operator to call functions
+# (to keep the namespace clean)
 library("shiny")
-library("DT")
-library("robmed")
-library("robmedExtra")
 
 
 # User interface definition for GUI -----

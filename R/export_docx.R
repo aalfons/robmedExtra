@@ -8,8 +8,6 @@
 #' @export
 export_docx <- function(object, ...) UseMethod("export_docx")
 
-## @importFrom flextable body_add_flextable
-## @importFrom officer body_end_section_landscape read_docx
 #' @importFrom flextable save_as_docx
 #' @export
 export_docx.flextable <- function(object, file, size = c("A4", "letter"), ...) {

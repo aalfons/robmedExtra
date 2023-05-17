@@ -28,18 +28,17 @@
 #' in the resulting \proglang{LaTeX} table, otherwise default labels are
 #' constructed based on how the mediation model was fitted and which type of
 #' test was used (e.g., \code{"ROBMED"} or \code{"OLS Bootstrap"}).
-#' @param \dots  for \code{to_latex()}, additional arguments to be passed down,
-#' eventually to \code{\link[base]{formatC}()} for formatting numbers.  In
-#' particular, argument \code{digits} can be used to customize the number of
-#' digits after the decimal point (defaults to 3).  Also note that argument
-#' \code{big.mark} is ignored for the numbers in the table; it is only used
-#' for formatting the sample size and (if applicable) the number of bootstrap
-#' samples in the table note.  For the \code{print()} method, additional
-#' arguments are ignored.
+#' @param \dots  additional arguments to be passed down, eventually to
+#' \code{\link[base]{formatC}()} for formatting numbers.  In particular,
+#' argument \code{digits} can be used to customize the number of digits after
+#' the decimal point (defaults to 3).  Also note that argument \code{big.mark}
+#' is ignored for the numbers in the table; it is only used for formatting the
+#' sample size and (if applicable) the number of bootstrap samples in the table
+#' note.
 #'
 #' @return
-#' \code{to_latex()} returns an object of class \code{"mediation_latex_tables"}
-#' with the following components:
+#' An object of class \code{"mediation_latex_tables"} with the following
+#' components:
 #' \item{labels}{a character string giving the labels to be used in the
 #' \proglang{LaTeX} table (only returned if a list of objects is supplied).}
 #' \item{total}{a data frame containing a tabular summary of the total effects,
@@ -62,8 +61,10 @@
 #' used in \code{\\multicolumn\{\}\{\}\{\}} statements for any bootstrapped
 #' confidence intervals of the indirect effect.}
 #'
-#' The \code{print()} method prints the \proglang{LaTeX} code for the
-#' \code{tabular} environment, and returns the supplied object invisibly.
+#' @note
+#' The \code{print()} method for class \code{"mediation_latex_tables"} prints
+#' the \proglang{LaTeX} code for the \code{tabular} environment.  It ignores
+#' any additional arguments, and it returns the supplied object invisibly.
 #'
 #' @author Andreas Alfons
 #'
@@ -220,7 +221,6 @@ to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
 
 # print() method that generates the LaTeX code -----
 
-#' @name to_latex
 #' @export
 print.mediation_latex_tables <- function(x, ...) {
   ## initialize LaTeX table

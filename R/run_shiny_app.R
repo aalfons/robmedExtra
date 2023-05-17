@@ -80,16 +80,13 @@
 #'
 #' @keywords documentation
 #'
-#' @importFrom robmed test_mediation
-#' @importFrom shiny runApp
-#' @importFrom shinythemes shinytheme
 #' @importFrom DT dataTableOutput renderDataTable
-#' @importFrom flextable add_footer_lines align body_add_flextable flextable hline padding set_flextable_defaults width
-#' @importFrom ggplot2 geom_vline scale_color_manual scale_fill_manual theme
-#' @importFrom graphics legend
-#' @importFrom officer read_docx
-#' @importFrom stats rnorm
-#' @importFrom vroom vroom
+#' @importFrom flextable htmltools_value
+#' @importFrom ggplot2 scale_color_manual theme
+#' @importFrom grDevices dev.off pdf png
+#' @importFrom robmed reg_control test_mediation weight_plot
+#' @importFrom shiny runApp
+#' @importFrom utils zip
 #' @export
 
 run_shiny_app <- function(which = c("GUI", "simulation")) {

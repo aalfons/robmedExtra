@@ -5,7 +5,6 @@
 \alias{to_latex.test_mediation}
 \alias{to_latex.summary_test_mediation}
 \alias{to_latex.list}
-\alias{print.mediation_latex_tables}
 \title{LaTeX table of results from (robust) mediation analysis}
 \usage{
 to_latex(object, ...)
@@ -22,8 +21,6 @@ to_latex(object, ...)
   align = NULL,
   ...
 )
-
-\method{print}{mediation_latex_tables}(x, ...)
 }
 \arguments{
 \item{object}{an object inheriting from class
@@ -36,14 +33,13 @@ in the resulting \proglang{LaTeX} table, otherwise default labels are
 constructed based on how the mediation model was fitted and which type of
 test was used (e.g., \code{"ROBMED"} or \code{"OLS Bootstrap"}).}
 
-\item{\dots}{for \code{to_latex()}, additional arguments to be passed down,
-eventually to \code{\link[base]{formatC}()} for formatting numbers.  In
-particular, argument \code{digits} can be used to customize the number of
-digits after the decimal point (defaults to 3).  Also note that argument
-\code{big.mark} is ignored for the numbers in the table; it is only used
-for formatting the sample size and (if applicable) the number of bootstrap
-samples in the table note.  For the \code{print()} method, additional
-arguments are ignored.}
+\item{\dots}{additional arguments to be passed down, eventually to
+\code{\link[base]{formatC}()} for formatting numbers.  In particular,
+argument \code{digits} can be used to customize the number of digits after
+the decimal point (defaults to 3).  Also note that argument \code{big.mark}
+is ignored for the numbers in the table; it is only used for formatting the
+sample size and (if applicable) the number of bootstrap samples in the table
+note.}
 
 \item{type}{a character string specifying which estimates and significance
 tests to report if mediation analysis was done via a bootstrap procedure.
@@ -85,8 +81,8 @@ two), which is intended for documents in landscape mode (or \proglang{LaTeX}
 table environments such as \code{sidewaystable}).}
 }
 \value{
-\code{to_latex()} returns an object of class \code{"mediation_latex_tables"}
-with the following components:
+An object of class \code{"mediation_latex_tables"} with the following
+components:
 \item{labels}{a character string giving the labels to be used in the
 \proglang{LaTeX} table (only returned if a list of objects is supplied).}
 \item{total}{a data frame containing a tabular summary of the total effects,
@@ -108,9 +104,6 @@ alignment specification to be used in the \code{\\begin\{tabular\}\{\}}
 statement, while the second element gives the alignment specification to be
 used in \code{\\multicolumn\{\}\{\}\{\}} statements for any bootstrapped
 confidence intervals of the indirect effect.}
-
-The \code{print()} method prints the \proglang{LaTeX} code for the
-\code{tabular} environment, and returns the supplied object invisibly.
 }
 \description{
 Generate \proglang{LaTeX} code for a tabular summary of results from
@@ -122,6 +115,11 @@ copying-and-pasting results.  Note that \code{to_latex()} itself does not
 actually produce any \proglang{LaTeX} code, it is the \code{print()} method
 of the resulting object that prints the code for the \code{tabular}
 environment.
+}
+\note{
+The \code{print()} method for class \code{"mediation_latex_tables"} prints
+the \proglang{LaTeX} code for the \code{tabular} environment.  It ignores
+any additional arguments, and it returns the supplied object invisibly.
 }
 \examples{
 data("BSG2014")
