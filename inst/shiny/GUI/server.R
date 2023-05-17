@@ -988,20 +988,17 @@ shinyServer(function(input, output, session) {
     downloadButton("download_files", "Download files")
   })
 
-  # create UI input for orientation of the table
-  output$select_orientation <- renderUI({
-    # show the input if both ROBMED and OLS bootstrap have been run
-    # (with the same options)
-    req(commands$ROBMED, commands$OLS_boot,
-        identical(used_inputs$ROBMED, used_inputs$OLS_boot))
-    # radioButtons("orientation", "Page orientation",
-    #              choices = c("portrait", "landscape"),
-    #              selected = isolate(input$orientation))
-    selectInput("orientation", "Page orientation",
-                choices = c("portrait", "landscape"),
-                selected = isolate(input$orientation),
-                multiple = FALSE)
-  })
+  # # create UI input for orientation of the table
+  # output$select_orientation <- renderUI({
+  #   # show the input if both ROBMED and OLS bootstrap have been run
+  #   # (with the same options)
+  #   req(commands$ROBMED, commands$OLS_boot,
+  #       identical(used_inputs$ROBMED, used_inputs$OLS_boot))
+  #   selectInput("orientation", "Page orientation",
+  #               choices = c("landscape", "portrait"),
+  #               selected = isolate(input$orientation),
+  #               multiple = FALSE)
+  # })
 
   # create UI input for file type for the diagnostic plot
   output$select_file_type <- renderUI({
@@ -1046,13 +1043,6 @@ shinyServer(function(input, output, session) {
     if (is.null(default_height)) default_height <- 11.5
     # create inputs
     tagList(
-      # radioButtons("units", "Unit of width and height",
-      #              choices = c("cm", "inches"),
-      #              selected = default_units),
-      # numericInput("width", "Width", value = default_width,
-      #              min = 0, step = 1),
-      # numericInput("height", "Height", value = default_height,
-      #              min = 0, step = 1)
       fluidRow(
         column(width = 7, style = "padding-right: 5px",
                numericInput("width", "Width", value = default_width,
@@ -1141,15 +1131,15 @@ shinyServer(function(input, output, session) {
     ## construct commands to generate and export flextable
     # construct command to generate the flextable
     if (have_ROBMED && have_OLS_boot) {
-      orientation <- input$orientation
+      # orientation <- input$orientation
       command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
       command_to_flextable <- call("to_flextable", command_list,
                                    type = used_inputs$ROBMED$type,
                                    p_value = input$p_value,
-                                   orientation = orientation,
+                                   # orientation = orientation,
                                    digits = input$digits)
     } else {
-      orientation <- NULL
+      # orientation <- NULL
       if (have_ROBMED) {
         object_name <- "robust_boot"
         type <- used_inputs$ROBMED$type
@@ -1169,9 +1159,11 @@ shinyServer(function(input, output, session) {
                            export = command_export)
     attr(commands_table, "time_stamp") <- Sys.time()
     # construct list of inputs used to generate the table
+    # used_inputs_table <- list(digits = input$digits,
+    #                           p_value = input$p_value,
+    #                           orientation = orientation)
     used_inputs_table <- list(digits = input$digits,
-                              p_value = input$p_value,
-                              orientation = orientation)
+                              p_value = input$p_value)
     # evaluate command to generate flextable
     eval(commands_table$generate, envir = session_env)
     ## construct commands to generate and export diagnostic plot

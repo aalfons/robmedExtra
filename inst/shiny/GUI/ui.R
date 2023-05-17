@@ -175,7 +175,7 @@ shinyUI(fluidPage(
         sidebarPanel(
           # buttons to generate/downlaod files and inputs for table options
           uiOutput("options_table"),
-          uiOutput("select_orientation"),
+          # uiOutput("select_orientation"),
           # input for plot options
           uiOutput("select_file_type"),
           uiOutput("options_plot"),
