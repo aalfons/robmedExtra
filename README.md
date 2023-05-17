@@ -3,7 +3,7 @@
 This companion package extends package [`robmed`](https://github.com/aalfons/robmed) in various ways.  Most notably, it provides:
 
 - A graphical user interface (GUI) for the robust bootstrap test ROBMED ([Alfons, Ates & Groenen, 2022a](https://doi.org/10.1177/1094428121999096)) to make the method more accessible to less proficient `R` users, implemented as a `shiny` app. The GUI allows to easily export results for reporting, including a replication file in the form of an `R` script.
-- Functions to export the results from mediation analysis as a Microsoft Word or Powerpoint table, or as a `LaTeX` table.
+- Functions to export the results from mediation analysis as a table in a Microsoft Word or Powerpoint document, or as a `LaTeX` table.
 - A `shiny` app to compare various bootstrap procedures for mediation analysis on simulated data.
 
 To cite the robust bootstrap test ROBMED, please use:
