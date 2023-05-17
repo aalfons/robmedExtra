@@ -258,11 +258,65 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
 
 # Theme for formatting a flextable of results from mediation analysis -----
 
+#' Theme for formatting a flextable of results from (robust) mediation analysis
+#'
+#' Apply a theme to a \code{\link[flextable]{flextable}} intended to format
+#' results from (robust) mediation analysis.  The theme uses additional
+#' information from subclass \code{"\link[=to_flextable]{mediation_flextable}"},
+#' and it formats the table according to APA style.
+#'
+#' Theme functions for \code{\link[flextable]{flextable}}s are not like
+#' \pkg{ggplot2} themes, as they are applied to the existing table immediately.
+#' For example, if you add a row in the footer after setting the theme, the new
+#' row is not formatted with the theme.  The theme is applied only to existing
+#' elements when the function is called.
+#'
+#' That is, if you modify the table returned by \code{\link{to_flextable}()},
+#' it may be necessary to apply the theme function again after all elements of
+#' the table have been added (e.g., additional header or footer rows).
+#'
+#' @param x  an object of class \code{"\link[flextable]{flextable}"}.  It is
+#' recommend to use this theme only for objects of subclass
+#' \code{"mediation_flextable"}, as returned by \code{\link{to_flextable}()}.
+#' @param \dots  additional arguments are currently ignored.
+#'
+#' @return
+#' An object inheriting from class \code{"\link[flextable]{flextable}"}.
+#'
+#' @author Andreas Alfons
+#'
+#' @seealso
+#' \code{\link[flextable]{flextable}()}, \code{\link{to_flextable}()}
+#'
+#' @examples
+#' data("BSG2014")
+#'
+#' # seed to be used for the random number generator
+#' seed <- 20211117
+#'
+#' # perform mediation analysis via robust bootstrap test ROBMED
+#' set.seed(seed)
+#' robust_boot <- test_mediation(BSG2014,
+#'                               x = "ValueDiversity",
+#'                               y = "TeamCommitment",
+#'                               m = "TaskConflict",
+#'                               robust = TRUE)
+#'
+#' # construct flextable of results
+#' ft <- to_flextable(robust_boot)
+#' # add additional row to the footer
+#' footer_line <- paste("Additional explanations on the conducted",
+#'                      "analysis.")
+#' ft <- flextable::add_footer_lines(ft, values = footer_line)
+#' ft <- theme_mediation(ft)
+#' ft
+#'
 #' @importFrom flextable align border_remove fix_border_issues
 #' get_flextable_defaults hline hline_bottom hline_top ncol_keys
 #' nrow_part valign
 #' @importFrom officer fp_border
 #' @export
+
 theme_mediation <- function(x, ...) {
   # initializations
   if (!inherits(x, "flextable")) {

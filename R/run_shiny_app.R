@@ -37,11 +37,11 @@
 #'
 #' @author
 #' The graphical user interface for package \pkg{robmed} was written by
-#' Vincent Drenth, Andreas Alfons, and Aurore Archimbaud.
+#' Andreas Alfons and Aurore Archimbaud based on an initial prototype by
+#' Vincent Drenth.
 #'
 #' The app for exploring the behavior of various bootstrap procedures for
-#' mediation analysis on simulated data, as well as the functions
-#' to start the \pkg{shiny} apps, were written by Andreas Alfons.
+#' mediation analysis on simulated data was written by Andreas Alfons.
 #'
 #' @references
 #' Alfons, A., Ates, N.Y. and Groenen, P.J.F. (2022a) A Robust Bootstrap Test

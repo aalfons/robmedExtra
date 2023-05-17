@@ -173,7 +173,7 @@ get_references <- function(format = "HTML") {
   # construct references in requested format
   if (format == "HTML") {
     # author information for package 'robmedExtra'
-    author <- "Alfons, A., Drenth, V., & Archimbaud, A."
+    author <- "Alfons, A., Archimbaud, A., & Drenth, V."
     # return list of HTML tags
     tagList(
       # HTML tag for ORM paper
@@ -235,8 +235,8 @@ get_references <- function(format = "HTML") {
       # EndNote reference for package 'robmedExtra'
       "%0 Computer Program",
       "%A Alfons, A.",
-      "%A Drenth, V.",
       "%A Archimbaud, A.",
+      "%A Drenth, V.",
       paste("%D", year),
       paste("%T", title),
       paste("%Z", note),
@@ -244,7 +244,7 @@ get_references <- function(format = "HTML") {
     )
   } else if (format == "BibTeX") {
     # author information for package 'robmedExtra'
-    author <- "Alfons, A. and Drenth, V. and Archimbaud, A."
+    author <- "Alfons, A. and Archimbaud, A. and Drenth, V."
     # return vector of lines to be written to .bib file
     c(
       # BibTeX entry for ORM paper
