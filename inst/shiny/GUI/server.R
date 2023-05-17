@@ -320,7 +320,8 @@ shinyServer(function(input, output, session) {
                            show_advanced_options = FALSE,
                            seed = as.integer(format(Sys.Date(), "%Y%m%d")),
                            type = "boot",
-                           file_type = c("pdf", "png"),
+                           file_type_table = c("docx", "pptx"),
+                           file_type_plot = c("pdf", "png"),
                            units = "cm")
 
   # initialize reactive values for commands
@@ -944,9 +945,9 @@ shinyServer(function(input, output, session) {
 
   ## update inputs for the 'Export' tab
 
-  # create UI element with buttons to generate/download files and inputs for
-  # table options
-  output$options_table <- renderUI({
+  # create UI element with buttons to generate/download files and input for
+  # the file type for the table
+  output$select_file_type_table <- renderUI({
     # check which methods have been run
     have_ROBMED <- isTruthy(commands$ROBMED)
     have_OLS_boot <- isTruthy(commands$OLS_boot)
@@ -958,11 +959,6 @@ shinyServer(function(input, output, session) {
       error_text("ROBMED and the OLS bootstrap use different options.",
                  "Re-run the methods with the same options.")
     } else {
-      # use previous values as defaults (if they exist)
-      default_digits <- isolate(input$digits)
-      if (is.null(default_digits)) default_digits <- 3
-      default_p_value <- isolate(input$p_value)
-      if (is.null(default_p_value)) default_p_value <- FALSE
       # create inputs
       tagList(
         # buttons to generate and download files
@@ -970,13 +966,10 @@ shinyServer(function(input, output, session) {
         uiOutput("button_download_files"),
         # inputs for table options
         h2("Table"),
-        sliderInput("digits", "Number of digits after decimal point",
-                    min = 2, max = 6, value = default_digits,
-                    step = 1, round = TRUE, ticks = FALSE),
-        checkboxInput("p_value",
-                      get_label(HTML("Include <em>p</em> values for indirect effects"),
-                                "(may take time to compute)"),
-                      value = default_p_value)
+        checkboxGroupInput("file_type_table", "File type",
+                           choices = c("Microsoft Word (docx)" = "docx",
+                                       "Microsoft Powerpoint (pptx)" = "pptx"),
+                           selected = isolate(values$file_type_table))
       )
     }
   })
@@ -986,6 +979,44 @@ shinyServer(function(input, output, session) {
     # show the button only if files have been successfully
     req(values$download)
     downloadButton("download_files", "Download files")
+  })
+
+  # observer to update reactive value for file type for the diagnostic plot
+  # Note that 'values$file_type_plot' is necessary to initialize the default
+  # values in the checkbox group.  Checking whether 'input$file_type_plot' is
+  # NULL (as we do for other inputs) doesn't work for checkbox groups since the
+  # value is NULL when no checkbox is selected.  Hence it is important that the
+  # observer is ignored when the value is initialized, but not when it is NULL.
+  observeEvent(input$file_type_table, {
+    values$file_type_table <- input$file_type_table
+  }, ignoreNULL = FALSE, ignoreInit = TRUE)
+
+  # create UI element with inputs for table options
+  output$options_table <- renderUI({
+    # check which methods have been run
+    have_ROBMED <- isTruthy(commands$ROBMED)
+    have_OLS_boot <- isTruthy(commands$OLS_boot)
+    have_both <- have_ROBMED && have_OLS_boot
+    # show the inputs if ROBMED or the OLS bootstrap have been run (with the
+    # same options) and a file type has been selected
+    req(((have_ROBMED || have_OLS_boot) && !have_both) ||
+          (have_both && identical(used_inputs$ROBMED, used_inputs$OLS_boot)),
+        values$file_type_table)
+    # use previous values as defaults (if they exist)
+    default_digits <- isolate(input$digits)
+    if (is.null(default_digits)) default_digits <- 3
+    default_p_value <- isolate(input$p_value)
+    if (is.null(default_p_value)) default_p_value <- FALSE
+    # create inputs
+    tagList(
+      sliderInput("digits", "Number of digits after decimal point",
+                  min = 2, max = 6, value = default_digits,
+                  step = 1, round = TRUE, ticks = FALSE),
+      checkboxInput("p_value",
+                    get_label(HTML("Include <em>p</em> values for indirect effects"),
+                              "(may take time to compute)"),
+                    value = default_p_value)
+    )
   })
 
   # # create UI input for orientation of the table
@@ -1001,7 +1032,7 @@ shinyServer(function(input, output, session) {
   # })
 
   # create UI input for file type for the diagnostic plot
-  output$select_file_type <- renderUI({
+  output$select_file_type_plot <- renderUI({
     # show the input if ROBMED has been run, and if the OLS bootstrap has been
     # run as well the methods need to have the same options
     req(commands$ROBMED,
@@ -1010,30 +1041,31 @@ shinyServer(function(input, output, session) {
     # header and input for file type
     tagList(
       h2("Diagnostic Plot"),
-      checkboxGroupInput("file_type", "File type", choices = c("pdf", "png"),
-                         selected = isolate(values$file_type))
+      checkboxGroupInput("file_type_plot", "File type",
+                         choices = c("pdf", "png"),
+                         selected = isolate(values$file_type_plot))
     )
   })
 
   # observer to update reactive value for file type for the diagnostic plot
-  # Note that 'values$file_type' is necessary to initialize the default values
-  # in the checkbox group.  Checking whether 'input$file_type' is NULL (as we
-  # do for other inputs) doesn't work for checkbox groups since the value is
-  # NULL when no checkbox is selected.  It is therefore important that the
+  # Note that 'values$file_type_plot' is necessary to initialize the default
+  # values in the checkbox group.  Checking whether 'input$file_type_plot' is
+  # NULL (as we do for other inputs) doesn't work for checkbox groups since the
+  # value is NULL when no checkbox is selected.  Hence it is important that the
   # observer is ignored when the value is initialized, but not when it is NULL.
-  observeEvent(input$file_type, {
-    values$file_type <- input$file_type
+  observeEvent(input$file_type_plot, {
+    values$file_type_plot <- input$file_type_plot
   }, ignoreNULL = FALSE, ignoreInit = TRUE)
 
   # create UI inputs with inputs for options for the diagnostic plot
   output$options_plot <- renderUI({
-    # show the input if ROBMED has been run and a file type has been selected,
+    # show the inputs if ROBMED has been run and a file type has been selected,
     # and if the OLS bootstrap has been run as well the methods need to have
     # the same options
     req(commands$ROBMED,
         !isTruthy(commands$OLS_boot) ||
           identical(used_inputs$ROBMED, used_inputs$OLS_boot),
-        values$file_type)
+        values$file_type_plot)
     # use previous values as defaults (if they exist)
     default_units <- isolate(values$units)
     default_width <- isolate(input$width)
@@ -1105,7 +1137,7 @@ shinyServer(function(input, output, session) {
     req(commands$ROBMED,
         !isTruthy(commands$OLS_boot) ||
           identical(used_inputs$ROBMED, used_inputs$OLS_boot),
-        "png" %in% values$file_type)
+        "png" %in% values$file_type_plot)
     # use previous value as default (if it exists)
     default_resolution <- isolate(input$resolution)
     if (is.null(default_resolution)) default_resolution <- 300
@@ -1127,45 +1159,66 @@ shinyServer(function(input, output, session) {
     have_ROBMED <- isTruthy(commands_ROBMED)
     commands_OLS_boot <- commands$OLS_boot
     have_OLS_boot <- isTruthy(commands_OLS_boot)
-    have_plot <- isTruthy(values$file_type)
+    have_table <- isTruthy(values$file_type_table)
+    have_plot <- isTruthy(values$file_type_plot)
     ## construct commands to generate and export flextable
-    # construct command to generate the flextable
-    if (have_ROBMED && have_OLS_boot) {
-      # orientation <- input$orientation
-      command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
-      command_to_flextable <- call("to_flextable", command_list,
-                                   type = used_inputs$ROBMED$type,
-                                   p_value = input$p_value,
-                                   # orientation = orientation,
-                                   digits = input$digits)
-    } else {
-      # orientation <- NULL
-      if (have_ROBMED) {
-        object_name <- "robust_boot"
-        type <- used_inputs$ROBMED$type
+    if (have_table) {
+      # construct command to generate the flextable
+      if (have_ROBMED && have_OLS_boot) {
+        # orientation <- input$orientation
+        command_list <- call("list", as.name("robust_boot"), as.name("ols_boot"))
+        command_to_flextable <- call("to_flextable", command_list,
+                                     type = used_inputs$ROBMED$type,
+                                     p_value = input$p_value,
+                                     # orientation = orientation,
+                                     digits = input$digits)
       } else {
-        object_name <- "ols_boot"
-        type <- used_inputs$OLS_boot$type
+        # orientation <- NULL
+        if (have_ROBMED) {
+          object_name <- "robust_boot"
+          type <- used_inputs$ROBMED$type
+        } else {
+          object_name <- "ols_boot"
+          type <- used_inputs$OLS_boot$type
+        }
+        command_to_flextable <- call("to_flextable", as.name(object_name),
+                                     type = type, p_value = input$p_value,
+                                     digits = input$digits)
       }
-      command_to_flextable <- call("to_flextable", as.name(object_name),
-                                   type = type, p_value = input$p_value,
-                                   digits = input$digits)
+      command_ft <- call("<-", as.name("ft"), command_to_flextable)
+      # define file names for table
+      file_table <- "table.%s"
+      # construct command to export the flextable to Microsoft Word
+      have_docx <- "docx" %in% values$file_type_table
+      if (have_docx) {
+        command_docx <- call("export_docx", as.name("ft"),
+                               file = sprintf(file_table, "docx"))
+      } else command_docx <- NULL
+      # construct command to export the flextable to Microsoft Powerpoint
+      have_pptx <- "pptx" %in% values$file_type_table
+      if (have_pptx) {
+        command_pptx <- call("export_pptx", as.name("ft"),
+                             file = sprintf(file_table, "pptx"))
+      } else command_pptx <- NULL
+      # construct list of commands to generate and export the flextable
+      commands_table <- list(generate = command_ft,
+                             docx = command_docx,
+                             pptx = command_pptx)
+      attr(commands_table, "time_stamp") <- Sys.time()
+      # construct list of inputs used to generate the table
+      # used_inputs_table <- list(digits = input$digits,
+      #                           p_value = input$p_value,
+      #                           orientation = orientation)
+      used_inputs_table <- list(digits = input$digits,
+                                p_value = input$p_value)
+      # evaluate command to generate flextable
+      eval(commands_table$generate, envir = session_env)
+    } else {
+      have_docx <- FALSE
+      have_pptx <- FALSE
+      commands_table <- NULL
+      used_inputs_table <- NULL
     }
-    command_ft <- call("<-", as.name("ft"), command_to_flextable)
-    # construct command to export the flextable to Microsoft Word document
-    command_export <- call("export_docx", as.name("ft"), file = "table.docx")
-    # construct list of commands to generate and export the flextable
-    commands_table <- list(generate = command_ft,
-                           export = command_export)
-    attr(commands_table, "time_stamp") <- Sys.time()
-    # construct list of inputs used to generate the table
-    # used_inputs_table <- list(digits = input$digits,
-    #                           p_value = input$p_value,
-    #                           orientation = orientation)
-    used_inputs_table <- list(digits = input$digits,
-                              p_value = input$p_value)
-    # evaluate command to generate flextable
-    eval(commands_table$generate, envir = session_env)
     ## construct commands to generate and export diagnostic plot
     if (have_ROBMED && have_plot) {
       # extract and convert some inputs
@@ -1179,20 +1232,20 @@ shinyServer(function(input, output, session) {
         height <- call("/", height, 2.54)
       }
       # define file names for diagnostic plot
-      plot_file <- "diagnostic_plot.%s"
+      file_plot <- "diagnostic_plot.%s"
       # construct command for opening pdf file
-      have_pdf <- "pdf" %in% values$file_type
+      have_pdf <- "pdf" %in% values$file_type_plot
       if (have_pdf) {
         # construct command
-        command_pdf <- call("pdf", file = sprintf(plot_file, "pdf"),
+        command_pdf <- call("pdf", file = sprintf(file_plot, "pdf"),
                             width = width, height = height)
       } else command_pdf <- NULL
       # construct command for opening png image
-      have_png <- "png" %in% values$file_type
+      have_png <- "png" %in% values$file_type_plot
       if (have_png) {
         # construct command
         resolution <- input$resolution
-        command_png <- call("png", file = sprintf(plot_file, "png"),
+        command_png <- call("png", file = sprintf(file_plot, "png"),
                             width = input$width, height = input$height,
                             units = units, res = resolution)
       } else {
@@ -1206,7 +1259,7 @@ shinyServer(function(input, output, session) {
                             close = call("dev.off"))
       attr(commands_plot, "time_stamp") <- Sys.time()
       # construct list with used inputs and plot dimensions for preview
-      used_inputs_plot <- list(file_type = values$file_type,
+      used_inputs_plot <- list(file_type = values$file_type_plot,
                                units = values$units,
                                width = input$width,
                                height = input$height,
@@ -1224,8 +1277,10 @@ shinyServer(function(input, output, session) {
     on.exit(setwd(working_directory))
     # save data set to RData file
     eval(commands$data$save, envir = session_env)
-    # save table to Microsoft Word document
-    eval(commands_table$export, envir = session_env)
+    # if requested, save table to Microsoft Word document
+    if (have_docx) eval(commands_table$docx, envir = session_env)
+    # if requested, save table to Microsoft Powerpoint document
+    if (have_pptx) eval(commands_table$pptx, envir = session_env)
     # if requested, save diagnostic plot to pdf file
     if (have_pdf) {
       eval(commands_plot$pdf, envir = session_env)
@@ -1322,14 +1377,26 @@ shinyServer(function(input, output, session) {
       # at least one of lines_ROBMED and lines_OLS_boot is NULL
       lines_methods <- c(lines_ROBMED, lines_OLS_boot)
     }
-    # construct vector containing lines to export table to Microsoft Word
-    lines_table <- c(
-      # construct vector containing lines to export diagnostic plot
-      "",
-      "# export a table of results to Microsoft Word",
-      deparse_command(commands_table$generate),
-      deparse_command(commands_table$export)
-    )
+    # construct vector containing lines to export table
+    if (have_docx && have_pptx) {
+      lines_table <- c(
+        "",
+        "# export a table of results to Microsoft Word and Powerpoint",
+        deparse_command(commands_table$generate),
+        deparse_command(commands_table$docx),
+        deparse_command(commands_table$pptx)
+      )
+    } else if (have_docx) {
+      lines_table <- c("",
+                       "# export a table of results to Microsoft Word",
+                       deparse_command(commands_table$generate),
+                       deparse_command(commands_table$docx))
+    } else if (have_pptx) {
+      lines_table <- c("",
+                       "# export a table of results to Microsoft Powerpoint",
+                       deparse_command(commands_table$generate),
+                       deparse_command(commands_table$pptx))
+    } else lines_table <- NULL
     # construct vector containing lines of replication script
     replication_code <- c(lines_initial, lines_methods, lines_table, lines_plot)
     # write lines of replication script to file
@@ -1346,9 +1413,10 @@ shinyServer(function(input, output, session) {
     # update reactive value to enable download button
     values$download <- list(path = temporary_directory,
                             files = c(commands$data$save$file,
+                                      if (have_docx) commands_table$docx$file,
+                                      if (have_pptx) commands_table$pptx$file,
                                       if (have_pdf) commands_plot$pdf$file,
                                       if (have_png) commands_plot$png$file,
-                                      commands_table$export$file,
                                       script_file))
   })
 

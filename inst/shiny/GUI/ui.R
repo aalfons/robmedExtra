@@ -174,10 +174,11 @@ shinyUI(fluidPage(
         # input panel on left hand side
         sidebarPanel(
           # buttons to generate/downlaod files and inputs for table options
+          uiOutput("select_file_type_table"),
           uiOutput("options_table"),
           # uiOutput("select_orientation"),
           # input for plot options
-          uiOutput("select_file_type"),
+          uiOutput("select_file_type_plot"),
           uiOutput("options_plot"),
           uiOutput("select_resolution")
         ),
