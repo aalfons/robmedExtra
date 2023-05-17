@@ -4,6 +4,7 @@
 # --------------------------------------
 
 #' @name robmedExtra-package
+#' @aliases robmedExtra
 #'
 #' @docType package
 #'

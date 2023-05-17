@@ -3,6 +3,7 @@
 \docType{package}
 \name{robmedExtra-package}
 \alias{robmedExtra-package}
+\alias{robmedExtra}
 \title{\packageTitle{robmedExtra}}
 \description{
 \packageDescription{robmedExtra}
