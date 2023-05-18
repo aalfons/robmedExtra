@@ -18,7 +18,7 @@ library("shiny")
 #' @importFrom DT dataTableOutput
 
 shinyUI(fluidPage(
-  title = "robmed",
+  title = "ROBMED",
 
   # header for shiny app
   titlePanel(
