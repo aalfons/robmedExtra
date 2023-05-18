@@ -298,7 +298,7 @@ get_references <- function(format = "HTML") {
 
 shinyServer(function(input, output, session) {
 
-  ## Define relevant objects and reactive expressions -----
+  ## Define relevant objects and reactive values -----
 
   # check if there are any data frames in global environment
   df_global <- get_data_frames()
@@ -611,7 +611,7 @@ shinyServer(function(input, output, session) {
         # button to perform ROBMED
         actionButton("run_ROBMED", "Run"),
         # options for the bootstrap confidence intervals
-        h2("Options"),
+        h3("Options"),
         numericInput("level_ROBMED", "Confidence level",
                      value = isolate(values$level),
                      min = 0.9, max = 0.999, step = 0.01),
@@ -646,7 +646,7 @@ shinyServer(function(input, output, session) {
                   choices = c("Normal theory t tests" = "data",
                               "Bootstrap z tests" = "boot"),
                   selected = isolate(values$type), multiple = FALSE),
-      h2("MM-estimator"),
+      h3("MM-estimator"),
       selectInput("efficiency", "Efficiency at normal distribution",
                   choices = c(0.80, 0.85, 0.90, 0.95),
                   selected = default_efficiency,
@@ -778,7 +778,7 @@ shinyServer(function(input, output, session) {
   # show diagnostic plot for ROBMED in main panel
   output$plot_ROBMED_header <- renderUI({
     req(commands$ROBMED)
-    h2("Diagnostic plot")
+    h3("Diagnostic plot")
   })
   output$plot_ROBMED <- renderPlot({
     req(commands$ROBMED)
@@ -788,7 +788,7 @@ shinyServer(function(input, output, session) {
   # show summary for ROBMED in main panel
   output$summary_ROBMED_header <- renderUI({
     req(commands$ROBMED)
-    h2("Model and test summaries")
+    h3("Model and test summaries")
   })
   output$summary_ROBMED <- renderPrint({
     req(commands$ROBMED)
@@ -806,7 +806,7 @@ shinyServer(function(input, output, session) {
         # button to perform the OLS bootstrap
         actionButton("run_OLS_boot", "Run"),
         # options for the bootstrap confidence intervals
-        h2("Options"),
+        h3("Options"),
         numericInput("level_OLS_boot", "Confidence level",
                      value = isolate(values$level),
                      min = 0.9, max = 0.999, step = 0.01),
@@ -935,7 +935,7 @@ shinyServer(function(input, output, session) {
   # show summary for the OLS bootstrap in main panel
   output$summary_OLS_boot_header <- renderUI({
     req(commands$OLS_boot)
-    h2("Model and test summaries")
+    h3("Model and test summaries")
   })
   output$summary_OLS_boot <- renderPrint({
     req(commands$OLS_boot)
@@ -965,7 +965,7 @@ shinyServer(function(input, output, session) {
         actionButton("generate_files", "Generate and preview files"),
         uiOutput("button_download_files"),
         # inputs for table options
-        h2("Table"),
+        h3("Table"),
         checkboxGroupInput("file_type_table", "File type",
                            choices = c("Microsoft Word (docx)" = "docx",
                                        "Microsoft Powerpoint (pptx)" = "pptx"),
@@ -1040,7 +1040,7 @@ shinyServer(function(input, output, session) {
           identical(used_inputs$ROBMED, used_inputs$OLS_boot))
     # header and input for file type
     tagList(
-      h2("Diagnostic Plot"),
+      h3("Diagnostic Plot"),
       checkboxGroupInput("file_type_plot", "File type",
                          choices = c("pdf", "png"),
                          selected = isolate(values$file_type_plot))
@@ -1443,7 +1443,7 @@ shinyServer(function(input, output, session) {
   # show preview of table in main panel
   output$table_preview_header <- renderUI({
     req(commands$table)
-    h2("File preview of table")
+    h3("File preview of table")
   })
   output$table_preview <- renderUI({
     req(commands$table)
@@ -1454,7 +1454,7 @@ shinyServer(function(input, output, session) {
   output$plot_preview_header <- renderUI({
     req(used_inputs$plot)
     tagList(
-      h2("File preview of diagnostic plot"),
+      h3("File preview of diagnostic plot"),
       help_text("The size shown here depends on the resolution of the browser",
                 "and may differ from the size of the file to be generated.")
     )
