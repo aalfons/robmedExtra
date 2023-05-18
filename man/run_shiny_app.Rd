@@ -26,18 +26,21 @@ Function \code{start_GUI()} is a simple wrapper for
 \code{run_shiny_app(which = "GUI")} to start the graphical user interface
 for package \pkg{robmed}.
 
-This graphical user interface allows to select or import a data set, and to
+This graphical user interface allows to select or import a data set, to
 perform the robust bootstrap test ROBMED (Alfons et al., 2022a) or the OLS
-bootstrap test (e.g., Preacher & Hayes, 2004, 2008).
+bootstrap test (e.g., Preacher & Hayes, 2004, 2008), and to easily export
+results for reporting (including a replication file in the form of an \R
+script).
 
-In the app for exploring the behavior of  various bootstrap procedures for
+In the app for exploring the behavior of various bootstrap procedures for
 mediation analysis on simulated data (\code{which = "simulation"}), the
-default settings follow the simulation design of Zu & Yuan (2010).  You can
-adjust the total number of observations, the values of the coefficients in
-the mediation model, the number of outliers, as well as the outlier shifts
-in the individual variables.
+default settings are similar to one of the simulation designs of Alfons,
+Ates & Groenen (2022).  You can adjust the total number of observations,
+the values of the coefficients in the mediation model, the number of
+outliers, as well as outlier scaling factors and shifts in the individual
+variables.
 
-For each selected methods, the bootstrap distribution of the indirect
+For each selected method, the bootstrap distribution of the indirect
 effect is shown together with a shaded area representing the 95\% confidence
 interval.  If the app does not update quickly enough, try to reduce the
 number of bootstrap samples.
@@ -71,10 +74,6 @@ Preacher, K.J. and Hayes, A.F. (2008) Asymptotic and Resampling Strategies
 for Assessing and Comparing Indirect Effects in Multiple Mediator Models.
 \emph{Behavior Research Methods}, \bold{40}(3), 879--891.
 doi:10.3758/brm.40.3.879.
-
-Zu, J. and Yuan, K.-H. (2010) Local Influence and Robust Procedures for
-Mediation Analysis.  \emph{Multivariate Behavioral Research}, \bold{45}(1),
-1--44.  doi:10.1080/00273170903504695.
 }
 \seealso{
 \code{\link{test_mediation}}

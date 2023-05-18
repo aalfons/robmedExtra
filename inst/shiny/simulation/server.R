@@ -1,127 +1,226 @@
-library("robmed")
+# ************************************
+# Author: Andreas Alfons
+#         Erasmus University Rotterdam
+# ************************************
+
+
+# Load required packages -----
+# we only load packages for which we don't use the :: operator to call functions
+# (to keep the namespace clean)
 library("shiny")
+library("robmed")
 
-# Define server logic required to generate and plot a random distribution
-shinyServer(function(input, output) {
 
-  # Expression that generates a plot of the distribution. The expression
-  # is wrapped in a call to renderPlot to indicate that:
-  #
-  #  1) It is "reactive" and therefore should be automatically
-  #     re-executed when inputs change
-  #  2) Its output type is a plot
+# Server-side logic for GUI -----
 
-  ## colors for plot
-  colors <- c("#F8766D", "#F564E3", "#619CFF", "#00BFC4")
+#' @import shiny
+#' @importFrom ggplot2 geom_vline labs scale_color_manual scale_fill_manual
+#' theme
+#' @importFrom graphics legend
+#' @importFrom robmed density_plot test_mediation
+#' @importFrom stats rnorm
 
-  ## function to generate data
-  generate_data <- function(n_obs, a, b, c, n_out, #d,
-                            shift_X, shift_M, shift_Y,
-                            seed) {
-    # set seed of random number generator
-    set.seed(seed)
-    # generate clean data
-    x <- rnorm(n_obs)
-    m <- a * x + rnorm(n_obs)
-    y <- b * m + c * x + rnorm(n_obs)
-    # compute covariance matrix
-    s_M <- a^2 + 1
-    s_Y <- b^2 * (a^2 + 1) + c^2 + 2 * a * b * c + 1
-    s_MX <- a
-    s_YX <- a * b + c
-    s_YM <- b * (a^2 + 1) + a * c
-    Sigma <- matrix(c(1, s_YX, s_MX, s_YX, s_Y, s_YM, s_MX, s_YM, s_M),
-                    nrow = 3, ncol = 3)
-    # contaminate the data
-    if(n_out > 0) {
-      # contaminate the first observations
-      i <- seq_len(n_out)
-      # add outlier shifts
-      x[i] <- x[i] + shift_X
-      m[i] <- m[i] + shift_M
-      y[i] <- y[i] + shift_Y
+shinyServer(function(input, output, session) {
+
+  ## Define relevant objects and reactive values -----
+
+  # define colors
+  colors_data <- c(regular = "#00BFC4",
+                   outlier = "#F8766D")
+  labels_data <- c(regular = "Regular point",
+                   outlier = "Outlier")
+  colors_methods <- c(ols_boot = "#F8766D",
+                      winsorized_boot = "#F564E3",
+                      median_boot = "#619CFF",
+                      ROBMED = "#00BFC4")
+  labels_methods <- c(ols_boot = "OLS bootstrap",
+                      winsorized_boot = "Winsorized bootstrap",
+                      median_boot = "Median bootstrap",
+                      ROBMED = "ROBMED")
+
+  # initialize reactive values to be used for clean and contaminated data
+  values <- reactiveValues(epsilon = 0.02)
+
+
+  ## Render outputs for the 'Data' tab -----
+
+  # observer to update clean data
+  observe({
+    # initializations
+    a <- input$a
+    b <- input$b
+    c <- input$c
+    n_observations <- input$n_observations
+    seed <- input$seed
+    # generate independent variable and error terms
+    if (isTruthy(seed)) set.seed(seed)
+    x <- rnorm(n_observations)
+    e_m <- rnorm(n_observations)
+    e_y <- rnorm(n_observations)
+    # generate mediator and dependent variable
+    m <- a * x + e_m
+    y <- b * m + c * x + e_y
+    # update reactive values
+    values$clean_data <- data.frame(X = x, M = m, Y = y)
+    values$sigma <- c(X = 1, M = sqrt(a^2 + 1),
+                      Y = sqrt(b^2 * (a^2 + 1) + c^2 + 2*a*b*c + 1))
+  })
+
+  # show header for scatterplot matrix of clean data
+  output$header_plot_clean_data <- renderUI({
+    req(values$clean_data)
+    h3("Simulated data")
+  })
+
+  # show scatterplot matrix of clean data
+  output$plot_clean_data <- renderPlot({
+    req(values$clean_data)
+    plot(values$clean_data, pch = 16, cex = 2,
+         col = colors_data["regular"],
+         cex.axis = 1.5, cex.labels = 2, las = 1,
+         oma = c(2.5, 2.5, 2.5, 12))
+  })
+
+
+  ## Render outputs for the 'Outliers' tab -----
+
+  # create UI input for number of observations
+  output$select_n_outliers <- renderUI({
+    # adjust selected and maximum value according to number of observations
+    selected_value <- ceiling(isolate(values$epsilon) * input$n_observations)
+    max_value <- ceiling(0.1 * input$n_observations)
+    # create UI input
+    sliderInput("n_outliers", "Number of outliers", min = 0, max = max_value,
+                value = selected_value, step = 1)
+  })
+
+  # observer to update contamination level
+  observeEvent(input$n_outliers, {
+    values$epsilon <- input$n_outliers / input$n_observations
+  })
+
+  # observer to update contaminated data
+  observe({
+    req(input$n_outliers)
+    # initializations
+    contaminated_data <- values$clean_data
+    if (input$n_outliers == 0) {
+      # add variable indicating that all observations are regular
+      contaminated_data$Type <- rep.int("regular", input$n_observations)
+    } else {
+      # select observations to scale and shift
+      replace <- seq_len(input$n_outliers)
+      # combine scaling factors and additive shifts
+      multiplier <- c(X = input$scaling_X,
+                      M = input$scaling_M,
+                      Y = input$scaling_Y)
+      shift <- c(X = input$shift_X,
+                 M = input$shift_M,
+                 Y = input$shift_Y)
+      # scale and shift observations
+      contaminated_data[replace, ] <- mapply(function(v, m, s) m * v + s,
+                                             v = contaminated_data[replace, ],
+                                             m = multiplier,
+                                             s = shift * values$sigma,
+                                             SIMPLIFY = FALSE)
+      # add variable indicating regular observations and outliers
+      n_regular <- input$n_observations - input$n_outliers
+      contaminated_data$Type <- rep.int(c("outlier", "regular"),
+                                        c(input$n_outliers, n_regular))
     }
-    # return data frame
-    data.frame(X = x, M = m, Y = y)
-  }
-
-
-  ## generate data
-  df <- reactive({
-    generate_data(input$n_obs, input$a, input$b, input$c,
-                  input$n_out, #input$d,
-                  input$shift_X, input$shift_M, input$shift_Y,
-                  input$seed)
+    # update reactive value
+    values$contaminated_data <- contaminated_data
   })
 
-  ## scatter plot matrix of generated data
-  output$scatterPlotMatrix <- renderPlot({
-    col_points <- rep.int(colors, c(input$n_out, 0, 0, input$n_obs-input$n_out))
-    plot(df(), pch = 16, cex = 2, col = col_points, cex.axis = 1.5,
+  # show header for scatterplot matrix of contaminated data
+  output$header_plot_contaminated_data <- renderUI({
+    req(values$contaminated_data)
+    h3("Simulated data with outliers")
+  })
+
+  # show scatterplot matrix of contaminated data
+  output$plot_contaminated_data <- renderPlot({
+    req(values$contaminated_data)
+    plot(values$contaminated_data[, c("X", "M", "Y")], pch = 16, cex = 2,
+         col = colors_data[values$contaminated_data$Type], cex.axis = 1.5,
          cex.labels = 2, las = 1, oma = c(2.5, 2.5, 2.5, 12))
-    legend("right", inset = c(-0.03, 0), legend = c("Regular point", "Outlier"),
-           pch = 16, pt.cex = 1.4, col = colors[c(4, 1)], cex = 1.1,
-           y.intersp = 0.75, bty = "n", xpd = TRUE)
+    legend("right", inset = c(-0.03, 0), legend = labels_data, pch = 16,
+           pt.cex = 1.4, col = colors_data, cex = 1.1, y.intersp = 0.75,
+           bty = "n", xpd = TRUE)
   })
 
 
-  ## density plot of bootstrap distributions
-  output$densityPlot <- renderPlot({
+  ## Render outputs for the 'Methods' tab -----
 
-    ## perform mediation analysis with nonrobust bootstrap test
-    # With only 1000 bootstrap replicates, sometimes there is a warning that
-    # extreme order statistics are used as endpoints of confidence intervals.
-    # Since this shiny app is just illustrative, such warnings are ignored.
+  # show header for scatterplot matrix of contaminated data
+  output$header_density_plot <- renderUI({
+    req(isTruthy(values$clean_data) || isTruthy(values$contaminated_data),
+        input$methods)
+    h3("Bootstrap distribution")
+  })
+
+  # show density plot for selected methods
+  output$density_plot <- renderPlot({
+    # initializations
+    simulated_data <- values$contaminated_data
+    if (!isTruthy(simulated_data)) simulated_data <- values$clean_data
+    req(simulated_data, input$methods)
+    # check which methods are selected
+    have_ols_boot <- "ols_boot" %in% input$methods
+    have_winsorized_boot <- "winsorized_boot" %in% input$methods
+    have_median_boot <- "median_boot" %in% input$methods
+    have_ROBMED <- "ROBMED" %in% input$methods
+    # With a smaller number of bootstrap replicates, there may be a warning
+    # that extreme order statistics are used as endpoints of confidence
+    # intervals.  Since this shiny app is just illustrative, such warnings
+    # are ignored.
     suppressWarnings({
-      if (input$standard) {
-        standard_boot <- test_mediation(df(), x = "X", y = "Y", m = "M",
-                                        test = "boot", R = input$R,
-                                        method = "regression",
-                                        robust = FALSE)
-      }
-      if (input$winsorized) {
-        winsorized_boot <- test_mediation(df(), x = "X", y = "Y", m = "M",
-                                         test = "boot", R = input$R,
-                                         method = "covariance",
-                                         robust = TRUE)
-      }
-      if (input$median) {
-        median_boot <- test_mediation(df(), x = "X", y = "Y", m = "M",
+      if (have_ols_boot) {
+        ols_boot <- test_mediation(simulated_data,
+                                   x = "X", y = "Y", m = "M",
+                                   test = "boot", R = input$R,
+                                   method = "regression",
+                                   robust = FALSE)
+      } else ols_boot <- NULL
+      if (have_winsorized_boot) {
+        winsorized_boot <- test_mediation(simulated_data,
+                                          x = "X", y = "Y", m = "M",
+                                          test = "boot", R = input$R,
+                                          method = "covariance",
+                                          robust = TRUE)
+      } else winsorized_boot <- NULL
+      if (have_median_boot) {
+        median_boot <- test_mediation(simulated_data,
+                                      x = "X", y = "Y", m = "M",
                                       test = "boot", R = input$R,
                                       method = "regression",
                                       robust = "median")
-      }
-      if (input$robust) {
-        robust_boot <- test_mediation(df(), x = "X", y = "Y", m = "M",
+      } else median_boot <- NULL
+      if (have_ROBMED) {
+        robust_boot <- test_mediation(simulated_data,
+                                      x = "X", y = "Y", m = "M",
                                       test = "boot", R = input$R,
                                       method = "regression",
                                       robust = "MM")
-      }
+      } else robust_boot <- NULL
     })
-
-    # create object containing selected tests and select colors accordingly
-    tests <- list()
-    if (input$standard) tests$Standard <- standard_boot
-    if (input$winsorized) tests$Winsorized <- winsorized_boot
-    if (input$median) tests$Median <- median_boot
-    if (input$robust) tests$ROBMED <- robust_boot
-
+    # create object containing selected methods
+    boot_list <- list(ols_boot, winsorized_boot, median_boot, robust_boot)
+    names(boot_list) <- labels_methods
     # select colors
-    select <- c(input$standard, input$winsorized, input$median, input$robust)
-    selected_colors <- colors[select]
-
+    selected_colors <- colors_methods[input$methods]
+    names(selected_colors) <- labels_methods[input$methods]
     # plot the density of the bootstrap distribution
-    if (length(tests) > 0) {
-      dp <- density_plot(tests) +
-        geom_vline(xintercept = input$a * input$b) +
-        scale_color_manual(values = selected_colors) +
-        scale_fill_manual(values = selected_colors) +
-        theme(title = element_text(size = 15),
-              axis.text = element_text(size = 13),
-              axis.title = element_text(size = 15),
-              legend.title = element_text(size = 15),
-              legend.text = element_text(size = 13))
-      print(dp)
-    }
+    density_plot(boot_list) +
+      geom_vline(xintercept = input$a * input$b) +
+      scale_color_manual(values = selected_colors) +
+      scale_fill_manual(values = selected_colors) +
+      labs(title = NULL) +
+      theme(title = element_text(size = 15),
+            axis.text = element_text(size = 13),
+            axis.title = element_text(size = 15),
+            legend.title = element_text(size = 15),
+            legend.text = element_text(size = 13))
   })
+
 })
