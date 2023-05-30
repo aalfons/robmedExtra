@@ -4,7 +4,13 @@
 \alias{robmed_GUI}
 \title{Graphical user interface for (robust) mediation analysis}
 \usage{
-robmed_GUI()
+robmed_GUI(data = NULL)
+}
+\arguments{
+\item{data}{optional; a data frame to be selected by default in the
+graphical user interface.  Note that if the supplied object is not a
+data frame or does not exist in the global environment, the graphical
+user interface is opened as if the argument were not supplied.}
 }
 \description{
 Open a shiny app that provides a graphical user interface for (robust)

@@ -380,10 +380,16 @@ shinyServer(function(input, output, session) {
       selectInput("df_name_global", "Data frame", choices = df_global,
                   selected = NULL, multiple = FALSE)
     } else {
-      # if there are multiple data sets in the global environment, by default
-      # the previously selected data frame is selected again (if it exists)
+      # If there are multiple data sets in the global environment, by default
+      # the previously selected data frame is selected again.  If it doesn't
+      # exist, we haven't selected a data set yet, and we use GUI_args$get() to
+      # access a data set that may have been supplied to robmed_GUI().
+      default_df_name <- isolate(input$df_name_global)
+      if (is.null(default_df_name)) {
+        default_df_name <- robmedExtra:::GUI_args$get("df_name")
+      }
       selectInput("df_name_global", "Data frame", choices = c("", df_global),
-                  selected = isolate(input$df_name_global), multiple = FALSE)
+                  selected = default_df_name, multiple = FALSE)
     }
   })
 

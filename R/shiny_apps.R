@@ -1,7 +1,7 @@
-# --------------------------------------
+# ------------------------------------
 # Author: Andreas Alfons
-#         Erasmus Universiteit Rotterdam
-# --------------------------------------
+#         Erasmus University Rotterdam
+# ------------------------------------
 
 #' Shiny apps: Graphical user interface and data simulation
 #'
@@ -52,6 +52,11 @@ run_shiny_app <- function(which = c("GUI", "simulation")) {
 #' results for reporting (including a replication file in the form of an \R
 #' script).
 #'
+#' @param data  optional; a data frame to be selected by default in the
+#' graphical user interface.  Note that if the supplied object is not a
+#' data frame or does not exist in the global environment, the graphical
+#' user interface is opened as if the argument were not supplied.
+#'
 #' @note
 #' The graphical user interface is still experimental.  It may change
 #' considerably in future versions based on user feedback.
@@ -91,7 +96,26 @@ run_shiny_app <- function(which = c("GUI", "simulation")) {
 #'
 #' @export
 
-robmed_GUI <- function() run_shiny_app("GUI")
+robmed_GUI <- function(data = NULL) {
+  # get name of supplied data frame, if any
+  if (is.null(data)) df_name <- ""
+  else {
+    df_name <- deparse(substitute(data))
+    if (!exists(df_name, envir = .GlobalEnv)) {
+      msg <- sprintf("object '%s' does not exist in the R environment", df_name)
+      warning(msg, immediate. = TRUE)
+      df_name <- ""
+    } else if (!is.data.frame(data)) {
+      warning(sprintf("object '%s' is not a data frame", df_name),
+              immediate. = TRUE)
+      df_name <- ""
+    }
+  }
+  # set argument to pass the name of the data frame to the shiny app
+  GUI_args$set(df_name = df_name)
+  # call initernal function to run the shiny app
+  run_shiny_app("GUI")
+}
 
 
 #' Graphical user interface for exploring bootstrap procedures for mediation
