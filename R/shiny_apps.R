@@ -118,8 +118,8 @@ robmed_GUI <- function(data = NULL) {
 }
 
 
-#' Graphical user interface for exploring bootstrap procedures for mediation
-#' analysis via simulation
+#' Shiny app for exploring bootstrap procedures for mediation analysis on
+#' simulated data
 #'
 #' Open a shiny app for exploring the behavior of various bootstrap procedures
 #' for mediation analysis on simulated data.
@@ -171,9 +171,9 @@ robmed_GUI <- function(data = NULL) {
 #' \dontrun{
 #'
 #' # start graphical user interface
-#' simulation_GUI()
+#' simulation_app()
 #' }
 #'
 #' @export
 
-simulation_GUI <- function() run_shiny_app("simulation")
+simulation_app <- function() run_shiny_app("simulation")
