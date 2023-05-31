@@ -50,3 +50,6 @@ src/*.dll
 dev/*-concordance.tex
 dev/*.log
 dev/*.synctex.gz
+
+# files related to the package vignette
+inst/doc
