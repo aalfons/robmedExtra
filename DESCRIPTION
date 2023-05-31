@@ -2,13 +2,13 @@ Package: robmedExtra
 Type: Package
 Title: Extra Functionality for (Robust) Mediation Analysis
 Version: 0.1.0
-Date: 2023-05-30
+Date: 2023-05-31
 Depends:
     robmed (>= 0.10.0)
 Imports:
     shiny (>= 1.1.0),
     DT,
-    flextable,
+    flextable (>= 0.8.3),
     ggplot2 (>= 3.3.0),
     graphics,
     grDevices,
