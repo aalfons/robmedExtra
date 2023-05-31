@@ -1,4 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-LICENSE
+^\.github$
 dev
+LICENSE
+README.md
