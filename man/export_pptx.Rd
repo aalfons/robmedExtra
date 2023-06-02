@@ -4,7 +4,8 @@
 \alias{export_pptx}
 \alias{export_pptx.flextable}
 \alias{export_pptx.default}
-\title{Export a flextable of results from (robust) mediation analysis to Powerpoint}
+\title{Export a flextable of results from (robust) mediation analysis to 'Microsoft
+Powerpoint'}
 \usage{
 export_pptx(object, file, ...)
 
@@ -19,7 +20,7 @@ converted to the subclass \code{"mediation_flextable"} via
 \code{\link{to_flextable}()}.}
 
 \item{file}{a character string specifying the path an file name for the
-Microsoft Powerpoint file to be generated.}
+\proglang{Microsoft Powerpoint} file to be generated.}
 
 \item{\dots}{for the \code{"flextable"} method, additional arguments to
 be passed down to \code{\link[officer]{prop_section}()} for defining page
@@ -29,13 +30,13 @@ default method, additional arguments to be passed down to
 mediation analysis.}
 }
 \value{
-The function is called for its side effect of creating a Microsoft
-Powerpoint file.  It returns the path to the file invisibly.
+The function is called for its side effect of creating a \proglang{Microsoft
+Powerpoint} file.  It returns the path to the file invisibly.
 }
 \description{
-Export a \code{\link[flextable]{flextable}} object to Microsoft Powerpoint.
-This function is intended for tables of results from (robust) mediation
-analysis.  It is essentially a wrapper for
+Export a \code{\link[flextable]{flextable}} object to \proglang{Microsoft
+Powerpoint}.  This function is intended for tables of results from (robust)
+mediation analysis.  It is essentially a wrapper for
 \code{\link[flextable]{save_as_pptx}()}.
 }
 \examples{
@@ -55,13 +56,14 @@ robust_boot <- test_mediation(BSG2014,
 # construct flextable of results
 ft <- to_flextable(robust_boot)
 
-\dontrun{
 # export to Microsoft Powerpoint
 file_name <- tempfile(fileext = ".pptx")
-export_pptx(ft, file = file_name)}
+export_pptx(ft, file = file_name)
 
 }
 \seealso{
+\code{\link{export_docx}()}
+
 \code{\link[flextable]{flextable}()}, \code{\link{to_flextable}()}
 }
 \author{

@@ -6,11 +6,12 @@
 # ************************************
 
 
-#' Export a flextable of results from (robust) mediation analysis to Powerpoint
+#' Export a flextable of results from (robust) mediation analysis to 'Microsoft
+#' Powerpoint'
 #'
-#' Export a \code{\link[flextable]{flextable}} object to Microsoft Powerpoint.
-#' This function is intended for tables of results from (robust) mediation
-#' analysis.  It is essentially a wrapper for
+#' Export a \code{\link[flextable]{flextable}} object to \proglang{Microsoft
+#' Powerpoint}.  This function is intended for tables of results from (robust)
+#' mediation analysis.  It is essentially a wrapper for
 #' \code{\link[flextable]{save_as_pptx}()}.
 #'
 #' @param object  an object of class \code{"\link[flextable]{flextable}"}, or
@@ -18,7 +19,7 @@
 #' converted to the subclass \code{"mediation_flextable"} via
 #' \code{\link{to_flextable}()}.
 #' @param file  a character string specifying the path an file name for the
-#' Microsoft Powerpoint file to be generated.
+#' \proglang{Microsoft Powerpoint} file to be generated.
 #' @param \dots  for the \code{"flextable"} method, additional arguments to
 #' be passed down to \code{\link[officer]{prop_section}()} for defining page
 #' composition such as page size, page orientation, and margins.  For the
@@ -27,12 +28,14 @@
 #' mediation analysis.
 #'
 #' @return
-#' The function is called for its side effect of creating a Microsoft
-#' Powerpoint file.  It returns the path to the file invisibly.
+#' The function is called for its side effect of creating a \proglang{Microsoft
+#' Powerpoint} file.  It returns the path to the file invisibly.
 #'
 #' @author Andreas Alfons
 #'
 #' @seealso
+#' \code{\link{export_docx}()}
+#'
 #' \code{\link[flextable]{flextable}()}, \code{\link{to_flextable}()}
 #'
 #' @examples
@@ -52,10 +55,9 @@
 #' # construct flextable of results
 #' ft <- to_flextable(robust_boot)
 #'
-#' \dontrun{
 #' # export to Microsoft Powerpoint
 #' file_name <- tempfile(fileext = ".pptx")
-#' export_pptx(ft, file = file_name)}
+#' export_pptx(ft, file = file_name)
 #'
 #' @export
 

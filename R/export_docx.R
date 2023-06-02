@@ -6,21 +6,23 @@
 # ************************************
 
 
-#' Export a flextable of results from (robust) mediation analysis to Word
+#' Export a flextable of results from (robust) mediation analysis to 'Microsoft
+#' Word'
 #'
-#' Export a \code{\link[flextable]{flextable}} object to Microsoft Word. This
-#' function is intended for tables of results from (robust) mediation analysis.
-#' It is essentially a wrapper for \code{\link[flextable]{save_as_docx}()} with
-#' a more convenient argument for page size, and it uses additional information
-#' from subclass \code{"\link[=to_flextable]{mediation_flextable}"} to
-#' determine the page orientation.
+#' Export a \code{\link[flextable]{flextable}} object to \proglang{Microsoft
+#' Word}. This function is intended for tables of results from (robust)
+#' mediation analysis.  It is essentially a wrapper for
+#' \code{\link[flextable]{save_as_docx}()} with a more convenient argument
+#' for page size, and it uses additional information from subclass
+#' \code{"\link[=to_flextable]{mediation_flextable}"} to determine the page
+#' orientation.
 #'
 #' @param object  an object of class \code{"\link[flextable]{flextable}"}, or
 #' an object containing results from (robust) mediation analysis that can be
 #' converted to the subclass \code{"mediation_flextable"} via
 #' \code{\link{to_flextable}()}.
 #' @param file  a character string specifying the path an file name for the
-#' Microsoft Word file to be generated.
+#' \proglang{Microsoft Word} file to be generated.
 #' @param size  a character string specifying the page size.  Possible values
 #' are \code{"A4"} for A4 format (297 x 210 mm) or \code{"letter"} for US
 #' letter format (11 x 8.5 inches).
@@ -32,12 +34,14 @@
 #' mediation analysis.
 #'
 #' @return
-#' The function is called for its side effect of creating a Microsoft Word
-#' file.  It returns the path to the file invisibly.
+#' The function is called for its side effect of creating a \proglang{Microsoft
+#' Word} file.  It returns the path to the file invisibly.
 #'
 #' @author Andreas Alfons
 #'
 #' @seealso
+#' \code{\link{export_pptx}()}
+#'
 #' \code{\link[flextable]{flextable}()}, \code{\link{to_flextable}()}
 #'
 #' @examples
@@ -57,10 +61,9 @@
 #' # construct flextable of results
 #' ft <- to_flextable(robust_boot)
 #'
-#' \dontrun{
 #' # export to Microsoft Word
 #' file_name <- tempfile(fileext = ".docx")
-#' export_docx(ft, file = file_name)}
+#' export_docx(ft, file = file_name)
 #'
 #' @export
 

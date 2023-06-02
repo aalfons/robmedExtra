@@ -83,13 +83,10 @@ initialize_options <- function(...) {
 #' GUI_options$get()
 #'
 #' # retrieve a single option
-#' GUI_options$get("version")
-#'
-#' \dontrun{
+#' GUI_options$get("level")
 #'
 #' # set options
-#' GUI_options$set(df_name = "BSG2014")
-#' }
+#' GUI_options$set(level = 0.99)
 #'
 #' @keywords utilities
 #'
