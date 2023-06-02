@@ -27,8 +27,11 @@ interval.  If the app does not update quickly enough, try to reduce the
 number of bootstrap samples.
 }
 \examples{
+\dontrun{
+
 # start graphical user interface
 simulation_app()
+}
 
 }
 \references{
