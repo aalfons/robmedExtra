@@ -32,10 +32,10 @@ The graphical user interface is still experimental.  It may change in future
 versions based on user feedback.
 }
 \examples{
-\dontrun{
-
-# start graphical user interface
-robmed_GUI()
+# run example only from an interactive R session
+if (interactive()) {
+  # start graphical user interface
+  robmed_GUI()
 }
 
 

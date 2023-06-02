@@ -91,10 +91,10 @@ run_shiny_app <- function(which = c("GUI", "simulation")) {
 #' @seealso \code{\link{test_mediation}}
 #'
 #' @examples
-#' \dontrun{
-#'
-#' # start graphical user interface
-#' robmed_GUI()
+#' # run example only from an interactive R session
+#' if (interactive()) {
+#'   # start graphical user interface
+#'   robmed_GUI()
 #' }
 #'
 #'
@@ -175,10 +175,10 @@ robmed_GUI <- function(data = NULL) {
 #' @seealso \code{\link{test_mediation}}
 #'
 #' @examples
-#' \dontrun{
-#'
-#' # start graphical user interface
-#' simulation_app()
+#' # run example only from an interactive R session
+#' if (interactive()) {
+#'   # start graphical user interface
+#'   simulation_app()
 #' }
 #'
 #' @export

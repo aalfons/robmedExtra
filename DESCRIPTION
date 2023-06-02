@@ -1,7 +1,7 @@
 Package: robmedExtra
 Type: Package
 Title: Extra Functionality for (Robust) Mediation Analysis
-Version: 0.1.0
+Version: 0.1.1
 Date: 2023-06-02
 Depends:
     robmed (>= 0.10.0)
