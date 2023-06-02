@@ -13,9 +13,10 @@
 #'
 #' Convert results from (robust) mediation analysis to a tabular summary in
 #' the form of a \code{\link[flextable]{flextable}}.  This \code{flextable}
-#' can easily be exported to Microsoft Word or integrated into a dynamic
-#' \proglang{Markdown} document, which eliminates the risk of mistakes in
-#' reporting that stem from copying-and-pasting results.
+#' can easily be exported to \proglang{Microsoft Word} or \proglang{Microsoft
+#' Powerpoint}, or integrated into a dynamic \proglang{Markdown} document.
+#' This eliminates the risk of mistakes in reporting that stem from
+#' copying-and-pasting results.
 #'
 #' @param object  an object inheriting from class
 #' \code{"\link[robmed]{test_mediation}"} or
@@ -59,7 +60,9 @@
 #' \code{\link{test_mediation}()},
 #' \code{\link[robmed:summary.test_mediation]{summary}()}
 #'
-#' \code{\link{export_docx}()}, \code{\link{to_latex}()}
+#' \code{\link{export_docx}()}, \code{\link{export_pptx}()}
+#'
+#' \code{\link{to_latex}()}
 #'
 #' @examples
 #' data("BSG2014")

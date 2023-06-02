@@ -5,7 +5,7 @@
 \alias{to_latex.test_mediation}
 \alias{to_latex.summary_test_mediation}
 \alias{to_latex.list}
-\title{LaTeX table of results from (robust) mediation analysis}
+\title{'LaTeX' table of results from (robust) mediation analysis}
 \usage{
 to_latex(object, ...)
 
@@ -109,7 +109,7 @@ confidence intervals of the indirect effect.}
 Generate \proglang{LaTeX} code for a tabular summary of results from
 (robust) mediation analysis in the form of a \code{tabular} environment.
 This \code{tabular} environment can easily be integrated into a dynamic
-\proglang{LaTex} document with tools such as package \pkg{knitr}, which
+\proglang{LaTeX} document with tools such as package \pkg{knitr}, which
 eliminates the risk of mistakes in reporting that stem from
 copying-and-pasting results.  Note that \code{to_latex()} itself does not
 actually produce any \proglang{LaTeX} code, it is the \code{print()} method

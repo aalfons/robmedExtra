@@ -7,12 +7,12 @@
 # Convert results from mediation analysis to a LaTeX table -----
 
 
-#' LaTeX table of results from (robust) mediation analysis
+#' 'LaTeX' table of results from (robust) mediation analysis
 #'
 #' Generate \proglang{LaTeX} code for a tabular summary of results from
 #' (robust) mediation analysis in the form of a \code{tabular} environment.
 #' This \code{tabular} environment can easily be integrated into a dynamic
-#' \proglang{LaTex} document with tools such as package \pkg{knitr}, which
+#' \proglang{LaTeX} document with tools such as package \pkg{knitr}, which
 #' eliminates the risk of mistakes in reporting that stem from
 #' copying-and-pasting results.  Note that \code{to_latex()} itself does not
 #' actually produce any \proglang{LaTeX} code, it is the \code{print()} method

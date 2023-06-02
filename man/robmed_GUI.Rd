@@ -12,8 +12,12 @@ graphical user interface.  Note that if the supplied object is not a
 data frame or does not exist in the global environment, the graphical
 user interface is opened as if the argument were not supplied.}
 }
+\value{
+No return value, the function is called for its side effect of starting a
+\pkg{shiny} app.
+}
 \description{
-Open a shiny app that provides a graphical user interface for (robust)
+Open a \pkg{shiny} app that provides a graphical user interface for (robust)
 mediation analysis via package \pkg{robmed}.
 }
 \details{
@@ -24,8 +28,8 @@ results for reporting (including a replication file in the form of an \R
 script).
 }
 \note{
-The graphical user interface is still experimental.  It may change
-considerably in future versions based on user feedback.
+The graphical user interface is still experimental.  It may change in future
+versions based on user feedback.
 }
 \examples{
 \dontrun{

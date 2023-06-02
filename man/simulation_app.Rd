@@ -2,14 +2,17 @@
 % Please edit documentation in R/shiny_apps.R
 \name{simulation_app}
 \alias{simulation_app}
-\title{Shiny app for exploring bootstrap procedures for mediation analysis on
-simulated data}
+\title{Open a 'shiny' app for exploring mediation analysis on simulated data}
 \usage{
 simulation_app()
 }
+\value{
+No return value, the function is called for its side effect of starting a
+\pkg{shiny} app.
+}
 \description{
-Open a shiny app for exploring the behavior of various bootstrap procedures
-for mediation analysis on simulated data.
+Open a \pkg{shiny} app for exploring the behavior of various bootstrap
+procedures for mediation analysis on simulated data.
 }
 \details{
 The default settings are similar to one of the simulation designs of Alfons,
