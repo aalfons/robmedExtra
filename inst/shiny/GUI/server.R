@@ -1464,10 +1464,18 @@ shinyServer(function(input, output, session) {
   # show diagnostic plot for ROBMED in main panel
   output$plot_preview_header <- renderUI({
     req(used_inputs$plot)
+    # if applicable, define note regarding the resolution
+    if ("png" %in% values$file_type_plot) {
+      note_resolution <- paste("Simlarly, the resolution shown here does not",
+                               "reflect the resolution selected for the png",
+                               "file.")
+    } else note_resolution <- NULL
+    # display header and note
     tagList(
       h3("File preview of diagnostic plot"),
       help_text("The size shown here depends on the resolution of the browser",
-                "and may differ from the size of the file to be generated.")
+                "and may differ from the size of the file to be generated.",
+                note_resolution)
     )
   })
   output$plot_preview <- renderPlot({
