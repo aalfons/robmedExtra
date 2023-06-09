@@ -26,6 +26,12 @@ Alfons, A., Ates, N.Y., & Groenen, P.J.F. (2022a). A Robust Bootstrap Test for M
 
 ## Installation
 
+Package `robmedExtra` is on CRAN (The Comprehensive R Archive Network), hence the latest release can be easily installed from the `R` command line via
+
+```
+install.packages("robmedExtra")
+```
+
 The latest (possibly unstable) development version in this repository can be installed from the `R` command line via
 
 ```
