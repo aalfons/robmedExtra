@@ -10,10 +10,11 @@ To cite the robust bootstrap test ROBMED, please use:
 
 Alfons, A., Ates, N.Y., & Groenen, P.J.F. (2022a). A Robust Bootstrap Test for Mediation Analysis. *Organizational Research Methods*, **25**(3), 591--617. doi: [10.1177/1094428121999096](https://doi.org/10.1177/1094428121999096).
 
-To cite package `robmed` in publications, please use:
+To cite packages `robmed` and `robmedExtra` in publications, please use:
 
 Alfons, A., Ates, N.Y., & Groenen, P.J.F. (2022b). Robust Mediation Analysis: The `R` Package `robmed`. *Journal of Statistical Software*, **103**(13), 1--45. doi: [10.18637/jss.v103.i13](https://doi.org/10.18637/jss.v103.i13).
 
+Alfons A., Archimbaud A., & Drenth V. (2023). *`robmedExtra`: Extra Functionality for (Robust) Mediation Analysis*. `R` package, <https://CRAN.R-project.org/package=robmedExtra>.
 
 ## About ROBMED
 
