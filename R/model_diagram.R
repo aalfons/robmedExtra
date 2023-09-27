@@ -51,12 +51,15 @@ model_diagram <- function(x, y, m, covariates = NULL,
       # parallel multiple mediator model
       center_x <- cbind(x = 0, y = 0)
       center_m <- cbind(x = width + spacing[1L],
-                        y = height + (height + spacing[2L]) * (seq_m - 1))
+                        y = height + (height + spacing[2L]) * rev(seq_m - 1))
       center_y <- cbind(x = 2 * (width + spacing[1L]), y = 0)
     }
   } else if (p_x > 1L) {
     # multiple independent variables, one mediator
-
+    center_x <- cbind(x = 0,
+                      y = (height + spacing[2L]) * ((p_x-1)/2 - (seq_x-1)))
+    center_m <- cbind(x = width + spacing[1L], y = 0)
+    center_y <- cbind(x = 2 * (width + spacing[1L]), y = 0)
   } else {
     # simple mediation model
     center_x <- cbind(x = 0, y = 0)
@@ -114,14 +117,14 @@ model_diagram <- function(x, y, m, covariates = NULL,
       step_m <- height / (2 * (p_m - 1))
       df_arrows <- rbind(
         data.frame(x = df_boxes[which_x, "xmax"],
-                   y = df_boxes[which_x, "y"] + step_xy * seq_m,
+                   y = df_boxes[which_x, "ymax"] - step_xy * (seq_m - 1),
                    xend = df_boxes[which_m, "xmin"],
-                   yend = df_boxes[which_m, "y"] - step_m * (seq_m - 1),
+                   yend = df_boxes[which_m, "ymin"] + step_m * (seq_m - 1),
                    type = types_x),
         data.frame(x = df_boxes[which_m, "xmax"],
-                   y = df_boxes[which_m, "y"] - step_m * (seq_m - 1),
+                   y = df_boxes[which_m, "ymin"] + step_m * (seq_m - 1),
                    xend = df_boxes[which_y, "xmin"],
-                   yend = df_boxes[which_y, "y"] + step_xy * seq_m,
+                   yend = df_boxes[which_y, "ymax"] - step_xy * (seq_m - 1),
                    type = types[1L]),
         data.frame(x = df_boxes[which_x, "xmax"],
                    y = df_boxes[which_x, "y"],
