@@ -4,27 +4,15 @@
 # ************************************
 
 
-#' @importFrom grid arrow
-#' @importFrom ggplot2 coord_fixed expansion geom_rect geom_text geom_segment
-#' ggplot labs scale_color_manual scale_x_continuous scale_y_continuous
-#' theme_void
-#' @export
-
 # x, y, m, covariates ... character strings/vectors of variable names
 # model ................. type of mediation model
 #                         (only relevant if two or more mediators are supplied)
 # width, height ......... integers giving the width/height of the boxes
 #                         (the same for all boxes)
-# center_x,
-# center_y,
-# center_m,               matrices with two columns giving the coordinates of
-# center_covariates ..... the centers of the boxes for the different variables
-
-model_diagram <- function(x, y, m, covariates = NULL,
-                          model = c("parallel", "serial"),
-                          width = 8, height = 2, center_x = NULL,
-                          center_y = NULL, center_m = NULL,
-                          center_covariates = NULL) {
+#' @export
+setup_model_diagram <- function(x, y, m, covariates = NULL,
+                                model = c("parallel", "serial"),
+                                width = 8, height = 2) {
 
   # check independent variable
   if (missing(x)) stop("no independent variable supplied")
@@ -91,42 +79,22 @@ model_diagram <- function(x, y, m, covariates = NULL,
     v_space <- list(x = 1, m = if (model == "simple") height + 2 else 1)
   }
 
-  # if not supplied, define centers of boxes for independent variables
-  if (is.null(center_x)) {
-    center_x <- cbind(x = 0,
-                      y = -(height + v_space$x) * (seq_x - 1))
-  } else colnames(center_x) <- c("x", "y")
-  # if not supplied, define centers of boxes for control variables
-  if (p_covariates == 0L) center_covariates <- NULL
-  else if (is.null(center_covariates)) {
-    center_covariates <- cbind(
-      x = max(center_x[, "x"]),
-      y = min(center_x[, "y"]) - (height + v_space$x) * seq_covariates
-    )
-  } else colnames(center_covariates) <- c("x", "y")
-  # combine centers for explanatory variables
-  center_predictors <- rbind(center_x, center_covariates)
-  # if not supplied, define centers of boxes for mediators
-  if (is.null(center_m)) {
-    # obtain origin for boxes for mediators
-    origin_m <- c(max(center_predictors[, "x"]),
-                  max(center_predictors[, "y"]))
-    # define center of boxes for mediators
-    if (model == "serial") {
-      # currently only implemented for two or three hypothesized mediators
-      center_m <- cbind(x = origin_m[1L] + width * seq_m + cumsum(h_space$m),
-                        y = origin_m[2L] + height + v_space$m)
-    } else {
-      # all other mediation models
-      center_m <- cbind(x = origin_m[1L] + width + h_space$m,
-                        y = origin_m[2L] + (height + v_space$m) * rev(seq_m))
-    }
-  } else colnames(center_m) <- c("x", "y")
-  # if not supplied, define center of boxes for dependent variable
-  if (is.null(center_y)) {
-    center_y <- cbind(x = max(center_m[, "x"]) + width + h_space$y,
-                      y = max(center_x[, "y"]))
-  } else colnames(center_y) <- c("x", "y")
+  # define centers of boxes for explanatory variables
+  center_predictors <- cbind(x = 0,
+                             y = -(height + v_space$x) * (seq_predictors - 1))
+  # define centers of boxes for mediators
+  if (model == "serial") {
+    # currently only implemented for two or three hypothesized mediators
+    center_m <- cbind(x = width * seq_m + cumsum(h_space$m),
+                      y = height + v_space$m)
+  } else {
+    # all other mediation models
+    center_m <- cbind(x = width + h_space$m,
+                      y = (height + v_space$m) * rev(seq_m))
+  }
+  # define centers of boxes for dependent variable
+  center_y <- cbind(x = max(center_m[, "x"]) + width + h_space$y,
+                    y = 0)
 
   # construct data frame for boxes
   df_boxes <- rbind(
@@ -161,6 +129,7 @@ model_diagram <- function(x, y, m, covariates = NULL,
   # store indices in data frame for boxes
   which_m <- p_predictors + seq_m
   which_y <- p_predictors + p_m + 1L
+
   # define step sizes for connections
   step_predictors <- height / (p_m + 2)        # outbound
   step_y <- height / (p_predictors + p_m + 1)  # inbound
@@ -264,27 +233,60 @@ model_diagram <- function(x, y, m, covariates = NULL,
   # first (then they are in the background relative to the other arrows)
   df_arrows <- df_arrows[order(df_arrows$type, decreasing = TRUE), ]
 
+  # set default text size
+  if (model == "serial") text_size <- if (p_m == 2L) 3.5 else 3
+  else text_size <- 4
+
+  # return object
+  out <- list(boxes = df_boxes, arrows = df_arrows, text_size = text_size,
+              colors = c("black", "#808080"), expand_x = 0.1, expand_y = 0.1)
+  class(out) <- "setup_model_diagram"
+  out
+
+}
+
+
+#' @importFrom grid arrow
+#' @importFrom ggplot2 coord_fixed expansion geom_rect geom_text geom_segment
+#' ggplot labs scale_color_manual scale_x_continuous scale_y_continuous
+#' theme_void
+#' @export
+
+model_diagram <- function(object, ...) UseMethod("model_diagram")
+
+#' @export
+model_diagram.default <- function(object, x = object, y, m, covariates = NULL,
+                                  model = c("parallel", "serial"), width = 8,
+                                  height = 2, ...) {
+  # obtain relevant information
+  setup <- setup_model_diagram(x = x, y = y, m = m, covariates = covariates,
+                               model = model, width = width, height = height)
+  # call method of setup object
+  model_diagram(setup, ...)
+
+}
+
+#' @export
+model_diagram.setup_model_diagram <- function(object, ...) {
   # define style of arrow heads
   arrow_head <- arrow(angle = 15, length = unit(8, "pt"),
                       ends = "last", type = "closed")
-  if (model == "serial") text_size <- if (p_m == 2L) 3.5 else 3
-  else text_size <- 4
   # generate plot
   ggplot() +
     geom_segment(mapping = aes(x = x, y = y, xend = xend, yend = yend,
                                color = type),
-                 data = df_arrows, linewidth = 0.5, arrow = arrow_head,
+                 data = object$arrows, linewidth = 0.5, arrow = arrow_head,
                  show.legend = FALSE) +
     geom_rect(mapping = aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
                             color = type),
-              data = df_boxes, fill = "white", linewidth = 0.5,
+              data = object$boxes, fill = "white", linewidth = 0.5,
               show.legend = FALSE) +
     geom_text(mapping = aes(x = x, y = y, label = label, color = type),
-              data = df_boxes, size = text_size, show.legend = FALSE) +
+              data = object$boxes, size = object$text_size,
+              show.legend = FALSE) +
     coord_fixed() +
-    scale_color_manual("", values = c("black", "#808080")) +
-    scale_x_continuous(expand = expansion(add = 0.1)) +
-    scale_y_continuous(expand = expansion(add = 0.1)) +
+    scale_color_manual("", values = object$colors) +
+    scale_x_continuous(expand = expansion(add = object$expand_x)) +
+    scale_y_continuous(expand = expansion(add = object$expand_y)) +
     theme_void()
-
 }
