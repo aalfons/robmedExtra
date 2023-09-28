@@ -5,8 +5,9 @@
 
 
 #' @importFrom grid arrow
-#' @importFrom ggplot2 coord_fixed geom_rect geom_text geom_segment ggplot labs
-#' scale_color_manual theme_void
+#' @importFrom ggplot2 coord_fixed expansion geom_rect geom_text geom_segment
+#' ggplot labs scale_color_manual scale_x_continuous scale_y_continuous
+#' theme_void
 #' @export
 
 # x, y, m, covariates ... character strings/vectors of variable names
