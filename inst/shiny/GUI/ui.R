@@ -34,6 +34,8 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # header for the data selection sidebarpanel
+          h3("Import your data"),
           # input for selecting a data source
           uiOutput("select_data_source"),
           # input for selecting a data frame from the global environment
@@ -58,6 +60,8 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # header for the model specification sidebarpanel
+          h3("Choose your variables"),
           # inputs for variables and type of mediation model
           uiOutput("select_variables"),
           uiOutput("select_model")
@@ -131,6 +135,8 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # header for the ROBMED sidebarpanel
+          h3("Run Robust Mediation Analysis"),
           # inputs for various options
           uiOutput("options_ROBMED"),
           uiOutput("advanced_options_ROBMED")
@@ -154,6 +160,8 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # header for the OLS Bootstrap sidebarpanel
+          h3("Run Mediation Analysis using OLS Bootstrap test"),
           # inputs for various options
           uiOutput("options_OLS_boot"),
           uiOutput("advanced_options_OLS_boot")
@@ -173,6 +181,16 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          # header for the export sidebarpanel
+          h3("Export your results"),
+          # information on export files
+          h5("Results will be exported as a .zip file containing:"),
+          HTML("<ul>
+          <li> Plots of the results in the chosen filetypes (.png, .pdf) </li>
+          <li> Tables of the results in the chosen filetypes (.docx, .ppt) </li>
+          <li> Script used to generate the results as a .R file </li>
+          <li> Data used for the tests as a .RData file </li>
+          </ul>"),
           # buttons to generate/downlaod files and inputs for table options
           uiOutput("select_file_type_table"),
           uiOutput("options_table"),
@@ -200,6 +218,7 @@ shinyUI(fluidPage(
       sidebarLayout(
         # input panel on left hand side
         sidebarPanel(
+          h3("Download references"),
           selectInput("citation_format", "Citation format",
                       choices = c("EndNote", "BibTeX"),
                       selected = "EndNote", multiple = FALSE),
