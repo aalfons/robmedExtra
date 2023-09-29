@@ -65,6 +65,16 @@ shinyUI(fluidPage(
         # output panel on right hand side
         mainPanel(
 
+          # FIXME: This is just copied from the diagnostic plot below.
+          # It would be better to have tabs here, where one panel shows the
+          # model diagram and another contains the brief explanations of the
+          # mediation models.
+
+          # diagnostic plot
+          uiOutput("model_diagram_header"),
+          # TODO: allow plot height to scale with the number of regressions
+          plotOutput("model_diagram", height = "200px"),
+
           h3("Simple mediation model"),
           p("In the simplest form of a mediation model, an independent",
             "variable X is hypothesized to influence a dependent variable",

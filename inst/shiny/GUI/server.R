@@ -608,7 +608,25 @@ shinyServer(function(input, output, session) {
   }, ignoreInit = TRUE)
 
 
-  ## update inputs for the 'ROBMED' tab
+  ## Render outputs for the 'Model' tab -----
+
+  # show diagram of selected model in main panel
+  output$model_diagram_header <- renderUI({
+    req(input$y, input$x, input$m)
+    h3("Model diagram")
+  })
+  output$model_diagram <- renderPlot({
+    # FIXME: Can we fix the width depending on the selected model?
+    # Serial mediation models require more horizontal space, and this should
+    # also not resize when the window is resized.
+    req(input$y, input$x, input$m)
+    model_diagram(x = input$x, y = input$y, m = input$m,
+                  covariates = input$covariates,
+                  model = input$model)
+  }, res = 100)
+
+
+  ## Update inputs for the 'ROBMED' tab -----
 
   # create UI element with inputs for ROBMED options
   output$options_ROBMED <- renderUI({
@@ -803,7 +821,7 @@ shinyServer(function(input, output, session) {
   })
 
 
-  ## update inputs for the 'OLS Bootstrap' tab
+  ## Update inputs for the 'OLS Bootstrap' tab -----
 
   # create UI element with inputs for OLS bootstrap options
   output$options_OLS_boot <- renderUI({
@@ -950,7 +968,7 @@ shinyServer(function(input, output, session) {
   })
 
 
-  ## update inputs for the 'Export' tab
+  ## Update inputs for the 'Export' tab -----
 
   # create UI element with buttons to generate/download files and input for
   # the file type for the table
