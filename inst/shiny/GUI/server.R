@@ -397,7 +397,8 @@ shinyServer(function(input, output, session) {
   output$select_Rdata_file <- renderUI({
     # show UI input only if the data source is set accordingly
     req(values$data_source == "RData file")
-    fileInput("RData_file", "RData file", multiple = FALSE, accept = ".RData")
+    fileInput("RData_file", "Import data from RData file",
+              multiple = FALSE, accept = ".RData")
   })
 
   # create UI input for selecting a data frame from the selected RData file
