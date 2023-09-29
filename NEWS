@@ -1,0 +1,4 @@
+Changes in robmed version 0.1.1
+
+    + Added function model_diagram() to automatically generate a diagram for
+      mediation models.

@@ -4,11 +4,95 @@
 # ************************************
 
 
-#' @importFrom ggplot2 expansion
+#' Set up information for a diagram of a mediation model
+#'
+#' Construct the relevant information for drawing a diagram of a mediation
+#' model.
+#'
+#' This function is used internally by \code{\link{model_diagram}()}.  It
+#' may also be useful for users who want to produce a similar plot, but who
+#' want more control over what information to display or how to display that
+#' information.
+#'
+#' Specifically, a user can modify the positions of the boxes representing the
+#' variables in the \code{boxes} component of the returned object.  However,
+#' note that the arrows connecting the boxes in the \code{arrows} component
+#' need to be modified accordingly.
+#'
+#' @param object  an object inheriting from class
+#' \code{"\link[robmed]{fit_mediation}"} or
+#' \code{"\link[robmed]{test_mediation}"} containing results from (robust)
+#' mediation analysis.  For the default method, the names of the independent
+#' variables of interest can also be specified via this argument.
+#' @param width,height  numeric values giving the width and height of the boxes
+#' representing the variables in the model diagram.
+#' @param x  a character vector specifying the names of the independent
+#' variables of interest to be displayed in the model diagram.
+#' @param y  a character string specifying the name of the dependent
+#' variable to be displayed in the model diagram.
+#' @param m  a character vector specifying the names of the hypothesized
+#' mediator variables to be displayed in the model diagram.
+#' @param covariates  a character vector specifying the names of additional
+#' covariates to be included as control variables in the model diagram.
+#' @param model  a character string specifying the type of model in case of
+#' multiple mediators.  Possible values are \code{"parallel"} (the default) for
+#' the parallel multiple mediator model, or \code{"serial"} for the serial
+#' multiple mediator model.  This is only relevant for setting up a diagram of
+#' a model with multiple hypothesized mediators.
+#' @param \dots  additional arguments to be passed down.
+#'
+#' @return An object of class \code{"setup_model_diagram"} with the following
+#' components:
+#' \item{boxes}{a data frame containing the coordinates and other relevant
+#' information on the boxes representing the variables in the model diagram.}
+#' \item{arrows}{a data frame containing the coordinates and other relevant
+#' information on the arrows representing the connections between the variables
+#' in the model diagram.}
+#' \item{colors}{a character vector of length two giving the colors to be used
+#' for main variables of interest and for control variables, respectively.}
+#' \item{size}{a numeric value giving the default text size.}
+#' \item{expand}{a numeric vector giving the default scale expansion vectors
+#' for the plot, see \code{\link[ggplot2]{expansion}()}.}
+#'
+#' @author Andreas Alfons
+#'
+#' @seealso
+#' \code{\link{fit_mediation}()}, \code{\link{test_mediation}()},
+#' \code{\link{model_diagram}()}
+#'
+#' @examples
+#' ## parallel multiple mediators and control variables
+#'
+#' # set up information for the model diagram
+#' setup <- setup_model_diagram(x = "ValueDiversity",
+#'                              y = "TeamCommitment",
+#'                              m = "TaskConflict")
+#'
+#' # draw the diagram
+#' model_diagram(setup)
+#'
+#' # draw a similar diagram, but without the boxes
+#' arrow_head <- grid::arrow(angle = 15, length = unit(8, "pt"),
+#'                           ends = "last", type = "closed")
+#' ggplot() +
+#'   geom_segment(mapping = aes(x = x, y = y, xend = xend,
+#'                              yend = yend),
+#'                data = setup$arrows, arrow = arrow_head) +
+#'   geom_text(mapping = aes(x = x, y = y, label = Label),
+#'             data = setup$boxes) +
+#'   coord_fixed() +
+#'   xlim(min(setup$boxes$xmin), max(setup$boxes$xmax)) +
+#'   ylim(min(setup$boxes$ymin), max(setup$boxes$ymax)) +
+#'   theme_void()
+#'
 #' @export
+
 setup_model_diagram <- function(object, ...) UseMethod("setup_model_diagram")
 
+
+#' @rdname setup_model_diagram
 #' @export
+
 setup_model_diagram.fit_mediation <- function(object, ...) {
   # extract relevant information and call default method
   setup_model_diagram(x = object$x, y = object$y, m = object$m,
@@ -16,18 +100,20 @@ setup_model_diagram.fit_mediation <- function(object, ...) {
                       model = object$model, ...)
 }
 
+
+#' @rdname setup_model_diagram
 #' @export
+
 setup_model_diagram.test_mediation <- function(object, ...) {
   # extract relevant information and call next method
   setup_model_diagram(object$fit, ...)
 }
 
-# x, y, m, covariates ... character strings/vectors of variable names
-# model ................. type of mediation model
-#                         (only relevant if two or more mediators are supplied)
-# width, height ......... integers giving the width/height of the boxes
-#                         (the same for all boxes)
+
+#' @rdname setup_model_diagram
+#' @importFrom ggplot2 expansion
 #' @export
+
 setup_model_diagram.default <- function(object, x = object, y, m,
                                         covariates = NULL,
                                         model = c("parallel", "serial"),
@@ -118,20 +204,20 @@ setup_model_diagram.default <- function(object, x = object, y, m,
     # for explanatory variables
     data.frame(x = center_predictors[, "x"],
                y = center_predictors[, "y"],
-               label = predictors,
-               type = types_predictors,
+               Label = predictors,
+               Type = types_predictors,
                stringsAsFactors = FALSE),
     # for mediators
     data.frame(x = center_m[, "x"],
                y = center_m[, "y"],
-               label = m,
-               type = types[1L],
+               Label = m,
+               Type = types[1L],
                stringsAsFactors = FALSE),
     # for dependent variable
     data.frame(x = center_y[, "x"],
                y = center_y[, "y"],
-               label = y,
-               type = types[1L],
+               Label = y,
+               Type = types[1L],
                stringsAsFactors = FALSE)
   )
   # add information on box size, as well as min and max coordinates
@@ -165,7 +251,7 @@ setup_model_diagram.default <- function(object, x = object, y, m,
                  y = df_boxes[seq_predictors, "ymax"] - step_predictors * i,
                  xend = df_boxes[which_m[i], "xmin"] + step_m_in[i] * h_offset,
                  yend = df_boxes[which_m[i], "ymin"] + step_m_in[i] * v_offset,
-                 type = types_predictors,
+                 Type = types_predictors,
                  stringsAsFactors = FALSE)
     })
     df_arrows <- do.call(rbind, df_arrows)
@@ -178,7 +264,7 @@ setup_model_diagram.default <- function(object, x = object, y, m,
                    y = df_boxes[which_m[1L], "ymax"] - step_m_out[1L],
                    xend = df_boxes[which_m[2L], "xmin"],
                    yend = df_boxes[which_m[2L], "ymax"] - step_m_in[2L],
-                   type = types[1L],
+                   Type = types[1L],
                    stringsAsFactors = FALSE)
       )
     } else {
@@ -190,14 +276,14 @@ setup_model_diagram.default <- function(object, x = object, y, m,
                    y = df_boxes[which_m[1L], "ymax"] - step_m_out[1L] * 1:2,
                    xend = df_boxes[which_m[-1L], "xmin"],
                    yend = df_boxes[which_m[-1L], "ymax"] - step_m_in[-1L] * 1:2,
-                   type = types[1L],
+                   Type = types[1L],
                    stringsAsFactors = FALSE),
         # from second mediator to third
         data.frame(x = df_boxes[which_m[2L], "xmax"],
                    y = df_boxes[which_m[2L], "ymax"] - step_m_out[2L],
                    xend = df_boxes[which_m[3L], "xmin"],
                    yend = df_boxes[which_m[3L], "ymax"] - step_m_in[3L],
-                   type = types[1L],
+                   Type = types[1L],
                    stringsAsFactors = FALSE)
       )
     }
@@ -208,7 +294,7 @@ setup_model_diagram.default <- function(object, x = object, y, m,
                  y = df_boxes[which_m, "ymin"] + step_m_out,
                  xend = df_boxes[which_y, "xmin"],
                  yend = df_boxes[which_y, "ymax"] - step_y * rev(seq_m),
-                 type = types[1L],
+                 Type = types[1L],
                  stringsAsFactors = FALSE)
     )
   } else {
@@ -220,7 +306,7 @@ setup_model_diagram.default <- function(object, x = object, y, m,
                  y = df_boxes[seq_predictors, "ymax"] - step_predictors * i,
                  xend = df_boxes[which_m[i], "xmin"],
                  yend = df_boxes[which_m[i], "ymin"] + step_m * rev(seq_predictors),
-                 type = types_predictors,
+                 Type = types_predictors,
                  stringsAsFactors = FALSE)
     })
     df_arrows <- do.call(rbind, df_arrows)
@@ -231,7 +317,7 @@ setup_model_diagram.default <- function(object, x = object, y, m,
                  y = df_boxes[which_m, "y"],
                  xend = df_boxes[which_y, "xmin"],
                  yend = df_boxes[which_y, "ymax"] - step_y * seq_m,
-                 type = types[1L],
+                 Type = types[1L],
                  stringsAsFactors = FALSE)
     )
   }
@@ -242,17 +328,17 @@ setup_model_diagram.default <- function(object, x = object, y, m,
                y = df_boxes[seq_predictors, "ymin"] + step_predictors,
                xend = df_boxes[which_y, "xmin"],
                yend = df_boxes[which_y, "ymin"] + step_y * rev(seq_predictors),
-               type = types_predictors,
+               Type = types_predictors,
                stringsAsFactors = FALSE)
   )
 
   # convert variable 'type' to a factor to ensure correct color allocation
-  df_boxes$type <- factor(df_boxes$type, levels = types)
-  df_arrows$type <- factor(df_arrows$type, levels = types)
+  df_boxes$Type <- factor(df_boxes$Type, levels = types)
+  df_arrows$Type <- factor(df_arrows$Type, levels = types)
 
   # order arrows so that the ones corresponding to control variables are drawn
   # first (then they are in the background relative to the other arrows)
-  df_arrows <- df_arrows[order(df_arrows$type, decreasing = TRUE), ]
+  df_arrows <- df_arrows[order(df_arrows$Type, decreasing = TRUE), ]
 
   # set default text size
   if (model == "serial") text_size <- if (p_m == 2L) 3.5 else 3

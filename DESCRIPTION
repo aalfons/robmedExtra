@@ -11,6 +11,7 @@ Imports:
     flextable (>= 0.8.3),
     ggplot2 (>= 3.4.0),
     graphics,
+    grid,
     grDevices,
     officer,
     stats,

@@ -9,7 +9,7 @@
 #' Draw a diagram of a mediation model. Control variables are by default drawn
 #' in gray to visually distinguish them from the main variables of interest.
 #'
-#' Methods first call \code{\link{setup_model_diagram}()} to obtain all
+#' Methods first call \code{\link{setup_model_diagram}()} to construct all
 #' necessary information to produce the plot, then the
 #' \code{"setup_model_diagram"} method is called to produce the plot.
 #'
@@ -138,14 +138,14 @@ model_diagram.setup_model_diagram <- function(object, ...) {
   # generate plot
   ggplot() +
     geom_diagram_arrow(mapping = aes_string(x = "x", y = "y", xend = "xend",
-                                            yend = "yend", color = "type"),
+                                            yend = "yend", color = "Type"),
                        data = object$arrows, ...) +
     geom_diagram_box(mapping = aes_string(xmin = "xmin", xmax = "xmax",
                                           ymin = "ymin", ymax = "ymax",
-                                          color = "type"),
+                                          color = "Type"),
                      data = object$boxes, ...) +
-    geom_diagram_label(mapping = aes_string(x = "x", y = "y", label = "label",
-                                           color = "type"),
+    geom_diagram_label(mapping = aes_string(x = "x", y = "y", label = "Label",
+                                           color = "Type"),
                        data = object$boxes, ..., default_size = object$size) +
     coord_fixed() +
     scale_color_manual("", values = object$colors) +

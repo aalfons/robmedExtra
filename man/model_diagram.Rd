@@ -68,7 +68,7 @@ Draw a diagram of a mediation model. Control variables are by default drawn
 in gray to visually distinguish them from the main variables of interest.
 }
 \details{
-Methods first call \code{\link{setup_model_diagram}()} to obtain all
+Methods first call \code{\link{setup_model_diagram}()} to construct all
 necessary information to produce the plot, then the
 \code{"setup_model_diagram"} method is called to produce the plot.
 }
