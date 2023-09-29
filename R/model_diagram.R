@@ -4,10 +4,97 @@
 # ************************************
 
 
+#' Diagram of a mediation model
+#'
+#' Draw a diagram of a mediation model. Control variables are by default drawn
+#' in gray to visually distinguish them from the main variables of interest.
+#'
+#' Methods first call \code{\link{setup_model_diagram}()} to obtain all
+#' necessary information to produce the plot, then the
+#' \code{"setup_model_diagram"} method is called to produce the plot.
+#'
+#' @param object  an object inheriting from class
+#' \code{"\link[robmed]{fit_mediation}"} or
+#' \code{"\link[robmed]{test_mediation}"} containing results from (robust)
+#' mediation analysis.  For the default method, the names of the independent
+#' variables of interest can also be specified via this argument.
+#' @param width,height  numeric values giving the width and height of the boxes
+#' representing the variables in the model diagram.
+#' @param x  a character vector specifying the names of the independent
+#' variables of interest to be displayed in the model diagram.
+#' @param y  a character string specifying the name of the dependent
+#' variable to be displayed in the model diagram.
+#' @param m  a character vector specifying the names of the hypothesized
+#' mediator variables to be displayed in the model diagram.
+#' @param covariates  a character vector specifying the names of additional
+#' covariates to be included as control variables in the model diagram.
+#' @param model  a character string specifying the type of model in case of
+#' multiple mediators.  Possible values are \code{"parallel"} (the default) for
+#' the parallel multiple mediator model, or \code{"serial"} for the serial
+#' multiple mediator model.  This is only relevant for drawing a diagram of a
+#' model with multiple hypothesized mediators.
+#' @param \dots  additional arguments to be passed down, eventually to
+#' \code{\link[ggplot2]{geom_rect}()}, \code{\link[ggplot2]{geom_text}()},
+#' and \code{\link[ggplot2]{geom_segment}()}.
+#'
+#' @return An object of class \code{"\link[ggplot2]{ggplot}"}.
+#'
+#' @author Andreas Alfons
+#'
+#' @seealso
+#' \code{\link{fit_mediation}()}, \code{\link{test_mediation}()},
+#' \code{\link{setup_model_diagram}()}
+#'
+#' @examples
+#' ## drawing diagrams from scratch
+#'
+#' # simple mediation model
+#' model_diagram(x = "ValueDiversity",
+#'               y = "TeamCommitment",
+#'               m = "TaskConflict",
+#'               size = 3.5)
+#'
+#' # serial multiple mediators
+#' model_diagram(x = "ValueDiversity",
+#'               y = "TeamScore",
+#'               m = c("TaskConflict", "TeamCommitment"),
+#'               model = "serial",
+#'               size = 3.5)
+#'
+#' # parallel multiple mediators and control variables
+#' model_diagram(x = "SharedLeadership",
+#'               y = "TeamPerformance",
+#'               m = c("ProceduralJustice", "InteractionalJustice"),
+#'               covariates = c("AgeDiversity", "GenderDiversity"),
+#'               model = "parallel",
+#'               size = 3.5)
+#'
+#'
+#' ## draw a diagram from an object containing results from robust
+#' ## mediation analysis
+#'
+#' # load data
+#' data("BSG2014")
+#' # seed to be used for the random number generator
+#' seed <- 20211117
+#' # perform mediation analysis via robust bootstrap test ROBMED
+#' set.seed(seed)
+#' robust_boot <- test_mediation(BSG2014,
+#'                               x = "ValueDiversity",
+#'                               y = "TeamCommitment",
+#'                               m = "TaskConflict",
+#'                               robust = TRUE)
+#' # create model diagram
+#' model_diagram(robust_boot, size = 3.5)
+#'
 #' @export
+
 model_diagram <- function(object, ...) UseMethod("model_diagram")
 
+
+#' @rdname model_diagram
 #' @export
+
 model_diagram.fit_mediation <- function(object, width = 8, height = 2, ...) {
   # obtain relevant information
   setup <- setup_model_diagram(object, width = width, height = height)
@@ -15,7 +102,10 @@ model_diagram.fit_mediation <- function(object, width = 8, height = 2, ...) {
   model_diagram(setup, ...)
 }
 
+
+#' @rdname model_diagram
 #' @export
+
 model_diagram.test_mediation <- function(object, width = 8, height = 2, ...) {
   # obtain relevant information
   setup <- setup_model_diagram(object, width = width, height = height)
@@ -23,7 +113,10 @@ model_diagram.test_mediation <- function(object, width = 8, height = 2, ...) {
   model_diagram(setup, ...)
 }
 
+
+#' @rdname model_diagram
 #' @export
+
 model_diagram.default <- function(object, x = object, y, m, covariates = NULL,
                                   model = c("parallel", "serial"), width = 8,
                                   height = 2, ...) {
@@ -34,20 +127,25 @@ model_diagram.default <- function(object, x = object, y, m, covariates = NULL,
   model_diagram(setup, ...)
 }
 
-#' @importFrom ggplot2 coord_fixed expansion ggplot scale_color_manual
-#' scale_x_continuous scale_y_continuous theme_void
+
+#' @rdname model_diagram
+#' @importFrom ggplot2 aes_string coord_fixed expansion ggplot
+#' scale_color_manual scale_x_continuous scale_y_continuous theme_void
 #' @export
+
 model_diagram.setup_model_diagram <- function(object, ...) {
   # define style of arrow heads
   # generate plot
   ggplot() +
-    geom_diagram_arrow(mapping = aes(x = x, y = y, xend = xend, yend = yend,
-                                     color = type),
+    geom_diagram_arrow(mapping = aes_string(x = "x", y = "y", xend = "xend",
+                                            yend = "yend", color = "type"),
                        data = object$arrows, ...) +
-    geom_diagram_box(mapping = aes(xmin = xmin, xmax = xmax, ymin = ymin,
-                                   ymax = ymax,color = type),
+    geom_diagram_box(mapping = aes_string(xmin = "xmin", xmax = "xmax",
+                                          ymin = "ymin", ymax = "ymax",
+                                          color = "type"),
                      data = object$boxes, ...) +
-    geom_diagram_label(mapping = aes(x = x, y = y, label = label, color = type),
+    geom_diagram_label(mapping = aes_string(x = "x", y = "y", label = "label",
+                                           color = "type"),
                        data = object$boxes, ..., default_size = object$size) +
     coord_fixed() +
     scale_color_manual("", values = object$colors) +
@@ -63,8 +161,8 @@ model_diagram.setup_model_diagram <- function(object, ...) {
 #   arguments ('linewidth" or 'lwd')
 # - always use the default stat = "identity" and position = "identity"
 # - avoid passing unknown arguments intended for other geoms
-#' @importFrom grid arrow
-#' @importFrom ggplot2 geom_segment
+#' @importFrom grid arrow unit
+#' @importFrom ggplot2 geom_segment standardise_aes_names
 geom_diagram_arrow <- function(...,
                                # arguments with different default behavior
                                arrow = NULL, show.legend = FALSE,
@@ -98,7 +196,7 @@ geom_diagram_arrow <- function(...,
 #   set via different arguments ('linewidth" or 'lwd', 'fill' or 'bg')
 # - always use the default stat = "identity" and position = "identity"
 # - avoid passing unknown arguments intended for other geoms
-#' @importFrom ggplot2 geom_rect
+#' @importFrom ggplot2 geom_rect standardise_aes_names
 geom_diagram_box <- function(...,
                              # arguments with different default behavior
                              show.legend = FALSE,
@@ -126,7 +224,7 @@ geom_diagram_box <- function(...,
 #   arguments ('size" or 'cex')
 # - always use the default stat = "identity" and position = "identity"
 # - avoid passing unknown arguments intended for other geoms
-#' @importFrom ggplot2 geom_text
+#' @importFrom ggplot2 geom_text standardise_aes_names
 geom_diagram_label <- function(...,
                                # argument to pass along the default size
                                default_size,

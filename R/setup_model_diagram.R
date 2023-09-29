@@ -58,7 +58,7 @@ setup_model_diagram.default <- function(object, x = object, y, m,
   }
   p_covariates <- length(covariates)
   # control variables will be indicated to be of different relevance
-  types <- c("regular", "control")
+  types <- c("main", "control")
   # combine independent variables and control variables
   # (there is no difference in terms of the model)
   predictors <- c(x, covariates)
