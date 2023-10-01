@@ -64,7 +64,9 @@ shinyUI(fluidPage(
           h3("Choose your variables"),
           # inputs for variables and type of mediation model
           uiOutput("select_variables"),
-          uiOutput("select_model")
+          uiOutput("select_model"),
+          # output for order of mediator variables in case of serial model
+          uiOutput("mediator_order")
         ),
         # output panel on right hand side
         mainPanel(
