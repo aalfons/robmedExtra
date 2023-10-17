@@ -616,6 +616,7 @@ shinyServer(function(input, output, session) {
     h3("Model diagram")
   })
   output$model_diagram <- renderPlot({
+    validate(need(length(input$m)<3, "You cannot have more than 3 mediators."))
     # FIXME: Can we fix the width depending on the selected model?
     # Serial mediation models require more horizontal space, and this should
     # also not resize when the window is resized.
