@@ -31,7 +31,7 @@ help_text <- function(...) {
 
 # function to create an error text element
 error_text <- function(...) {
-  # FIXME: color is hard-coded to be the same as color  in error messages in
+  # FIXME: color is hard-coded to be the same as color in error messages in
   #        shiny bootstrap theme
   css <- "color: #a94442; display: block; margin-top: 5px; margin-bottom: 10px;"
   span(style = css, ...)
@@ -61,8 +61,8 @@ get_label <- function(label, info) {
 }
 
 
-# function to generate error message for missing variable selection
-get_variable_selection_error <- function(y, x, m) {
+# function to generate message for missing variable selection
+get_variable_selection_message <- function(y, x, m, tab = "Model") {
   # initializations
   have_y <- !is.null(y) && nchar(y) > 0L
   have_x <- length(x) > 0L
@@ -80,9 +80,14 @@ get_variable_selection_error <- function(y, x, m) {
     text_select <- paste(c(text_yx, text_m), collapse = sep)
   }
   # put everything into a nice message
-  error <- paste("Select", text_select, "in the <em>Model</em> tab.")
-  # mark error message as HTML
-  HTML(error)
+  if (tab == "Model") {
+    msg <- paste0("Select ", text_select, ".")
+  } else {
+    # mark message as HTML
+    msg <- HTML(paste("Select", text_select, "in the <em>Model</em> tab."))
+  }
+  # return message
+  msg
 }
 
 
@@ -691,9 +696,14 @@ shinyServer(function(input, output, session) {
     values$model <- input$model
   })
 
-  # observer to clean up reactive values when variables are selected
-  # (which is used to clear output)
+  # observer to switch to the tab with information on the selected model and
+  # to clean up reactive values (which is used to clear output) when variables
+  # are selected
   observeEvent(c(input$y, input$x, input$m, input$covariates, input$model), {
+    # switch to tab with information on the selected model
+    if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
+      showTab("model_main_panel", target = "Selected model", select = TRUE)
+    }
     # clean up reactive values for commands
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
@@ -715,6 +725,14 @@ shinyServer(function(input, output, session) {
   output$model_diagram_header <- renderUI({
     req(input$y, input$x, input$m)
     h3("Model diagram")
+    # if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
+    #   h3("Model diagram")
+    # } else {
+    #   # FIXME: This should only be shown when a data frame is selected
+    #   msg <- get_variable_selection_message(input$y, input$x, input$m,
+    #                                         tab = "Model")
+    #   help_text(msg)
+    # }
   })
   output$model_diagram <- renderPlot({
     # FIXME: Can we fix the width depending on the selected model?
@@ -750,7 +768,9 @@ shinyServer(function(input, output, session) {
       )
     } else {
       # otherwise show an error message on which variables need to be selected
-      error_text(get_variable_selection_error(input$y, input$x, input$m))
+      msg <- get_variable_selection_message(input$y, input$x, input$m,
+                                            tab = "ROBMED")
+      error_text(msg)
     }
   })
 
@@ -945,7 +965,9 @@ shinyServer(function(input, output, session) {
       )
     } else {
       # otherwise show an error message on which variables need to be selected
-      error_text(get_variable_selection_error(input$y, input$x, input$m))
+      msg <- get_variable_selection_message(input$y, input$x, input$m,
+                                            tab = "OLS Bootstrap")
+      error_text(msg)
     }
   })
 
