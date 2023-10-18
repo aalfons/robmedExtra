@@ -315,6 +315,7 @@ shinyServer(function(input, output, session) {
                            df_name = "",
                            variables = character(),
                            numeric_variables = character(),
+                           model = NULL,
                            level = 0.95,
                            R = 5000,
                            show_advanced_options = FALSE,
@@ -543,56 +544,156 @@ shinyServer(function(input, output, session) {
     }
   })
 
-  # observer to update variables that can be selected as response variable
-  observe({
-    numeric_variables <- isolate(values$numeric_variables)
-    remove <- c(input$x, input$m, input$covariates)
-    updateSelectInput(session, inputId = "y",
-                      choices = setdiff(numeric_variables, remove),
-                      selected = isolate(input$y))
-  })
+  # # observer to update variables that can be selected as response variable
+  # observe({
+  #   numeric_variables <- isolate(values$numeric_variables)
+  #   remove <- c(input$x, input$m, input$covariates)
+  #   updateSelectInput(session, inputId = "y",
+  #                     choices = setdiff(numeric_variables, remove),
+  #                     selected = isolate(input$y))
+  # })
+  #
+  # # observer to update variables that can be selected as explanatory variables
+  # observe({
+  #   variables <- isolate(values$variables)
+  #   remove <- c(input$y, input$m, input$covariates)
+  #   updateSelectInput(session, inputId = "x",
+  #                     choices = setdiff(variables, remove),
+  #                     selected = isolate(input$x))
+  # })
+  #
+  # # observer to update variables that can be selected as mediators
+  # observe({
+  #   numeric_variables <- isolate(values$numeric_variables)
+  #   remove <- c(input$y, input$x, input$covariates)
+  #   updateSelectInput(session, inputId = "m",
+  #                     choices = setdiff(numeric_variables, remove),
+  #                     selected = isolate(input$m))
+  # })
+  #
+  # # observer to update variables that can be selected as control variables
+  # observe({
+  #   variables <- isolate(values$variables)
+  #   remove <- c(input$y, input$x, input$m)
+  #   updateSelectInput(session, inputId = "covariates",
+  #                     choices = setdiff(variables, remove),
+  #                     selected = isolate(input$covariates))
+  # })
 
-  # observer to update variables that can be selected as explanatory variables
-  observe({
-    variables <- isolate(values$variables)
+  # In an earlier version, we had observers to update each variable input that
+  # were triggered by a change in any of the other variable inputs.  Now we use
+  # one observer per input that is changed to update the other variable inputs.
+  # Although that requires to duplicate some of the code, we need to be able to
+  # treat a change in the mediators differently from other changes since the
+  # serial multiple mediator model is only implemented for 2 or 3 mediators.
+
+  # observer to update other inputs when the response variable is selected
+  observeEvent(input$y, {
+    # update input for explanatory variables
     remove <- c(input$y, input$m, input$covariates)
     updateSelectInput(session, inputId = "x",
-                      choices = setdiff(variables, remove),
-                      selected = isolate(input$x))
-  })
-
-  # observer to update variables that can be selected as mediators variables
-  observe({
-    numeric_variables <- isolate(values$numeric_variables)
+                      choices = setdiff(values$variables, remove),
+                      selected = input$x)
+    # update input for mediators
     remove <- c(input$y, input$x, input$covariates)
     updateSelectInput(session, inputId = "m",
-                      choices = setdiff(numeric_variables, remove),
-                      selected = isolate(input$m))
-  })
-
-  # observer to update variables that can be selected as control variables
-  observe({
-    variables <- isolate(values$variables)
+                      choices = setdiff(values$numeric_variables, remove),
+                      selected = input$m)
+    # update input for control variables
     remove <- c(input$y, input$x, input$m)
     updateSelectInput(session, inputId = "covariates",
-                      choices = setdiff(variables, remove),
-                      selected = isolate(input$covariates))
-  })
+                      choices = setdiff(values$variables, remove),
+                      selected = input$covariates)
+  }, ignoreInit = TRUE)
+
+  # observer to update other inputs when an explanatory variable is selected
+  observeEvent(input$x, {
+    # update input for response variable
+    remove <- c(input$x, input$m, input$covariates)
+    updateSelectInput(session, inputId = "y",
+                      choices = setdiff(values$numeric_variables, remove),
+                      selected = input$y)
+    # update input for mediators
+    remove <- c(input$y, input$x, input$covariates)
+    updateSelectInput(session, inputId = "m",
+                      choices = setdiff(values$numeric_variables, remove),
+                      selected = input$m)
+    # update input for control variables
+    remove <- c(input$y, input$x, input$m)
+    updateSelectInput(session, inputId = "covariates",
+                      choices = setdiff(values$variables, remove),
+                      selected = input$covariates)
+  }, ignoreInit = TRUE)
+
+  # observer to update other inputs and when a mediator is selected
+  # (also the type of mediation model)
+  observeEvent(input$m, {
+    # update input for response variable
+    remove <- c(input$x, input$m, input$covariates)
+    updateSelectInput(session, inputId = "y",
+                      choices = setdiff(values$numeric_variables, remove),
+                      selected = input$y)
+    # update input for explanatory variables
+    remove <- c(input$y, input$m, input$covariates)
+    updateSelectInput(session, inputId = "x",
+                      choices = setdiff(values$variables, remove),
+                      selected = input$x)
+    # update input for control variables
+    remove <- c(input$y, input$x, input$m)
+    updateSelectInput(session, inputId = "covariates",
+                      choices = setdiff(values$variables, remove),
+                      selected = input$covariates)
+    # update type of mediation model
+    # (since serial mediation model is only implemented for 2 or 3 mediators)
+    if (length(input$m) > 3) values$model <- "parallel"
+    else values$model <- input$model
+  }, ignoreInit = TRUE)
+
+  # observer to update other inputs when a control variable is selected
+  observeEvent(input$covariates, {
+    # update input for response variable
+    remove <- c(input$x, input$m, input$covariates)
+    updateSelectInput(session, inputId = "y",
+                      choices = setdiff(values$numeric_variables, remove),
+                      selected = input$y)
+    # update input for explanatory variables
+    remove <- c(input$y, input$m, input$covariates)
+    updateSelectInput(session, inputId = "x",
+                      choices = setdiff(values$variables, remove),
+                      selected = input$x)
+    # update input for mediators
+    remove <- c(input$y, input$x, input$covariates)
+    updateSelectInput(session, inputId = "m",
+                      choices = setdiff(values$numeric_variables, remove),
+                      selected = input$m)
+  }, ignoreInit = TRUE)
 
   # create UI input for selecting the type of multiple mediator model
   output$select_model <- renderUI({
     req(length(values$variables) >= 3L,
         length(values$numeric_variables) >= 2L,
         length(input$m) > 1L)
-    selectInput("model", "Multiple mediator model:",
-                choices = c("parallel", "serial"),
-                selected = isolate(input$model),
-                multiple = FALSE)
+    if (length(input$m) > 3L) {
+      msg <- paste("For more than 3 hypothesized mediators, only the parallel",
+                   "multiple mediator model is implemented.")
+      if (input$model == "serial") warning_text(msg)
+      else help_text(msg)
+    } else {
+      selectInput("model", "Multiple mediator model:",
+                  choices = c("parallel", "serial"),
+                  selected = isolate(input$model),
+                  multiple = FALSE)
+    }
+  })
+
+  # observer to update the type of mediation model
+  observeEvent(input$model, {
+    values$model <- input$model
   })
 
   # observer to clean up reactive values when variables are selected
   # (which is used to clear output)
-  observeEvent(c(input$y, input$x, input$m, input$covariates), {
+  observeEvent(c(input$y, input$x, input$m, input$covariates, input$model), {
     # clean up reactive values for commands
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
@@ -622,7 +723,7 @@ shinyServer(function(input, output, session) {
     req(input$y, input$x, input$m)
     model_diagram(x = input$x, y = input$y, m = input$m,
                   covariates = input$covariates,
-                  model = input$model)
+                  model = values$model)
   }, res = 100)
 
 
@@ -726,7 +827,7 @@ shinyServer(function(input, output, session) {
     command_test_mediation$R <- values$R
     command_test_mediation$level <- values$level
     command_test_mediation$robust <- TRUE
-    if (length(input$m) > 1L) command_test_mediation$model = input$model
+    if (length(input$m) > 1L) command_test_mediation$model = values$model
     if (use_control) command_test_mediation$control <- as.name("ctrl")
     command_robust_boot <- call("<-", as.name("robust_boot"),
                                 command_test_mediation)
@@ -898,7 +999,7 @@ shinyServer(function(input, output, session) {
     command_test_mediation$R <- values$R
     command_test_mediation$level <- values$level
     command_test_mediation$robust <- FALSE
-    if (length(input$m) > 1L) command_test_mediation$model = input$model
+    if (length(input$m) > 1L) command_test_mediation$model = values$model
     command_ols_boot <- call("<-", as.name("ols_boot"), command_test_mediation)
     eval(command_ols_boot, envir = session_env)
     # construct command to show summary
