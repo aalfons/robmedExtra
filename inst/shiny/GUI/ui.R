@@ -206,26 +206,10 @@ shinyUI(fluidPage(
         # output panel on right hand side
         mainPanel(
 
-          # this again has several tabs: one with information on the files
-          # to be exported, one for previewing the model diagram, one for
-          # previewing the diagnostic plot, and one for previewing the table
+          # this again has several tabs: one for previewing the model diagram,
+          # one for previewing the diagnostic plot, one for previewing the
+          # table, and one with information on the files to be exported
           tabsetPanel(
-
-            # information on the files to be exported
-            tabPanel(
-              "Information",
-              h3("Files to be exported"),
-              p("The results of the analysis can be exported as a .zip archive consisting of:"),
-              HTML(
-                "<ul>
-                   <li>The data used in the analysis as an .RData file</li>
-                   <li>A replication script for the analysis as a .R file</li>
-                   <li>The model diagram in the selected file types (.pdf, .png)</li>
-                   <li>If ROBMED has been applied, the diagnostic plot in the selected file types (.pdf, .png)</li>
-                   <li>A table of results in the selected file types (.docx, .pptx)</li>
-                 </ul>"
-              )
-            ),
 
             # preview of model diagram
             tabPanel(
@@ -246,6 +230,22 @@ shinyUI(fluidPage(
               "Table",
               uiOutput("table_preview_header"),
               uiOutput("table_preview")
+            ),
+
+            # information on the files to be exported
+            tabPanel(
+              "Information",
+              h3("Files to be exported"),
+              p("The results of the analysis can be exported as a .zip archive consisting of:"),
+              HTML(
+                "<ul>
+                   <li>The data used in the analysis as an .RData file</li>
+                   <li>A replication script for the analysis as a .R file</li>
+                   <li>The model diagram in the selected file types (.pdf, .png)</li>
+                   <li>If ROBMED has been applied, the diagnostic plot in the selected file types (.pdf, .png)</li>
+                   <li>A table of results in the selected file types (.docx, .pptx)</li>
+                 </ul>"
+              )
             ),
 
             id = "export_main_panel",
