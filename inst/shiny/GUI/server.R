@@ -62,7 +62,7 @@ get_label <- function(label, info) {
 
 
 # function to generate message for missing variable selection
-get_variable_selection_message <- function(y, x, m, tab = "Model") {
+get_variable_selection_message <- function(y, x, m, tab = NULL) {
   # initializations
   have_y <- !is.null(y) && nchar(y) > 0L
   have_x <- length(x) > 0L
@@ -80,11 +80,12 @@ get_variable_selection_message <- function(y, x, m, tab = "Model") {
     text_select <- paste(c(text_yx, text_m), collapse = sep)
   }
   # put everything into a nice message
-  if (tab == "Model") {
+  if (is.null(tab)) {
     msg <- paste0("Select ", text_select, ".")
   } else {
     # mark message as HTML
-    msg <- HTML(paste("Select", text_select, "in the <em>Model</em> tab."))
+    msg <- HTML(paste0("Select ", text_select, " in the <em>", tab,
+                       "</em> tab."))
   }
   # return message
   msg
@@ -491,6 +492,7 @@ shinyServer(function(input, output, session) {
       values$numeric_variables <- character()
     }
     # clean up reactive values to clear output from other tabs
+    commands$diagram <- NULL
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
     commands$table <- NULL
@@ -702,52 +704,59 @@ shinyServer(function(input, output, session) {
     values$model <- input$model
   })
 
-  # observer to switch to the tab with information on the selected model and
-  # to clean up reactive values (which is used to clear output) when variables
-  # are selected
+  # observer to update the model diagram
   observeEvent(c(input$y, input$x, input$m, input$covariates, input$model), {
-    # switch to tab with information on the selected model
-    if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
-      showTab("model_main_panel", target = "Selected model", select = TRUE)
-    }
-    # clean up reactive values for commands
+    # clean up reactive values to clear output from other tabs
+    commands$diagram <- NULL
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
     commands$table <- NULL
     commands$plot <- NULL
-    # clean up reactive values for used inputs
     used_inputs$ROBMED <- NULL
     used_inputs$OLS_boot <- NULL
     used_inputs$table <- NULL
     used_inputs$plot <- NULL
-    # clean up reactive value for files to export
     values$download <- NULL
+    # if we have a valid model, generate the model diagram and switch to the
+    # tab with information on the selected model
+    req(input$y, input$x, input$m)
+    # construct and evaluate command for model diagram
+    command_model_diagram <- call("model_diagram",
+                                  x = input$x,
+                                  y = input$y,
+                                  m = input$m)
+    if (length(input$covariates) > 0L) {
+      command_model_diagram$covariates <- input$covariates
+    }
+    if (length(input$m) > 1L) command_model_diagram$model = values$model
+    command_diagram <- call("<-", as.name("diagram"), command_model_diagram)
+    eval(command_diagram, envir = session_env)
+    # update reactive value with list of commands for model diagram
+    commands_diagram <- list(generate_plot = command_model_diagram,
+                             assign_plot = command_diagram)
+    attr(commands_diagram, "time_stamp") <- Sys.time()
+    commands$diagram <- commands_diagram
+    # switch to tab with information on the selected model
+    showTab("model_main_panel", target = "Selected model", select = TRUE)
   }, ignoreInit = TRUE)
 
 
   ## Render outputs for the 'Model' tab -----
 
   # show diagram of selected model in main panel
-  output$model_diagram_header <- renderUI({
-    req(input$y, input$x, input$m)
+  output$diagram_header <- renderUI({
+    # req(values$df_name)
+    # validate(need(commands$diagram,
+    #               get_variable_selection_message(input$y, input$x, input$m)))
+    req(commands$diagram)
     h3("Model diagram")
-    # if (isTruthy(input$y) && isTruthy(input$x) && isTruthy(input$m)) {
-    #   h3("Model diagram")
-    # } else {
-    #   # FIXME: This should only be shown when a data frame is selected
-    #   msg <- get_variable_selection_message(input$y, input$x, input$m,
-    #                                         tab = "Model")
-    #   help_text(msg)
-    # }
   })
-  output$model_diagram <- renderPlot({
+  output$diagram <- renderPlot({
     # FIXME: Can we fix the width depending on the selected model?
     # Serial mediation models require more horizontal space, and this should
     # also not resize when the window is resized.
-    req(input$y, input$x, input$m)
-    model_diagram(x = input$x, y = input$y, m = input$m,
-                  covariates = input$covariates,
-                  model = values$model)
+    req(commands$diagram)
+    get("diagram", envir = session_env)
   }, res = 100)
 
 
@@ -775,7 +784,7 @@ shinyServer(function(input, output, session) {
     } else {
       # otherwise show an error message on which variables need to be selected
       msg <- get_variable_selection_message(input$y, input$x, input$m,
-                                            tab = "ROBMED")
+                                            tab = "Model")
       error_text(msg)
     }
   })
@@ -972,7 +981,7 @@ shinyServer(function(input, output, session) {
     } else {
       # otherwise show an error message on which variables need to be selected
       msg <- get_variable_selection_message(input$y, input$x, input$m,
-                                            tab = "OLS Bootstrap")
+                                            tab = "Model")
       error_text(msg)
     }
   })

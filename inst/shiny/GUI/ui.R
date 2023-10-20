@@ -74,9 +74,9 @@ shinyUI(fluidPage(
             # information on the selected model
             tabPanel(
               "Selected model",
-              uiOutput("model_diagram_header"),
+              uiOutput("diagram_header"),
               # TODO: allow plot height to scale with the number of regressions
-              plotOutput("model_diagram", height = "200px")
+              plotOutput("diagram", height = "200px")
             ),
 
             # description of the implemented mediation models
