@@ -492,15 +492,17 @@ shinyServer(function(input, output, session) {
       values$numeric_variables <- character()
     }
     # clean up reactive values to clear output from other tabs
-    commands$diagram <- NULL
+    commands$model_diagram <- NULL
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
-    commands$table <- NULL
+    commands$diagram <- NULL
     commands$plot <- NULL
+    commands$table <- NULL
     used_inputs$ROBMED <- NULL
     used_inputs$OLS_boot <- NULL
-    used_inputs$table <- NULL
+    used_inputs$diagram <- NULL
     used_inputs$plot <- NULL
+    used_inputs$table <- NULL
     values$download <- NULL
   })
 
@@ -707,15 +709,17 @@ shinyServer(function(input, output, session) {
   # observer to update the model diagram
   observeEvent(c(input$y, input$x, input$m, input$covariates, input$model), {
     # clean up reactive values to clear output from other tabs
-    commands$diagram <- NULL
+    commands$model_diagram <- NULL
     commands$ROBMED <- NULL
     commands$OLS_boot <- NULL
-    commands$table <- NULL
+    commands$diagram <- NULL
     commands$plot <- NULL
+    commands$table <- NULL
     used_inputs$ROBMED <- NULL
     used_inputs$OLS_boot <- NULL
-    used_inputs$table <- NULL
+    used_inputs$diagram <- NULL
     used_inputs$plot <- NULL
+    used_inputs$table <- NULL
     values$download <- NULL
     # if we have a valid model, generate the model diagram and switch to the
     # tab with information on the selected model
@@ -735,7 +739,7 @@ shinyServer(function(input, output, session) {
     commands_diagram <- list(generate_plot = command_model_diagram,
                              assign_plot = command_diagram)
     attr(commands_diagram, "time_stamp") <- Sys.time()
-    commands$diagram <- commands_diagram
+    commands$model_diagram <- commands_diagram
     # switch to tab with information on the selected model
     showTab("model_main_panel", target = "Selected model", select = TRUE)
   }, ignoreInit = TRUE)
@@ -744,18 +748,18 @@ shinyServer(function(input, output, session) {
   ## Render outputs for the 'Model' tab -----
 
   # show diagram of selected model in main panel
-  output$diagram_header <- renderUI({
+  output$model_diagram_header <- renderUI({
     # req(values$df_name)
-    # validate(need(commands$diagram,
+    # validate(need(commands$model_diagram,
     #               get_variable_selection_message(input$y, input$x, input$m)))
-    req(commands$diagram)
+    req(commands$model_diagram)
     h3("Model diagram")
   })
-  output$diagram <- renderPlot({
+  output$model_diagram <- renderPlot({
     # FIXME: Can we fix the width depending on the selected model?
     # Serial mediation models require more horizontal space, and this should
     # also not resize when the window is resized.
-    req(commands$diagram)
+    req(commands$model_diagram)
     get("diagram", envir = session_env)
   }, res = 100)
 
@@ -830,11 +834,13 @@ shinyServer(function(input, output, session) {
   observeEvent(input$run_ROBMED, {
     # clean up reactive values to clear output
     commands$ROBMED <- NULL
-    commands$table <- NULL
+    commands$diagram <- NULL
     commands$plot <- NULL
+    commands$table <- NULL
     used_inputs$ROBMED <- NULL
-    used_inputs$table <- NULL
+    used_inputs$diagram <- NULL
     used_inputs$plot <- NULL
+    used_inputs$table <- NULL
     values$download <- NULL
     # construct command to set the seed of the random number generator
     if (isTruthy(values$seed)) {
@@ -1013,11 +1019,13 @@ shinyServer(function(input, output, session) {
   observeEvent(input$run_OLS_boot, {
     # clean up reactive values to clear output
     commands$OLS_boot <- NULL
-    commands$table <- NULL
+    commands$diagram <- NULL
     commands$plot <- NULL
+    commands$table <- NULL
     used_inputs$OLS_boot <- NULL
-    used_inputs$table <- NULL
+    used_inputs$diagram <- NULL
     used_inputs$plot <- NULL
+    used_inputs$table <- NULL
     values$download <- NULL
     # construct command to set the seed of the random number generator
     if (isTruthy(values$seed)) {
@@ -1368,9 +1376,11 @@ shinyServer(function(input, output, session) {
   # observer for button to generate and preview files
   observeEvent(input$generate_files, {
     ## clean up reactive values to clear output and download button
+    commands$diagram <- NULL
     commands$plot <- NULL
-    used_inputs$plot <- NULL
     commands$table <- NULL
+    used_inputs$diagram <- NULL
+    used_inputs$plot <- NULL
     used_inputs$table <- NULL
     values$download <- NULL
     ## initializations
@@ -1378,6 +1388,7 @@ shinyServer(function(input, output, session) {
     have_ROBMED <- isTruthy(commands_ROBMED)
     commands_OLS_boot <- commands$OLS_boot
     have_OLS_boot <- isTruthy(commands_OLS_boot)
+    have_diagram <- isTruthy(values$file_type_diagram)
     have_plot <- isTruthy(values$file_type_plot)
     have_table <- isTruthy(values$file_type_table)
     ## construct commands to generate and export diagnostic plot
