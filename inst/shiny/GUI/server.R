@@ -330,13 +330,12 @@ shinyServer(function(input, output, session) {
                            file_type_diagram = c("pdf", "png"),
                            file_type_plot = c("pdf", "png"),
                            file_type_table = c("docx", "pptx"),
-                           width_diagram = 13,
+                           width_diagram = 15,
                            height_diagram = 6,
-                           resolution_diagram = 300,
                            width_plot = 13,
                            height_plot = 11.5,
-                           resolution_plot = 300,
                            units = "cm",
+                           resolution = 300,
                            digits = 3,
                            p_value = FALSE)
 
@@ -1205,8 +1204,7 @@ shinyServer(function(input, output, session) {
           ),
           if ("png" %in% values$file_type_diagram) {
             numericInput("resolution_diagram", "Resolution (pixels per inch)",
-                         value = isolate(values$resolution_diagram),
-                         min = 0, step = 50)
+                         value = isolate(values$resolution), min = 0, step = 50)
           }
         )
       } else {
@@ -1255,7 +1253,7 @@ shinyServer(function(input, output, session) {
 
   # observer to update reactive value for the resolution of the model diagram
   observeEvent(input$resolution_diagram, {
-    values$resolution_diagram <- input$resolution_diagram
+    values$resolution <- input$resolution_diagram
   }, ignoreInit = TRUE)
 
   # create UI inputs for the diagnostic plot
@@ -1303,8 +1301,7 @@ shinyServer(function(input, output, session) {
         ),
         if ("png" %in% values$file_type_plot) {
           numericInput("resolution_plot", "Resolution (pixels per inch)",
-                       value = isolate(values$resolution_plot),
-                       min = 0, step = 50)
+                       value = isolate(values$resolution), min = 0, step = 50)
         }
       )
     } else {
@@ -1352,7 +1349,7 @@ shinyServer(function(input, output, session) {
 
   # observer to update reactive value for the resolution of the diagnostic plot
   observeEvent(input$resolution_plot, {
-    values$resolution_plot <- input$resolution_plot
+    values$resolution <- input$resolution_plot
   }, ignoreInit = TRUE)
 
   # observer for switching the units for width and height
@@ -1473,6 +1470,58 @@ shinyServer(function(input, output, session) {
     have_diagram <- isTruthy(values$file_type_diagram)
     have_plot <- isTruthy(values$file_type_plot)
     have_table <- isTruthy(values$file_type_table)
+    ## construct commands to generate and export model diagram
+    if (have_diagram) {
+      # extract and convert some inputs
+      width_diagram <- values$width_diagram
+      height_diagram <- values$height_diagram
+      units <- values$units
+      if (units == "cm") {
+        # pdf() required width and height in inches: command looks nicer with
+        # a function call for the conversion instead of the converted values
+        width_diagram <- call("/", width_diagram, 2.54)
+        height_diagram <- call("/", height_diagram, 2.54)
+      }
+      # define file names for model diagram
+      file_diagram <- "model_diagram.%s"
+      # construct command for opening pdf file
+      have_pdf_diagram <- "pdf" %in% values$file_type_diagram
+      if (have_pdf_diagram) {
+        # construct command
+        command_pdf_diagram <- call("pdf", file = sprintf(file_diagram, "pdf"),
+                                    width = width_diagram, height = height_diagram)
+      } else command_pdf_diagram <- NULL
+      # construct command for opening png image
+      have_png_diagram <- "png" %in% values$file_type_diagram
+      if (have_png_diagram) {
+        # construct command
+        resolution <- values$resolution
+        command_png_diagram <- call("png", file = sprintf(file_diagram, "png"),
+                                    width = values$width_diagram,
+                                    height = values$height_diagram,
+                                    units = units, res = resolution)
+      } else {
+        resolution <- NULL
+        command_png_diagram <- NULL
+      }
+      # construct list of commands to export the model diagram
+      commands_diagram <- list(pdf = command_pdf_diagram,
+                               png = command_png_diagram,
+                               generate = call("print", as.name("diagram")),
+                               close = call("dev.off"))
+      attr(commands_diagram, "time_stamp") <- Sys.time()
+      # construct list with used inputs and plot dimensions for preview
+      used_inputs_diagram <- list(file_type = values$file_type_diagram,
+                                  width_plot = values$width_diagram,
+                                  height_plot = values$height_diagram,
+                                  units = values$units,
+                                  resolution = resolution)
+    } else {
+      have_pdf_diagram <- FALSE
+      have_png_diagram <- FALSE
+      commands_diagram <- NULL
+      used_inputs_diagram <- NULL
+    }
     ## construct commands to generate and export diagnostic plot
     if (have_ROBMED && have_plot) {
       # extract and convert some inputs
@@ -1491,25 +1540,25 @@ shinyServer(function(input, output, session) {
       have_pdf_plot <- "pdf" %in% values$file_type_plot
       if (have_pdf_plot) {
         # construct command
-        command_pdf <- call("pdf", file = sprintf(file_plot, "pdf"),
-                            width = width_plot, height = height_plot)
-      } else command_pdf <- NULL
+        command_pdf_plot <- call("pdf", file = sprintf(file_plot, "pdf"),
+                                 width = width_plot, height = height_plot)
+      } else command_pdf_plot <- NULL
       # construct command for opening png image
       have_png_plot <- "png" %in% values$file_type_plot
       if (have_png_plot) {
         # construct command
-        resolution_plot <- values$resolution_plot
-        command_png <- call("png", file = sprintf(file_plot, "png"),
-                            width = values$width_plot,
-                            height = values$height_plot,
-                            units = units, res = resolution_plot)
+        resolution <- values$resolution
+        command_png_plot <- call("png", file = sprintf(file_plot, "png"),
+                                 width = values$width_plot,
+                                 height = values$height_plot,
+                                 units = units, res = resolution)
       } else {
-        resolution_plot <- NULL
-        command_png <- NULL
+        resolution <- NULL
+        command_png_plot <- NULL
       }
       # construct list of commands to export the diagnostic plot
-      commands_plot <- list(pdf = command_pdf,
-                            png = command_png,
+      commands_plot <- list(pdf = command_pdf_plot,
+                            png = command_png_plot,
                             generate = call("print", as.name("p")),
                             close = call("dev.off"))
       attr(commands_plot, "time_stamp") <- Sys.time()
@@ -1518,7 +1567,7 @@ shinyServer(function(input, output, session) {
                                width_plot = values$width_plot,
                                height_plot = values$height_plot,
                                units = values$units,
-                               resolution_plot = resolution_plot)
+                               resolution = resolution)
     } else {
       have_pdf_plot <- FALSE
       have_png_plot <- FALSE
@@ -1584,6 +1633,18 @@ shinyServer(function(input, output, session) {
     on.exit(setwd(working_directory))
     # save data set to RData file
     eval(commands$data$save, envir = session_env)
+    # if requested, save model diagram to pdf file
+    if (have_pdf_diagram) {
+      eval(commands_diagram$pdf, envir = session_env)
+      eval(commands_diagram$generate, envir = session_env)
+      eval(commands_diagram$close, envir = session_env)
+    }
+    # if requested, save model diagram to png image
+    if (have_png_diagram) {
+      eval(commands_diagram$png, envir = session_env)
+      eval(commands_diagram$generate, envir = session_env)
+      eval(commands_diagram$close, envir = session_env)
+    }
     # if requested, save diagnostic plot to pdf file
     if (have_pdf_plot) {
       eval(commands_plot$pdf, envir = session_env)
@@ -1619,7 +1680,28 @@ shinyServer(function(input, output, session) {
       "# load data",
       deparse_command(commands$data$load)
     )
-    # construct lines to apply ROBMED and to show or export diagnostic plot
+    # construct lines to show or export model diagram
+    lines_diagram <- c(
+      "",
+      "# generate the model diagram",
+      if (have_diagram) deparse_command(commands$model_diagram$assign_plot)
+      else deparse_command(commands$model_diagram$generate_plot),
+      if (have_pdf_diagram) {
+        c("",
+          "# generate a pdf file containing the model diagram",
+          deparse_command(commands_diagram$pdf),
+          deparse_command(commands_diagram$generate),
+          deparse_command(commands_diagram$close))
+      },
+      if (have_png_diagram) {
+        c("",
+          "# generate a png image containing the model diagram",
+          deparse_command(commands_diagram$png),
+          deparse_command(commands_diagram$generate),
+          deparse_command(commands_diagram$close))
+      }
+    )
+    # construct lines to apply ROBMED and to generate diagnostic plot
     if (have_ROBMED) {
       # construct lines to apply ROBMED
       lines_ROBMED <- c(
@@ -1708,7 +1790,8 @@ shinyServer(function(input, output, session) {
                        deparse_command(commands_table$pptx))
     } else lines_table <- NULL
     # construct vector containing lines of replication script
-    replication_code <- c(lines_initial, lines_methods, lines_plot, lines_table)
+    replication_code <- c(lines_initial, lines_diagram, lines_methods,
+                          lines_plot, lines_table)
     # write lines of replication script to file (add time stamp in first line)
     script_file <- "replication_script.R"
     time_stamp <- format(Sys.time(), usetz = TRUE)
@@ -1718,6 +1801,8 @@ shinyServer(function(input, output, session) {
     # switch back to working directory
     setwd(working_directory)
     # update reactive values to trigger preview
+    commands$diagram <- commands_diagram
+    used_inputs$diagram <- used_inputs_diagram
     commands$plot <- commands_plot
     used_inputs$plot <- used_inputs_plot
     commands$table <- commands_table
@@ -1725,6 +1810,8 @@ shinyServer(function(input, output, session) {
     # update reactive value to enable download button
     values$download <- list(path = temporary_directory,
                             files = c(commands$data$save$file,
+                                      if (have_pdf_diagram) commands_diagram$pdf$file,
+                                      if (have_png_diagram) commands_diagram$png$file,
                                       if (have_pdf_plot) commands_plot$pdf$file,
                                       if (have_png_plot) commands_plot$png$file,
                                       if (have_docx) commands_table$docx$file,
@@ -1762,17 +1849,38 @@ shinyServer(function(input, output, session) {
     contentType = "application/zip"
   )
 
-  # show preview of table in main panel
-  output$table_preview_header <- renderUI({
-    req(commands$table)
-    h3("File preview")
+  # show model diagram in corresponding tab
+  output$diagram_preview_header <- renderUI({
+    req(used_inputs$diagram)
+    # if applicable, define note regarding the resolution
+    if ("png" %in% used_inputs$diagram$file_type) {
+      note_resolution <- paste("Simlarly, the resolution shown here does not",
+                               "reflect the resolution selected for the png",
+                               "file.")
+    } else note_resolution <- NULL
+    # display header and note
+    tagList(
+      h3("File preview"),
+      help_text("The size shown here depends on the resolution of the browser",
+                "and may differ from the size of the file to be generated.",
+                note_resolution)
+    )
   })
-  output$table_preview <- renderUI({
-    req(commands$table)
-    flextable::htmltools_value(get("ft", envir = session_env))
-  })
+  output$diagram_preview <- renderPlot({
+    get("diagram", envir = session_env)
+  }, width = function() {
+    req(used_inputs$diagram)
+    width_plot <- used_inputs$diagram$width_plot
+    if (used_inputs$diagram$units == "cm") width_plot <- width_plot / 2.54
+    width_plot * 125
+  }, height = function() {
+    req(used_inputs$diagram)
+    height_plot <- used_inputs$diagram$height_plot
+    if (used_inputs$diagram$units == "cm") height_plot <- height_plot / 2.54
+    height_plot * 125
+  }, res = 125)
 
-  # show diagnostic plot for ROBMED in main panel
+  # show diagnostic plot for ROBMED in corresponding tab
   output$plot_preview_header <- renderUI({
     req(used_inputs$plot)
     # if applicable, define note regarding the resolution
@@ -1802,6 +1910,16 @@ shinyServer(function(input, output, session) {
     if (used_inputs$plot$units == "cm") height_plot <- height_plot / 2.54
     height_plot * 125
   }, res = 125)
+
+  # show preview of table in corresponding tab
+  output$table_preview_header <- renderUI({
+    req(commands$table)
+    h3("File preview")
+  })
+  output$table_preview <- renderUI({
+    req(commands$table)
+    flextable::htmltools_value(get("ft", envir = session_env))
+  })
 
 
   ## Render outputs for the 'Info' tab -----
