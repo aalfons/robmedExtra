@@ -330,10 +330,13 @@ shinyServer(function(input, output, session) {
                            file_type_diagram = c("pdf", "png"),
                            file_type_plot = c("pdf", "png"),
                            file_type_table = c("docx", "pptx"),
-                           width = 13,
-                           height = 11.5,
+                           width_diagram = 13,
+                           height_diagram = 6,
+                           resolution_diagram = 300,
+                           width_plot = 13,
+                           height_plot = 11.5,
+                           resolution_plot = 300,
                            units = "cm",
-                           resolution = 300,
                            digits = 3,
                            p_value = FALSE)
 
@@ -1170,14 +1173,41 @@ shinyServer(function(input, output, session) {
         checkboxGroupInput("file_type_diagram", "Model diagram",
                            choices = c("pdf", "png"),
                            selected = isolate(values$file_type_diagram))
-      } else if (isTruthy(values$file_type_plot)) {
+      } else if (isTruthy(values$file_type_diagram)) {
         # when in the model diagram tab and a file type is selected,
         # show other inputs
         tagList(
-          # TODO: add other inputs
           checkboxGroupInput("file_type_diagram", "File types",
                              choices = c("pdf", "png"),
-                             selected = isolate(values$file_type_diagram))
+                             selected = isolate(values$file_type_diagram)),
+          # TODO: allow default width to depend on type of mediation model
+          fluidRow(
+            column(width = 7, style = "padding-right: 5px",
+                   numericInput("width_diagram", "Width",
+                                value = isolate(values$width_diagram),
+                                min = 0, step = 1)),
+            column(width = 5, style = "padding-left: 5px",
+                   selectInput("unit_width_diagram", "Unit",
+                               choices = c("cm", "inches" = "in"),
+                               selected = isolate(values$units),
+                               multiple = FALSE))
+          ),
+          fluidRow(
+            column(width = 7, style = "padding-right: 5px",
+                   numericInput("height_diagram", "Height",
+                                value = isolate(values$height_diagram),
+                                min = 0, step = 1)),
+            column(width = 5, style = "padding-left: 5px",
+                   selectInput("unit_height_diagram", "Unit",
+                               choices = c("cm", "inches" = "in"),
+                               selected = isolate(values$units),
+                               multiple = FALSE))
+          ),
+          if ("png" %in% values$file_type_diagram) {
+            numericInput("resolution_diagram", "Resolution (pixels per inch)",
+                         value = isolate(values$resolution_diagram),
+                         min = 0, step = 50)
+          }
         )
       } else {
         # when in the model diagram tab but no file type is selected, show only
@@ -1198,6 +1228,35 @@ shinyServer(function(input, output, session) {
   observeEvent(input$file_type_diagram, {
     values$file_type_diagram <- input$file_type_diagram
   }, ignoreNULL = FALSE, ignoreInit = TRUE)
+
+  # observer to update reactive value for the width of the model diagram
+  observeEvent(input$width_diagram, {
+    values$width_diagram <- input$width_diagram
+  }, ignoreInit = TRUE)
+
+  # observer to update reactive value for the height of the model diagram
+  observeEvent(input$height_diagram, {
+    values$height_diagram <- input$height_diagram
+  }, ignoreInit = TRUE)
+
+  # observer to ensure that unit of height is the same as unit of width
+  observeEvent(input$unit_width_diagram, {
+    values$units <- input$unit_width_diagram
+    updateSelectInput(session, inputId = "unit_height_diagram",
+                      selected = values$units)
+  }, ignoreInit = TRUE)
+
+  # observer to ensure that unit of width is the same as unit of height
+  observeEvent(input$unit_height_diagram, {
+    values$units <- input$unit_height_diagram
+    updateSelectInput(session, inputId = "unit_width_diagram",
+                      selected = values$units)
+  }, ignoreInit = TRUE)
+
+  # observer to update reactive value for the resolution of the model diagram
+  observeEvent(input$resolution_diagram, {
+    values$resolution_diagram <- input$resolution_diagram
+  }, ignoreInit = TRUE)
 
   # create UI inputs for the diagnostic plot
   output$select_file_type_plot <- renderUI({
@@ -1221,28 +1280,31 @@ shinyServer(function(input, output, session) {
                            selected = isolate(values$file_type_plot)),
         fluidRow(
           column(width = 7, style = "padding-right: 5px",
-                 numericInput("width", "Width", value = values$width,
+                 numericInput("width_plot", "Width",
+                              value = isolate(values$width_plot),
                               min = 0, step = 1)),
           column(width = 5, style = "padding-left: 5px",
-                 selectInput("unit_width", "Unit",
+                 selectInput("unit_width_plot", "Unit",
                              choices = c("cm", "inches" = "in"),
-                             selected = values$units,
+                             selected = isolate(values$units),
                              multiple = FALSE))
         ),
         # TODO: allow default height to scale with the number of regressions
         fluidRow(
           column(width = 7, style = "padding-right: 5px",
-                  numericInput("height", "Height", value = values$height,
+                  numericInput("height_plot", "Height",
+                               value = isolate(values$height_plot),
                                min = 0, step = 1)),
           column(width = 5, style = "padding-left: 5px",
-                 selectInput("unit_height", "Unit",
+                 selectInput("unit_height_plot", "Unit",
                              choices = c("cm", "inches" = "in"),
-                             selected = values$units,
+                             selected = isolate(values$units),
                              multiple = FALSE))
         ),
         if ("png" %in% values$file_type_plot) {
-          numericInput("resolution", "Resolution (pixels per inch)",
-                       value = values$resolution, min = 0, step = 50)
+          numericInput("resolution_plot", "Resolution (pixels per inch)",
+                       value = isolate(values$resolution_plot),
+                       min = 0, step = 50)
         }
       )
     } else {
@@ -1265,27 +1327,32 @@ shinyServer(function(input, output, session) {
   }, ignoreNULL = FALSE, ignoreInit = TRUE)
 
   # observer to update reactive value for the width of the diagnostic plot
-  observeEvent(input$width, {
-    values$width <- input$width
+  observeEvent(input$width_plot, {
+    values$width_plot <- input$width_plot
   }, ignoreInit = TRUE)
 
   # observer to update reactive value for the height of the diagnostic plot
-  observeEvent(input$height, {
-    values$height <- input$height
+  observeEvent(input$height_plot, {
+    values$height_plot <- input$height_plot
   }, ignoreInit = TRUE)
 
   # observer to ensure that unit of height is the same as unit of width
-  observeEvent(input$unit_width, {
-    values$units <- input$unit_width
-    updateSelectInput(session, inputId = "unit_height",
+  observeEvent(input$unit_width_plot, {
+    values$units <- input$unit_width_plot
+    updateSelectInput(session, inputId = "unit_height_plot",
                       selected = values$units)
   }, ignoreInit = TRUE)
 
   # observer to ensure that unit of width is the same as unit of height
-  observeEvent(input$unit_height, {
-    values$units <- input$unit_height
-    updateSelectInput(session, inputId = "unit_width",
+  observeEvent(input$unit_height_plot, {
+    values$units <- input$unit_height_plot
+    updateSelectInput(session, inputId = "unit_width_plot",
                       selected = values$units)
+  }, ignoreInit = TRUE)
+
+  # observer to update reactive value for the resolution of the diagnostic plot
+  observeEvent(input$resolution_plot, {
+    values$resolution_plot <- input$resolution_plot
   }, ignoreInit = TRUE)
 
   # observer for switching the units for width and height
@@ -1293,21 +1360,36 @@ shinyServer(function(input, output, session) {
   # the reactive value is initialized so that the default values are correct)
   observeEvent(values$units, {
     if (values$units == "in") {
-      width <- input$width / 2.54
-      height <- input$height / 2.54
+      width_diagram <- values$width_diagram / 2.54
+      height_diagram <- values$height_diagram / 2.54
+      width_plot <- values$width_plot / 2.54
+      height_plot <- values$height_plot / 2.54
       step = 0.5
     } else {
-      width <- input$width * 2.54
-      height <- input$height * 2.54
+      width_diagram <- values$width_diagram * 2.54
+      height_diagram <- values$height_diagram * 2.54
+      width_plot <- values$width_plot * 2.54
+      height_plot <- values$height_plot * 2.54
       step = 1
     }
-    updateNumericInput(session, inputId = "width", value = width, step = step)
-    updateNumericInput(session, inputId = "height", value = height, step = step)
-  }, ignoreInit = TRUE)
-
-  # observer to update reactive value for the resolution of the diagnostic plot
-  observeEvent(input$resolution, {
-    values$resolution <- input$resolution
+    # We only need to update the inputs in the active tab.  For the other tab,
+    # we just need to update the reactive values since those inputs will be
+    # rendered again if that tab becomes active.
+    if (input$export_main_panel == "Model diagram") {
+      updateNumericInput(session, inputId = "width_diagram",
+                         value = width_diagram, step = step)
+      updateNumericInput(session, inputId = "height_diagram",
+                         value = height_diagram, step = step)
+      values$width_plot <- width_plot
+      values$height_plot <- height_plot
+    } else {
+      updateNumericInput(session, inputId = "width_plot",
+                         value = width_plot, step = step)
+      updateNumericInput(session, inputId = "height_plot",
+                         value = height_plot, step = step)
+      values$width_diagram <- width_diagram
+      values$height_diagram <- height_diagram
+    }
   }, ignoreInit = TRUE)
 
   # create UI inputs for the table
@@ -1394,34 +1476,35 @@ shinyServer(function(input, output, session) {
     ## construct commands to generate and export diagnostic plot
     if (have_ROBMED && have_plot) {
       # extract and convert some inputs
-      width <- values$width
-      height <- values$height
+      width_plot <- values$width_plot
+      height_plot <- values$height_plot
       units <- values$units
       if (units == "cm") {
         # pdf() required width and height in inches: command looks nicer with
         # a function call for the conversion instead of the converted values
-        width <- call("/", width, 2.54)
-        height <- call("/", height, 2.54)
+        width_plot <- call("/", width_plot, 2.54)
+        height_plot <- call("/", height_plot, 2.54)
       }
       # define file names for diagnostic plot
       file_plot <- "diagnostic_plot.%s"
       # construct command for opening pdf file
-      have_pdf <- "pdf" %in% values$file_type_plot
-      if (have_pdf) {
+      have_pdf_plot <- "pdf" %in% values$file_type_plot
+      if (have_pdf_plot) {
         # construct command
         command_pdf <- call("pdf", file = sprintf(file_plot, "pdf"),
-                            width = width, height = height)
+                            width = width_plot, height = height_plot)
       } else command_pdf <- NULL
       # construct command for opening png image
-      have_png <- "png" %in% values$file_type_plot
-      if (have_png) {
+      have_png_plot <- "png" %in% values$file_type_plot
+      if (have_png_plot) {
         # construct command
-        resolution <- values$resolution
+        resolution_plot <- values$resolution_plot
         command_png <- call("png", file = sprintf(file_plot, "png"),
-                            width = values$width, height = values$height,
-                            units = units, res = resolution)
+                            width = values$width_plot,
+                            height = values$height_plot,
+                            units = units, res = resolution_plot)
       } else {
-        resolution <- NULL
+        resolution_plot <- NULL
         command_png <- NULL
       }
       # construct list of commands to export the diagnostic plot
@@ -1432,13 +1515,13 @@ shinyServer(function(input, output, session) {
       attr(commands_plot, "time_stamp") <- Sys.time()
       # construct list with used inputs and plot dimensions for preview
       used_inputs_plot <- list(file_type = values$file_type_plot,
-                               width = values$width,
-                               height = values$height,
+                               width_plot = values$width_plot,
+                               height_plot = values$height_plot,
                                units = values$units,
-                               resolution = resolution)
+                               resolution_plot = resolution_plot)
     } else {
-      have_pdf <- FALSE
-      have_png <- FALSE
+      have_pdf_plot <- FALSE
+      have_png_plot <- FALSE
       commands_plot <- NULL
       used_inputs_plot <- NULL
     }
@@ -1502,13 +1585,13 @@ shinyServer(function(input, output, session) {
     # save data set to RData file
     eval(commands$data$save, envir = session_env)
     # if requested, save diagnostic plot to pdf file
-    if (have_pdf) {
+    if (have_pdf_plot) {
       eval(commands_plot$pdf, envir = session_env)
       eval(commands_plot$generate, envir = session_env)
       eval(commands_plot$close, envir = session_env)
     }
     # if requested, save diagnostic plot to png image
-    if (have_png) {
+    if (have_png_plot) {
       eval(commands_plot$png, envir = session_env)
       eval(commands_plot$generate, envir = session_env)
       eval(commands_plot$close, envir = session_env)
@@ -1558,14 +1641,14 @@ shinyServer(function(input, output, session) {
       )
       # construct lines to export diagnostic plot
       lines_plot <- c(
-        if (have_pdf) {
+        if (have_pdf_plot) {
           c("",
             "# generate a pdf file containing the diagnostic plot for ROBMED",
             deparse_command(commands_plot$pdf),
             deparse_command(commands_plot$generate),
             deparse_command(commands_plot$close))
         },
-        if (have_png) {
+        if (have_png_plot) {
           c("",
             "# generate a png image containing the diagnostic plot for ROBMED",
             deparse_command(commands_plot$png),
@@ -1642,8 +1725,8 @@ shinyServer(function(input, output, session) {
     # update reactive value to enable download button
     values$download <- list(path = temporary_directory,
                             files = c(commands$data$save$file,
-                                      if (have_pdf) commands_plot$pdf$file,
-                                      if (have_png) commands_plot$png$file,
+                                      if (have_pdf_plot) commands_plot$pdf$file,
+                                      if (have_png_plot) commands_plot$png$file,
                                       if (have_docx) commands_table$docx$file,
                                       if (have_pptx) commands_table$pptx$file,
                                       script_file))
@@ -1653,6 +1736,8 @@ shinyServer(function(input, output, session) {
         showTab("export_main_panel", target = "Table", select = TRUE)
       } else if (have_plot) {
         showTab("export_main_panel", target = "Diagnostic plot", select = TRUE)
+      } else if (have_diagram) {
+        showTab("export_main_panel", target = "Model diagram", select = TRUE)
       }
     }
   })
@@ -1708,14 +1793,14 @@ shinyServer(function(input, output, session) {
     get("p", envir = session_env)
   }, width = function() {
     req(used_inputs$plot)
-    width <- used_inputs$plot$width
-    if (used_inputs$plot$units == "cm") width <- width / 2.54
-    width * 125
+    width_plot <- used_inputs$plot$width_plot
+    if (used_inputs$plot$units == "cm") width_plot <- width_plot / 2.54
+    width_plot * 125
   }, height = function() {
     req(used_inputs$plot)
-    height <- used_inputs$plot$height
-    if (used_inputs$plot$units == "cm") height <- height / 2.54
-    height * 125
+    height_plot <- used_inputs$plot$height_plot
+    if (used_inputs$plot$units == "cm") height_plot <- height_plot / 2.54
+    height_plot * 125
   }, res = 125)
 
 
