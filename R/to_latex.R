@@ -154,7 +154,7 @@ to_latex.test_mediation <- function(object, type = c("boot", "data"), ...) {
 #' @param p_value  a logical indicating whether to include p-values for the
 #' indirect effects if mediation analysis was done via a bootstrap procedure
 #' (defaults to \code{FALSE}).  If \code{TRUE}, the p-values are obtained via
-#' \code{\link[robmed]{p_value}()} and may take some time to compute.
+#' \code{\link[robmed]{p_value}()}.
 #' @param align  a character vector of length two.  The first element is used
 #' as the alignment specification in the \code{\\begin\{tabular\}\{\}}
 #' statement, while the second element is used for the alignment specification

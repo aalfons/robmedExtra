@@ -135,7 +135,7 @@ to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
 #' @param p_value  a logical indicating whether to include p-values for the
 #' indirect effects if mediation analysis was done via a bootstrap procedure
 #' (defaults to \code{FALSE}).  If \code{TRUE}, the p-values are obtained via
-#' \code{\link[robmed]{p_value}()} and may take some time to compute.
+#' \code{\link[robmed]{p_value}()}.
 #'
 #' @export
 

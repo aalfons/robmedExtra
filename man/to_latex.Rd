@@ -59,7 +59,7 @@ distribution.}
 \item{p_value}{a logical indicating whether to include p-values for the
 indirect effects if mediation analysis was done via a bootstrap procedure
 (defaults to \code{FALSE}).  If \code{TRUE}, the p-values are obtained via
-\code{\link[robmed]{p_value}()} and may take some time to compute.}
+\code{\link[robmed]{p_value}()}.}
 
 \item{align}{a character vector of length two.  The first element is used
 as the alignment specification in the \code{\\begin\{tabular\}\{\}}

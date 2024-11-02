@@ -11,9 +11,11 @@
 ## heavy lifting for to_flextable() and to_latex()
 
 # generic function
+#' @noRd
 get_mediation_tables <- function(object, ...) UseMethod("get_mediation_tables")
 
 # method for summary of results from mediation analysis
+#' @noRd
 get_mediation_tables.summary_test_mediation <- function(object,
                                                         p_value = FALSE,
                                                         digits = 3L,
@@ -57,6 +59,7 @@ get_mediation_tables.summary_test_mediation <- function(object,
 }
 
 # list of results from mediation analysis of summaries thereof
+#' @noRd
 get_mediation_tables.list <- function(object, type = "boot", p_value = FALSE,
                                       digits = 3L, big.mark = NULL,
                                       decimal.mark = getOption("OutDec"), ...) {

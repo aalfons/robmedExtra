@@ -58,7 +58,7 @@ distribution.}
 \item{p_value}{a logical indicating whether to include p-values for the
 indirect effects if mediation analysis was done via a bootstrap procedure
 (defaults to \code{FALSE}).  If \code{TRUE}, the p-values are obtained via
-\code{\link[robmed]{p_value}()} and may take some time to compute.}
+\code{\link[robmed]{p_value}()}.}
 
 \item{orientation}{a character string specifying how to arrange the results
 from different objects (list elements) in the \code{flextable}.  If
