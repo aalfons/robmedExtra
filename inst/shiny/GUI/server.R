@@ -588,6 +588,17 @@ shinyServer(function(input, output, session) {
                 multiple = FALSE)
   })
 
+  # create UI element for the order of mediators in case of the serial model
+  output$mediator_order <- renderUI({
+    req(input$model == "serial")
+    mediator_string <- toString(paste(
+      "M<sub>",
+      seq_along(input$m),
+      "</sub>: ",
+      input$m, sep = ""))
+    HTML("The order of mediators will be: ", mediator_string)
+  })
+
   # observer to clean up reactive values when variables are selected
   # (which is used to clear output)
   observeEvent(c(input$y, input$x, input$m, input$covariates), {
