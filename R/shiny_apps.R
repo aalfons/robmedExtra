@@ -88,7 +88,7 @@ run_shiny_app <- function(which = c("GUI", "simulation")) {
 #' \emph{Behavior Research Methods}, \bold{40}(3), 879--891.
 #' doi:10.3758/brm.40.3.879.
 #'
-#' @seealso \code{\link{test_mediation}}
+#' @seealso \code{\link[robmed]{test_mediation}}
 #'
 #' @examples
 #' # run example only from an interactive R session
@@ -172,7 +172,7 @@ robmed_GUI <- function(data = NULL) {
 #' Mediation Analysis.  \emph{Multivariate Behavioral Research}, \bold{45}(1),
 #' 1--44.  doi:10.1080/00273170903504695.
 #'
-#' @seealso \code{\link{test_mediation}}
+#' @seealso \code{\link[robmed]{test_mediation}}
 #'
 #' @examples
 #' # run example only from an interactive R session

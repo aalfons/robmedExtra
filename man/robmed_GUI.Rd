@@ -60,7 +60,7 @@ for Assessing and Comparing Indirect Effects in Multiple Mediator Models.
 doi:10.3758/brm.40.3.879.
 }
 \seealso{
-\code{\link{test_mediation}}
+\code{\link[robmed]{test_mediation}}
 }
 \author{
 Andreas Alfons and Aurore Archimbaud, based on an initial prototype by

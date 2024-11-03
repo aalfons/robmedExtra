@@ -62,7 +62,7 @@ Mediation Analysis.  \emph{Multivariate Behavioral Research}, \bold{45}(1),
 1--44.  doi:10.1080/00273170903504695.
 }
 \seealso{
-\code{\link{test_mediation}}
+\code{\link[robmed]{test_mediation}}
 }
 \author{
 Andreas Alfons

@@ -78,7 +78,7 @@
 #' \bold{103}(13), 1--45.  doi:10.18637/jss.v103.i13.
 #'
 #' @seealso
-#' \code{\link{test_mediation}()},
+#' \code{\link[robmed]{test_mediation}()},
 #' \code{\link[robmed:summary.test_mediation]{summary}()}
 #'
 #' \code{\link{to_flextable}()}

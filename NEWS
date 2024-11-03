@@ -4,4 +4,6 @@ Changes in robmed version 0.1.1
 
     + Default in tables is now to include p values of the indirect effects.
 
+    + Fixed links in help files with missing package anchors.
+
     + Updated examples in help files.
