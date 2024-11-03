@@ -42,19 +42,18 @@ mediation analysis.  It is essentially a wrapper for
 \examples{
 data("BSG2014")
 
-# seed to be used for the random number generator
-seed <- 20211117
-
 # perform mediation analysis via robust bootstrap test ROBMED
-set.seed(seed)
-robust_boot <- test_mediation(BSG2014,
-                              x = "ValueDiversity",
-                              y = "TeamCommitment",
-                              m = "TaskConflict",
-                              robust = TRUE)
+set.seed(20241101)
+boot <- test_mediation(BSG2014,
+                       x = "SharedLeadership",
+                       y = "TeamPerformance",
+                       m = c("ProceduralJustice",
+                             "InteractionalJustice"),
+                       covariates = c("AgeDiversity",
+                                      "GenderDiversity"))
 
 # construct flextable of results
-ft <- to_flextable(robust_boot)
+ft <- to_flextable(boot)
 
 # export to Microsoft Powerpoint
 file_name <- tempfile(fileext = ".pptx")

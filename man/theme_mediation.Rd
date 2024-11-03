@@ -36,22 +36,21 @@ the table have been added (e.g., additional header or footer rows).
 \examples{
 data("BSG2014")
 
-# seed to be used for the random number generator
-seed <- 20211117
-
 # perform mediation analysis via robust bootstrap test ROBMED
-set.seed(seed)
-robust_boot <- test_mediation(BSG2014,
-                              x = "ValueDiversity",
-                              y = "TeamCommitment",
-                              m = "TaskConflict",
-                              robust = TRUE)
+set.seed(20150601)
+boot <- test_mediation(BSG2014,
+                       x = "ValueDiversity",
+                       y = "TeamCommitment",
+                       m = "TaskConflict")
 
 # construct flextable of results
-ft <- to_flextable(robust_boot)
+ft <- to_flextable(boot)
 # add additional row to the footer
-footer_line <- paste("Additional explanations on the conducted",
-                     "analysis.")
+footer_line <- flextable::as_paragraph(
+  "Depending on the seed of the random number generator, the ",
+  flextable::as_i("p"), " value of the indirect effect may ",
+  "fall below or above the arbitrary 5\% threshold."
+)
 ft <- flextable::add_footer_lines(ft, values = footer_line)
 ft <- theme_mediation(ft)
 ft

@@ -1,0 +1,7 @@
+Changes in robmed version 0.1.1
+
+    + Added note in GUI that the resolution of the preview doesn't reflect the selected resolution for the png file.
+
+    + Default in tables is now to include p values of the indirect effects.
+
+    + Updated examples in help files.

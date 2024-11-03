@@ -87,7 +87,7 @@
 #' data("BSG2014")
 #'
 #' # seed to be used for the random number generator
-#' seed <- 20211117
+#' seed <- 20150601
 #'
 #' # perform mediation analysis via robust bootstrap test ROBMED
 #' set.seed(seed)
@@ -96,6 +96,10 @@
 #'                               y = "TeamCommitment",
 #'                               m = "TaskConflict",
 #'                               robust = TRUE)
+#'
+#' # note that depending on the seed of the random number
+#' # generator, the p value of the indirect effect may fall
+#' # below or above the arbitrary 5% threshold
 #'
 #' # construct LaTeX table of results
 #' to_latex(robust_boot)
@@ -152,8 +156,8 @@ to_latex.test_mediation <- function(object, type = c("boot", "data"), ...) {
 #' @name to_latex
 #'
 #' @param p_value  a logical indicating whether to include p-values for the
-#' indirect effects if mediation analysis was done via a bootstrap procedure
-#' (defaults to \code{FALSE}).  If \code{TRUE}, the p-values are obtained via
+#' indirect effects if mediation analysis was done via a bootstrap procedure.
+#' If \code{TRUE} (the default), the p-values are obtained via
 #' \code{\link[robmed]{p_value}()}.
 #' @param align  a character vector of length two.  The first element is used
 #' as the alignment specification in the \code{\\begin\{tabular\}\{\}}
@@ -167,7 +171,7 @@ to_latex.test_mediation <- function(object, type = c("boot", "data"), ...) {
 #'
 #' @export
 
-to_latex.summary_test_mediation <- function(object, p_value = FALSE,
+to_latex.summary_test_mediation <- function(object, p_value = TRUE,
                                             align = c("lrrrr", "c"),
                                             ...) {
   # TODO: add checks for argument 'align'
@@ -194,7 +198,7 @@ to_latex.summary_test_mediation <- function(object, p_value = FALSE,
 #'
 #' @export
 
-to_latex.list <- function(object, type = c("boot", "data"), p_value = FALSE,
+to_latex.list <- function(object, type = c("boot", "data"), p_value = TRUE,
                           orientation = c("landscape", "portrait"),
                           align = NULL, ...) {
   # check argument for orientation

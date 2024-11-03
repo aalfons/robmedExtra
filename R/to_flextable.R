@@ -68,7 +68,7 @@
 #' data("BSG2014")
 #'
 #' # seed to be used for the random number generator
-#' seed <- 20211117
+#' seed <- 20150601
 #'
 #' # perform mediation analysis via robust bootstrap test ROBMED
 #' set.seed(seed)
@@ -77,6 +77,10 @@
 #'                               y = "TeamCommitment",
 #'                               m = "TaskConflict",
 #'                               robust = TRUE)
+#'
+#' # note that depending on the seed of the random number
+#' # generator, the p value of the indirect effect may fall
+#' # below or above the arbitrary 5% threshold
 #'
 #' # construct flextable of results
 #' to_flextable(robust_boot)
@@ -133,13 +137,13 @@ to_flextable.test_mediation <- function(object, type = c("boot", "data"), ...) {
 #' @name to_flextable
 #'
 #' @param p_value  a logical indicating whether to include p-values for the
-#' indirect effects if mediation analysis was done via a bootstrap procedure
-#' (defaults to \code{FALSE}).  If \code{TRUE}, the p-values are obtained via
+#' indirect effects if mediation analysis was done via a bootstrap procedure.
+#' If \code{TRUE} (the default), the p-values are obtained via
 #' \code{\link[robmed]{p_value}()}.
 #'
 #' @export
 
-to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
+to_flextable.summary_test_mediation <- function(object, p_value = TRUE, ...) {
   # call workhorse function to format tables for effects
   tables <- get_mediation_tables(object, p_value = p_value, ...)
   # put data frames of effects together
@@ -163,7 +167,7 @@ to_flextable.summary_test_mediation <- function(object, p_value = FALSE, ...) {
 #'
 #' @export
 
-to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
+to_flextable.list <- function(object, type = c("boot", "data"), p_value = TRUE,
                               orientation = c("landscape", "portrait"), ...) {
 
   # check arguments
@@ -293,22 +297,21 @@ to_flextable.list <- function(object, type = c("boot", "data"), p_value = FALSE,
 #' @examples
 #' data("BSG2014")
 #'
-#' # seed to be used for the random number generator
-#' seed <- 20211117
-#'
 #' # perform mediation analysis via robust bootstrap test ROBMED
-#' set.seed(seed)
-#' robust_boot <- test_mediation(BSG2014,
-#'                               x = "ValueDiversity",
-#'                               y = "TeamCommitment",
-#'                               m = "TaskConflict",
-#'                               robust = TRUE)
+#' set.seed(20150601)
+#' boot <- test_mediation(BSG2014,
+#'                        x = "ValueDiversity",
+#'                        y = "TeamCommitment",
+#'                        m = "TaskConflict")
 #'
 #' # construct flextable of results
-#' ft <- to_flextable(robust_boot)
+#' ft <- to_flextable(boot)
 #' # add additional row to the footer
-#' footer_line <- paste("Additional explanations on the conducted",
-#'                      "analysis.")
+#' footer_line <- flextable::as_paragraph(
+#'   "Depending on the seed of the random number generator, the ",
+#'   flextable::as_i("p"), " value of the indirect effect may ",
+#'   "fall below or above the arbitrary 5% threshold."
+#' )
 #' ft <- flextable::add_footer_lines(ft, values = footer_line)
 #' ft <- theme_mediation(ft)
 #' ft
